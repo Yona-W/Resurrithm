@@ -4,34 +4,53 @@
 
 using namespace std;
 using namespace crc32_constexpr;
-namespace b = boost;
-namespace ba = boost::algorithm;
-namespace xp = boost::xpressive;
 
-xp::sregex SusAnalyzer::regexSusCommand = "#" >> (xp::s1 = +xp::alnum) >> !(+xp::space >> (xp::s2 = +(~xp::_n)));
-xp::sregex SusAnalyzer::regexSusData = "#" >> (xp::s1 = xp::repeat<3, 3>(xp::alnum)) >> (xp::s2 = xp::repeat<2, 3>(xp::alnum)) >> ":" >> *xp::space >> (xp::s3 = +(~xp::_n));
+std::regex SusAnalyzer::regexSusCommand("#([0-9A-Za-z]+)(?:\\s+([^\\n]+))?");
+std::regex SusAnalyzer::regexSusData("#([0-9A-Za-z]{3,3})([0-9A-Za-z]{2,3}):\\s*([^\\n]+)");
 
-static xp::sregex allNumeric = xp::bos >> +(xp::digit) >> xp::eos;
+static std::regex allNumeric("^[0-9]+$");
 
 auto toUpper = [](const char c) {
     return (c >= 'a' && c <= 'z') ? char(c - 0x20) : c;
 };
 
+static bool starts_with(const std::string& s, const std::string& prefix) {
+    auto size = prefix.size();
+    if (s.size() < size) return false;
+    return std::equal(std::begin(prefix), std::end(prefix), std::begin(s));
+}
+
+static vector<string> split(const string& s, char delim) {
+    vector<string> elems;
+    string item;
+    for (char ch : s) {
+        if (ch == delim) {
+            if (!item.empty())
+                elems.push_back(item);
+            item.clear();
+        }
+        else {
+            item += ch;
+        }
+    }
+    if (!item.empty()) elems.push_back(item);
+    return elems;
+}
+
 static auto convertRawString = [](const string &input) -> string {
     // TIL: ASCII文字範囲ではUTF-8と本来のASCIIを間違うことはない
-    if (ba::starts_with(input, "\"")) {
+    if (starts_with(input, "\"")) {
         ostringstream result;
-        auto rest = input;
-        trim_if(rest, ba::is_any_of("\""));
-        auto it = rest.begin();
-        while (it != rest.end()) {
+        auto it = input.begin() + 1;
+        while (it != input.end()) {
             if (*it != '\\') {
+                if (*it == '"') break;
                 result << *it;
                 ++it;
                 continue;
             }
             ++it;
-            if (it == rest.end()) return "";
+            if (it == input.end()) return "";
             switch (*it) {
                 case '"':
                     result << "\"";
@@ -131,7 +150,7 @@ void SusAnalyzer::LoadFromFile(const wstring &fileName, const bool analyzeOnlyMe
     auto log = spdlog::get("main");
     ifstream file;
     string rawline;
-    xp::smatch match;
+    std::smatch match;
     uint32_t line = 0;
 
     Reset();
@@ -147,10 +166,10 @@ void SusAnalyzer::LoadFromFile(const wstring &fileName, const bool analyzeOnlyMe
         ++line;
         if (rawline.empty() || rawline[0] != '#') continue;
 
-        if (xp::regex_match(rawline, match, regexSusCommand)) {
+        if (std::regex_match(rawline, match, regexSusCommand)) {
             ProcessCommand(match, analyzeOnlyMetaData, line);
-        } else if (xp::regex_match(rawline, match, regexSusData)) {
-            if (!analyzeOnlyMetaData || boost::starts_with(rawline, "#BPM")) ProcessData(match, line);
+        } else if (std::regex_match(rawline, match, regexSusData)) {
+            if (!analyzeOnlyMetaData || starts_with(rawline, "#BPM")) ProcessData(match, line);
         } else {
             MakeMessage(line, u8"SUS有効行ですが解析できませんでした。");
         }
@@ -201,7 +220,7 @@ void SusAnalyzer::LoadFromFile(const wstring &fileName, const bool analyzeOnlyMe
     }
 }
 
-void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, const uint32_t line)
+void SusAnalyzer::ProcessCommand(const std::smatch &result, const bool onlyMeta, const uint32_t line)
 {
     auto name = result[1].str();
     transform(name.cbegin(), name.cend(), name.begin(), toUpper);
@@ -240,7 +259,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
             break;
         }
         case "DIFFICULTY"_crc32: {
-            if (xp::regex_match(result[2], allNumeric)) {
+            if (std::regex_match(result[2].str(), allNumeric)) {
                 //通常記法
                 const auto difficultyType = ConvertInteger(result[2]);
                 if (difficultyType < 0 || 3 < difficultyType) {
@@ -259,8 +278,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
             } else {
                 //WE記法
                 auto dd = convertRawString(result[2]);
-                vector<string> params;
-                ba::split(params, dd, ba::is_any_of(":"));
+                vector<string> params = split(dd, ':');
                 if (params.size() < 2) {
                     MakeMessage(line, u8"難易度指定書式が不正です。");
                     return;
@@ -379,9 +397,8 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
 void SusAnalyzer::ProcessRequest(const string &cmd, const uint32_t line)
 {
     auto str = cmd;
-    b::trim_if(str, ba::is_any_of(" "));
-    vector<string> params;
-    ba::split(params, str, ba::is_any_of(" "), b::token_compress_on);
+    // TODO: 不完全 前後に空白がある場合,連続する空白で死ぬ
+    vector<string> params = split(str, ' ');
 
     if (params.empty()) return;
     switch (Crc32Rec(0xffffffff, params[0].c_str())) {
@@ -407,12 +424,12 @@ void SusAnalyzer::ProcessRequest(const string &cmd, const uint32_t line)
     }
 }
 
-void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
+void SusAnalyzer::ProcessData(const std::smatch &result, const uint32_t line)
 {
     auto meas = result[1].str();
     auto lane = result[2].str();
     auto pattern = result[3].str();
-    ba::erase_all(pattern, " ");
+    // TODO: ba::erase_all(pattern, " ");
 
     /*
      判定順について
@@ -1110,13 +1127,12 @@ void SusHispeedTimeline::AddKeysByString(const string &def, const function<share
 {
     // int'int:double:v/i
     auto str = def;
-    vector<string> ks;
 
-    ba::erase_all(str, " ");
-    split(ks, str, b::is_any_of(","));
+    //TODO: ba::erase_all(str, " ");
+
+    vector<string> ks = split(str, ',');
     for (const auto &k : ks) {
-        vector<string> params;
-        split(params, k, b::is_any_of(":"));
+        vector<string> params = split(k, ':');
         if (params.size() < 2) {
             //MakeMessage("ハイスピードタイムラインの解析に失敗"); エラーログ出したいが……
             continue;
@@ -1131,8 +1147,7 @@ void SusHispeedTimeline::AddKeysByString(const string &def, const function<share
             continue;
         }
 
-        vector<string> timing;
-        split(timing, params[0], b::is_any_of("'"));
+        vector<string> timing = split(params[0], '\'');
         if (timing.size() < 2) {
             //MakeMessage("ハイスピードタイムラインの解析に失敗"); エラーログ出したいが……
             continue;
@@ -1265,16 +1280,14 @@ tuple<bool, double> SusDrawableNoteData::GetStateAt(const double time)
 
 void SusNoteExtraAttribute::Apply(const string &props)
 {
-    using namespace boost::algorithm;
     auto list = props;
     list.erase(remove(list.begin(), list.end(), ' '), list.end());
-    vector<string> params;
-    split(params, list, is_any_of(","));
+    vector<string> params = split(list, ',');
 
     vector<string> pr;
     for (const auto& p : params) {
         pr.clear();
-        split(pr, p, is_any_of(":"));
+        pr = split(p, ':');
         if (pr.size() != 2) continue;
         switch (Crc32Rec(0xffffffff, pr[0].c_str())) {
             case "priority"_crc32:

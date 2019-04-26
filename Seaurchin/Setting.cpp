@@ -2,10 +2,9 @@
 #include "Misc.h"
 
 using namespace std;
-using namespace boost::filesystem;
-namespace ba = boost::algorithm;
+using namespace std::filesystem;
 
-std::wstring Setting::rootDirectory = L"";
+std::filesystem::path Setting::rootDirectory = L"";
 
 Setting::Setting(const HMODULE hModule)
 {
@@ -21,7 +20,7 @@ Setting::Setting()
 
 }
 
-void Setting::Load(const wstring &filename)
+void Setting::Load(const std::filesystem::path&filename)
 {
     auto log = spdlog::get("main");
     file = filename;
@@ -40,7 +39,7 @@ void Setting::Load(const wstring &filename)
     ifs.close();
 }
 
-std::wstring Setting::GetRootDirectory()
+std::filesystem::path Setting::GetRootDirectory()
 {
     return rootDirectory;
 }
@@ -66,7 +65,7 @@ SettingItemManager::SettingItemManager(const shared_ptr<Setting>& setting)
 
 void SettingItemManager::LoadItemsFromToml(const path& file)
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     using namespace crc32_constexpr;
 
     auto log = spdlog::get("main");

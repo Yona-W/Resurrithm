@@ -70,7 +70,7 @@ namespace
 ScenePlayer::ScenePlayer(ExecutionManager *exm)
     : manager(exm)
     , soundManager(manager->GetSoundManagerUnsafe())
-    , judgeSoundQueue(32)
+    , judgeSoundQueue()
     , analyzer(make_unique<SusAnalyzer>(192))
     , processor(CreateScoreProcessor(exm, this))
     , isLoadCompleted(false) // 若干危険ですけどね……
@@ -178,12 +178,12 @@ void ScenePlayer::LoadWorker()
 
 
     // 動画・音声の読み込み
-    auto file = boost::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
+    auto file = std::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
     bgmStream = SoundStream::CreateFromFile(file.wstring());
     state = PlayingState::ReadyToStart;
 
     if (!analyzer->SharedMetaData.UMovieFileName.empty()) {
-        movieFileName = (boost::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName)).wstring();
+        movieFileName = (std::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName)).wstring();
     }
 
     // 前カウントの計算
@@ -381,10 +381,12 @@ void ScenePlayer::ProcessSoundQueue()
 {
     JudgeSoundType type;
     while (!isTerminating) {
-        if (!judgeSoundQueue.pop(type)) {
+        if (judgeSoundQueue.empty()) {
             Sleep(0);
             continue;
         }
+        type = judgeSoundQueue.front();
+        judgeSoundQueue.pop();
         switch (type) {
             case JudgeSoundType::Tap:
                 if (soundTap) SoundManager::PlayGlobal(soundTap->GetSample());

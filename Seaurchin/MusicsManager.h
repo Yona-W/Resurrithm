@@ -9,16 +9,16 @@ struct MusicScoreInfo final {
     double BpmToShow = 0.0;
     std::string DifficultyName;
     std::string Designer;
-    boost::filesystem::path Path;
-    boost::filesystem::path WavePath;
-    boost::filesystem::path BackgroundPath;
+    std::filesystem::path Path;
+    std::filesystem::path WavePath;
+    std::filesystem::path BackgroundPath;
 };
 
 struct MusicMetaInfo final {
     std::string SongId;
     std::string Name;
     std::string Artist;
-    boost::filesystem::path JacketPath;
+    std::filesystem::path JacketPath;
     std::vector<std::shared_ptr<MusicScoreInfo>> Scores;
 };
 
@@ -27,12 +27,12 @@ class CategoryInfo final {
 private:
 
     std::string name;
-    boost::filesystem::path categoryPath;
+    std::filesystem::path categoryPath;
 
 public:
     std::vector<std::shared_ptr<MusicMetaInfo>> Musics;
 
-    explicit CategoryInfo(const boost::filesystem::path& cpath);
+    explicit CategoryInfo(const std::filesystem::path& cpath);
     ~CategoryInfo();
 
     std::string GetName() const { return name; }
@@ -71,7 +71,7 @@ public:
     static void Initialize();
     void Reload(bool async);
     bool IsReloading();
-    boost::filesystem::path GetSelectedScorePath();
+    std::filesystem::path GetSelectedScorePath();
 
     MusicSelectionCursor *CreateMusicSelectionCursor();
     const std::vector<std::shared_ptr<CategoryInfo>> &GetCategories() const { return categories; }

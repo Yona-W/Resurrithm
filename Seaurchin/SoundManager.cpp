@@ -2,8 +2,7 @@
 #include "SoundManager.h"
 
 using namespace std;
-using namespace boost::algorithm;
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 // SoundSample ------------------------
 SoundSample::SoundSample(const HSAMPLE sample)
@@ -80,7 +79,7 @@ void SoundStream::StopSound()
 
 void SoundStream::SetVolume(const double vol)
 {
-    BASS_ChannelSetAttribute(hStream, BASS_ATTRIB_VOL, SU_TO_FLOAT(clamp(vol, 0.0f, 1.0f)));
+    BASS_ChannelSetAttribute(hStream, BASS_ATTRIB_VOL, SU_TO_FLOAT(std::clamp(vol, 0.0, 1.0)));
 }
 
 void SoundStream::Pause() const

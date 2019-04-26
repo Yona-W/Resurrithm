@@ -5,7 +5,7 @@
 #include "Misc.h"
 
 using namespace std;
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 ScriptScene::ScriptScene(asIScriptObject *scene)
     : sceneObject(scene)

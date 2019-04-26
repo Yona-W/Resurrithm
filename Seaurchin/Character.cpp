@@ -13,17 +13,19 @@ CharacterManager::CharacterManager()
 
 void CharacterManager::LoadAllCharacters()
 {
-    using namespace boost;
+    using namespace std;
     using namespace filesystem;
-    using namespace xpressive;
     auto log = spdlog::get("main");
 
     const auto sepath = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR;
 
-    for (const auto& fdata : make_iterator_range(directory_iterator(sepath), {})) {
+    for (const auto& fdata : directory_iterator(sepath)) {
         if (is_directory(fdata)) continue;
         const auto filename = ConvertUnicodeToUTF8(fdata.path().wstring());
-        if (!ends_with(filename, ".toml")) continue;
+        const std::string ext(".toml");
+        size_t len1 = filename.size();
+        size_t len2 = ext.size();
+        if (!(len1 >= len2 && filename.compare(len1 - len2, len2, ext) == 0)) continue;
         LoadFromToml(fdata.path());
     }
     log->info(u8"キャラクター総数: {0:d}", characters.size());
@@ -68,9 +70,9 @@ int32_t CharacterManager::GetSize() const
 }
 
 
-void CharacterManager::LoadFromToml(const boost::filesystem::path& file)
+void CharacterManager::LoadFromToml(const std::filesystem::path& file)
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
 
     auto log = spdlog::get("main");
     auto result = make_shared<CharacterParameter>();

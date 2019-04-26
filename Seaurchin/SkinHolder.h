@@ -13,7 +13,7 @@ private:
     const std::shared_ptr<AngelScript> scriptInterface;
     const std::shared_ptr<SoundManager> soundInterface;
     const std::wstring skinName;
-    const boost::filesystem::path skinRoot;
+    const std::filesystem::path skinRoot;
 
     std::unordered_map<std::string, SImage*> images;
     std::unordered_map<std::string, SFont*> fonts;

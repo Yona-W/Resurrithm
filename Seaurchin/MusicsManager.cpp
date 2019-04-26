@@ -4,9 +4,7 @@
 #include "Misc.h"
 
 using namespace std;
-using namespace boost;
 using namespace filesystem;
-using namespace xpressive;
 
 typedef std::lock_guard<std::mutex> LockGuard;
 
@@ -62,13 +60,13 @@ void MusicsManager::CreateMusicCache()
     categories.clear();
 
     const auto mlpath = Setting::GetRootDirectory() / SU_MUSIC_DIR;
-    for (const auto& fdata : make_iterator_range(directory_iterator(mlpath), {})) {
+    for (const auto& fdata : directory_iterator(mlpath)) {
         if (!is_directory(fdata)) continue;
 
         auto category = make_shared<CategoryInfo>(fdata);
-        for (const auto& mdir : make_iterator_range(directory_iterator(fdata), {})) {
+        for (const auto& mdir : directory_iterator(fdata)) {
             if (!is_directory(mdir)) continue;
-            for (const auto& file : make_iterator_range(directory_iterator(mdir), {})) {
+            for (const auto& file : directory_iterator(mdir)) {
                 if (is_directory(file)) continue;
                 if (file.path().extension() != ".sus") continue;     //これ大文字どうすんの
                 analyzer->Reset();

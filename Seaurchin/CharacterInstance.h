@@ -49,7 +49,7 @@ private:
     void LoadAbilities();
     void CreateImageSet();
 
-    asIScriptObject* LoadAbilityObject(const boost::filesystem::path& filepath);
+    asIScriptObject* LoadAbilityObject(const std::filesystem::path& filepath);
 
     void CallEventFunction(asIScriptObject *obj, asIScriptFunction* func) const;
     void CallEventFunction(asIScriptObject *obj, asIScriptFunction* func, const JudgeInformation &info) const;

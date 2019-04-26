@@ -15,13 +15,16 @@ ExtensionManager::~ExtensionManager()
 
 void ExtensionManager::LoadExtensions()
 {
-    using namespace boost;
+    using namespace std;
     using namespace filesystem;
     const auto root = Setting::GetRootDirectory() / SU_DATA_DIR / SU_EXTENSION_DIR;
-    for (const auto& fdata : make_iterator_range(directory_iterator(root), {})) {
+    for (const auto& fdata : directory_iterator(root)) {
         if (is_directory(fdata)) continue;
         const auto filename = fdata.path().wstring();
-        if (!ends_with(filename, L".dll")) continue;
+        const std::wstring ext(L"dll");
+        size_t len1 = filename.size();
+        size_t len2 = ext.size();
+        if (!(len1 >= len2 && filename.compare(len1 - len2, len2, ext) == 0)) continue;
         LoadDll(filename);
     }
 

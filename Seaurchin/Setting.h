@@ -5,17 +5,17 @@
 
 class Setting final {
 private:
-    static std::wstring rootDirectory;
-    std::wstring file;
+    static std::filesystem::path rootDirectory;
+    std::filesystem::path file;
     toml::Value settingTree;
 
 public:
     Setting();
     explicit Setting(HMODULE hModule);
-    void Load(const std::wstring &filename);
+    void Load(const std::filesystem::path&filename);
     void Reload() { Load(file); }
     void Save() const;
-    static std::wstring GetRootDirectory();
+    static std::filesystem::path GetRootDirectory();
 
     template<typename T>
     T ReadValue(const std::string &group, const std::string &key, T defValue)
@@ -303,7 +303,7 @@ private:
 
 public:
     explicit SettingItemManager(const std::shared_ptr<Setting>& setting);
-    void LoadItemsFromToml(const boost::filesystem::path& file);
+    void LoadItemsFromToml(const std::filesystem::path& file);
     void RetrieveAllValues();
     void SaveAllValues();
 

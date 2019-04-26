@@ -3,100 +3,327 @@
 #include "ScriptSprite.h"
 #include "MoverFunctionExpression.h"
 
-#define BOOST_RESULT_OF_USE_DECLTYPE
-#define BOOST_SPIRIT_USE_PHOENIX_V3
-
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix.hpp>
-
 using namespace std;
 using namespace crc32_constexpr;
 
-// AddMoveのパーサ
-namespace parser_impl {
-    using namespace boost::spirit;
-    namespace phx = boost::phoenix;
+// パーサー
+namespace {
+#define SKIP_SP(p) while(*p != '\0' && !isgraph(*p)) ++p
+#define CHECK_END(p) do { if (*p == '\0') return false; } while(0)
 
-    // NOTE: キー:値 のペアを一度vectorにするのではなく逐次適用させようと試行錯誤した結果こうなってしまった
-    // マルチスレッドで確実に死ぬ、そうでなくとも外部から触れてしまうのでまずい
-    // TODO: グローバル変数になってしまったこのポインタを何とかする
-    MoverObject* pMoverObj;
-    SSpriteMover* pSpriteMover;
-    void ApplyMoverDoubleValue(const string &key, double value)
+    using namespace std;
+
+    inline bool Double(const char* expression, const char** seeked, double& retVal)
     {
-        if (!pMoverObj->Apply(key, value)) {
-            // NOTE: Applyがログ出すからそれでいいかな
+        const char* p = expression;
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        bool isPositive = false, isNegative = false;
+        if (*p == '+') {
+            isPositive = true;
+            ++p;
         }
-    }
-    void ApplyMoverStringValue(const string &key, const string &value)
-    {
-        if (!pMoverObj->Apply(key, value)) {
-            // NOTE: Applyがログ出すからそれでいいかな
+        else if (*p == '-') {
+            isNegative = true;
+            ++p;
         }
+
+        if (isdigit(*p) || *p == '.') {
+            double val = 0.0;
+            while (isdigit(*p)) {
+                val = val * 10.0 + (*p - '0');
+                ++p;
+            }
+            if (*p == '.') {
+                ++p;
+
+                double dig = 0.1;
+                while (isdigit(*p)) {
+                    val += (*p - '0') * dig;
+                    dig *= 0.1;
+                    ++p;
+                }
+            }
+
+            if (isNegative) val *= -1.0;
+
+            retVal = val;
+            *seeked = p;
+            return true;
+        }
+
+        return false;
     }
-    void ApplyMoverId(SSprite::FieldID id)
+    inline bool String(const char* expression, const char** seeked, string & retVal)
     {
-        pMoverObj->RegisterTargetField(id);
-        pMoverObj->AddRef();
-        pSpriteMover->AddMove(pMoverObj);
+        const char* p = expression;
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        if (isalpha(*p) || *p == '_' || *p == '@') {
+            const char* head = p;
+            do ++p; while (isalnum(*p) || *p == '_' || *p == '@');
+            const char* tail = p;
+            const size_t len = tail - head;
+
+            *seeked = p;
+            retVal = string(head, len);
+            return true;
+        }
+
+        return false;
+    }
+    inline bool FieldID(const char* expression, const char** seeked, SSprite::FieldID & retVal)
+    {
+        const char* p = expression;
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        if (isalpha(*p)) {
+            const char* head = p;
+            do ++p; while (isalnum(*p));
+            const char* tail = p;
+            const size_t len = tail - head;
+
+            {
+                char* buf = (char*)malloc(sizeof(char) * (len + 1));
+                if (buf == NULL) return false;
+
+                memcpy(buf, head, len);
+                buf[len] = '\0';
+
+                *seeked = p;
+                retVal = SSprite::GetFieldId(buf);
+                free(buf);
+            }
+            return true;
+        }
+
+        return false;
     }
 
-    template<typename Iterator>
-    struct moverobj_grammer
-        : qi::grammar<Iterator, bool(), ascii::space_type>
+    inline bool ApplyPair(const char* expression, const char** seeked, SSprite::FieldID & key, double& dVal)
     {
-        qi::rule<Iterator, bool(), ascii::space_type> pair, props;
+        const char* p = expression;
 
-        moverobj_grammer() : moverobj_grammer::base_type(props)
+        if (!FieldID(p, &p, key)) return false;
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        if (*p != ':') return false;
+        ++p;
+        CHECK_END(p);
+
         {
-            pair = (qi::as_string[+(qi::alpha | qi::char_('@'))] >> ':' >> qi::double_)[phx::bind(&ApplyMoverDoubleValue, qi::_1, qi::_2)]
-                | (qi::as_string[+(qi::alpha | qi::char_('@'))] >> ':' >> qi::as_string[+(qi::alpha | qi::char_('_'))])[phx::bind(&ApplyMoverStringValue, qi::_1, qi::_2)];
-            props = pair >> *(',' >> pair);
+            double dv;
+            if (Double(p, &p, dv)) {
+                *seeked = p;
+                dVal = dv;
+                return true;
+            }
         }
-    };
 
-    template<typename Iterator>
-    struct mover_grammer
-        : qi::grammar<Iterator, bool(), ascii::space_type>
+        return false;
+    }
+    inline bool Apply(const char* expression, SSprite * pSprite)
     {
-        qi::rule<Iterator, SSprite::FieldID(), ascii::space_type> field;
-        qi::rule<Iterator, bool(), ascii::space_type> pair, props, obj;
+        const char* p = expression;
 
-        mover_grammer() : mover_grammer::base_type(obj)
+        SKIP_SP(p);
+
+        while (*p != '\0') {
+            SSprite::FieldID key;
+            double dVal;
+
+            if (!ApplyPair(p, &p, key, dVal)) return false;
+
+            if (!pSprite->Apply(key, dVal)) {
+                // NOTE: Applyがログ出すからそれでいいかな
+            }
+
+            SKIP_SP(p);
+
+            if (*p == '\0') break;
+            if (*p != ',') return false;
+
+            ++p;
+            CHECK_END(p);
+        }
+
+        return true;
+    }
+
+    inline bool AddMoveObjectPair(const char* expression, const char** seeked, string & key, double& dVal, string & sVal, bool& isStr)
+    {
+        const char* p = expression;
+
+        if (!String(p, &p, key)) return false;
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        if (*p != ':') return false;
+        ++p;
+        CHECK_END(p);
+
         {
-            pair = (qi::as_string[+(qi::alpha | qi::char_('@'))] >> ':' >> qi::double_)[phx::bind(&ApplyMoverDoubleValue, qi::_1, qi::_2)]
-                | (qi::as_string[+(qi::alpha | qi::char_('@'))] >> ':' >> qi::as_string[+(qi::alpha | qi::char_('_'))])[phx::bind(&ApplyMoverStringValue, qi::_1, qi::_2)];
-            props = pair >> *(',' >> pair);
-            field = qi::as_string[qi::alpha >> *qi::alnum][qi::_val = phx::bind(&SSprite::GetFieldId, qi::_1)];
-            obj = (field >> ':' >> '{' >> props >> '}')[phx::bind(&ApplyMoverId, qi::_1)];
+            double dv;
+            if (Double(p, &p, dv)) {
+                *seeked = p;
+                isStr = false;
+                dVal = dv;
+                return true;
+            }
         }
-    };
 
-    parser_impl::moverobj_grammer<std::string::const_iterator> gMoverObj;
-    parser_impl::mover_grammer<std::string::const_iterator> gMover;
-    bool ParseMoverObj(const std::string &expression, MoverObject *pMoverObj)
+        {
+            string sv;
+            if (String(p, &p, sv)) {
+                *seeked = p;
+                isStr = true;
+                sVal = sv;
+                return true;
+            }
+        }
+
+        return false;
+    }
+    inline bool AddMoveObject(const char* expression, const char** seeked, MoverObject * pMoverObject)
     {
-        bool dummy;
-        parser_impl::pMoverObj = pMoverObj;
-        bool result = boost::spirit::qi::phrase_parse(expression.begin(), expression.end(), gMoverObj, boost::spirit::ascii::space, dummy);
-        parser_impl::pMoverObj = nullptr;
-        pMoverObj->Release();
-        return result;
+        const char* p = expression;
+
+        SKIP_SP(p);
+
+        while (*p != '\0') {
+            string key;
+            double dVal;
+            string sVal;
+            bool isStr;
+
+            if (!AddMoveObjectPair(p, &p, key, dVal, sVal, isStr)) return false;
+
+            if (isStr) {
+                if (!pMoverObject->Apply(key, sVal)) {
+                    // NOTE: Applyがログ出すからそれでいいかな
+                }
+            }
+            else {
+                if (!pMoverObject->Apply(key, dVal)) {
+                    // NOTE: Applyがログ出すからそれでいいかな
+                }
+            }
+
+            SKIP_SP(p);
+
+            if (*p == '\0') break;
+            if (*p != ',') break;
+
+            ++p;
+            CHECK_END(p);
+        }
+
+        *seeked = p;
+        return true;
+    }
+    inline bool AddMovePair(const char* expression, const char** seeked, SSpriteMover * pMover)
+    {
+        const char* p = expression;
+        vector<SSprite::FieldID> fields; // NOTE: 8個も取っておけばそうそうリサイズされないでしょという気持ち
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        do {
+            SSprite::FieldID id;
+            if (!FieldID(p, &p, id)) return false;
+            fields.emplace_back(id);
+
+            SKIP_SP(p);
+            CHECK_END(p);
+
+            if (*p == ':') {
+                ++p;
+                break;
+            }
+            if (*p != ',') return false;
+
+            ++p;
+            CHECK_END(p);
+        } while (*p != '\0');
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        if (*p != '{') return false;
+        ++p;
+
+        SKIP_SP(p);
+        CHECK_END(p);
+
+        MoverObject * pMoverObject = new MoverObject();
+        bool retVal = false;
+        while (*p != '\0') {
+            if (!AddMoveObject(p, &p, pMoverObject)) break;
+
+            SKIP_SP(p);
+            if (*p == '\0') break;
+
+            if (*p == '}') {
+                ++p;
+                retVal = true;
+                break;
+            }
+            if (*p != ',') break;
+
+            ++p;
+            SKIP_SP(p);
+            if (*p == '}') break;
+        }
+
+        if (!retVal) {
+            pMoverObject->Release();
+            return false;
+        }
+
+        for (auto it = fields.begin(); it != fields.end(); ++it) {
+            // TODO: 同じパラメータを持つ異なるフィールドのMoverObjectを複数登録するのではなく、MoverObjectが複数のフィールドを一括制御できるようにする
+            MoverObject* pTmpMoverObj = pMoverObject->Clone();
+            pTmpMoverObj->RegisterTargetField(*it);
+            pMover->AddMove(pTmpMoverObj);
+        }
+        pMoverObject->Release();
+
+        *seeked = p;
+        return true;
+    }
+    inline bool AddMove(const char* expression, SSpriteMover * pMover)
+    {
+        const char* p = expression;
+
+        while (*p != '\0') {
+            if (!AddMovePair(p, &p, pMover)) return false;
+
+            if (*p == '\0') break;
+            SKIP_SP(p);
+
+            if (*p == '\0') break;
+            if (*p != ',') return false;
+
+            ++p;
+            CHECK_END(p);
+        }
+
+        return true;
     }
 
-    bool ParseMover(const std::string &expression, SSpriteMover *pSpriteMover)
-    {
-        bool dummy;
-        parser_impl::pMoverObj = new MoverObject();
-        parser_impl::pSpriteMover = pSpriteMover;
-        bool result = boost::spirit::qi::phrase_parse(expression.begin(), expression.end(), gMover, boost::spirit::ascii::space, dummy);
-        parser_impl::pMoverObj->Release();
-        parser_impl::pSpriteMover = nullptr;
-        parser_impl::pMoverObj = nullptr;
-        return result;
-    }
+#undef SKIP_SP
+#undef CHECK_END
 }
-
 
 bool MoverObject::RegisterType(asIScriptEngine *engine)
 {
@@ -165,10 +392,8 @@ bool MoverObject::InitVariables()
 
 bool MoverObject::Apply(const string &dict)
 {
-    this->AddRef();
-    bool result = parser_impl::ParseMoverObj(dict, this);
-
-    return result;
+    const char* p = dict.c_str();
+    return ::AddMoveObject(dict.c_str(), &p, this) && p == '\0';
 }
 
 bool MoverObject::Apply(const string &key, double value)
@@ -326,7 +551,7 @@ void SSpriteMover::Tick(const double delta)
 
 bool SSpriteMover::AddMove(const std::string &dict)
 {
-    if (!parser_impl::ParseMover(dict, this)) {
+    if (!::AddMove(dict.c_str(), this)) {
         spdlog::get("main")->warn(u8"AddMoveのパースに失敗しました。 : \"{0}\"", dict);
         return false;
     }

@@ -4,7 +4,7 @@
 #include "Config.h"
 
 using namespace std;
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 // ReSharper disable once CppParameterNeverUsed
 bool SkinHolder::IncludeScript(std::wstring include, std::wstring from, CWScriptBuilder *builder)

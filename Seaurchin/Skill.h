@@ -17,7 +17,7 @@ class CallbackObject;
 class AbilityParameter final {
 public:
     std::string Name;
-    std::unordered_map<std::string, boost::any> Arguments;
+    std::unordered_map<std::string, std::any> Arguments;
 };
 
 class SkillDetail final {
@@ -78,7 +78,7 @@ private:
     std::vector<std::shared_ptr<SkillParameter>> skills;
     int selected;
 
-    void LoadFromToml(boost::filesystem::path file);
+    void LoadFromToml(std::filesystem::path file);
 
 public:
     explicit SkillManager();

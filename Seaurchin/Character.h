@@ -59,7 +59,7 @@ private:
 
     int selected;
 
-    void LoadFromToml(const boost::filesystem::path& file);
+    void LoadFromToml(const std::filesystem::path& file);
 
 public:
     explicit CharacterManager();

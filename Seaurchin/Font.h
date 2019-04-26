@@ -79,12 +79,12 @@ private:
     void FinalizeFace();
     void RequestFace(float size) const;
 
-    void OpenSif2(boost::filesystem::path sif2Path);
+    void OpenSif2(std::filesystem::path sif2Path);
     void PackImageSif2();
     void CloseSif2();
 
     void NewBitmap(uint16_t width, uint16_t height);
-    void SaveBitmapCache(boost::filesystem::path cachepath) const;
+    void SaveBitmapCache(std::filesystem::path cachepath) const;
 
     bool RenderGlyph(uint32_t cp);
 
@@ -92,5 +92,5 @@ public:
     Sif2Creator();
     ~Sif2Creator();
 
-    void CreateSif2(const Sif2CreatorOption &option, boost::filesystem::path outputPath);
+    void CreateSif2(const Sif2CreatorOption &option, std::filesystem::path outputPath);
 };

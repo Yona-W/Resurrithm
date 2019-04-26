@@ -11,7 +11,7 @@
 #include "ScenePlayer.h"
 #include "CharacterInstance.h"
 
-using namespace boost::filesystem;
+using namespace std::filesystem;
 using namespace std;
 
 const static toml::Array defaultSliderKeys = {
@@ -169,14 +169,13 @@ void ExecutionManager::RegisterGlobalManagementFunction()
 
 void ExecutionManager::EnumerateSkins()
 {
-    using namespace boost;
+    using namespace std;
     using namespace filesystem;
-    using namespace xpressive;
     auto log = spdlog::get("main");
 
     const auto sepath = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR;
 
-    for (const auto& fdata : make_iterator_range(directory_iterator(sepath), {})) {
+    for (const auto& fdata : directory_iterator(sepath)) {
         if (!is_directory(fdata)) continue;
         if (!CheckSkinStructure(fdata.path())) continue;
         skinNames.push_back(fdata.path().filename().wstring());
@@ -186,7 +185,7 @@ void ExecutionManager::EnumerateSkins()
 
 bool ExecutionManager::CheckSkinStructure(const path& name) const
 {
-    using namespace boost;
+    using namespace std;
     using namespace filesystem;
 
     if (!exists(name / SU_SKIN_MAIN_FILE)) return false;
@@ -199,7 +198,7 @@ bool ExecutionManager::CheckSkinStructure(const path& name) const
 
 void ExecutionManager::ExecuteSkin()
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     auto log = spdlog::get("main");
 
     const auto sn = sharedSetting->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
@@ -254,7 +253,7 @@ bool ExecutionManager::ExecuteScene(asIScriptObject *sceneObject)
 
 void ExecutionManager::ExecuteSystemMenu()
 {
-    using namespace boost;
+    using namespace std;
     using namespace filesystem;
     auto log = spdlog::get("main");
 

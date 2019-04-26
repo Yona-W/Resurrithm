@@ -6,7 +6,7 @@
 #include "Misc.h"
 
 using namespace std;
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 
 static int CALLBACK FontEnumerationProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, DWORD type, LPARAM lParam);

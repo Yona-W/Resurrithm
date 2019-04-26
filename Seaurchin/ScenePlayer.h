@@ -97,7 +97,7 @@ protected:
     int hGroundBuffer {};
     ExecutionManager *manager;
     SoundManager * const soundManager; // soundManager のアドレスが不変、 soundManager の実体が持つ値は変わりうる
-    boost::lockfree::queue<JudgeSoundType> judgeSoundQueue;
+    std::queue<JudgeSoundType> judgeSoundQueue;
     std::thread judgeSoundThread;
     std::mutex asyncMutex;
     std::thread loadWorkerThread;

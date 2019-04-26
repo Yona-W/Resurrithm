@@ -13,15 +13,17 @@ SkillManager::SkillManager()
 
 void SkillManager::LoadAllSkills()
 {
-    using namespace boost;
+    using namespace std;
     using namespace filesystem;
     const auto skillroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR;
 
-    const directory_iterator dit(skillroot);
-    for (const auto& fdata : make_iterator_range(dit, {})) {
+    for (const auto& fdata : directory_iterator(skillroot)) {
         if (is_directory(fdata)) continue;
         const auto filename = ConvertUnicodeToUTF8(fdata.path().wstring());
-        if (!ends_with(filename, ".toml")) continue;
+        const std::string ext(".toml");
+        size_t len1 = filename.size();
+        size_t len2 = ext.size();
+        if (!(len1 >= len2 && filename.compare(len1 - len2, len2, ext) == 0)) continue;
         LoadFromToml(fdata.path());
     }
     spdlog::get("main")->info(u8"スキル総数: {0:d}", skills.size());
@@ -57,9 +59,9 @@ int32_t SkillManager::GetSize() const
     return int32_t(skills.size());
 }
 
-void SkillManager::LoadFromToml(boost::filesystem::path file)
+void SkillManager::LoadFromToml(std::filesystem::path file)
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     auto log = spdlog::get("main");
     auto result = make_shared<SkillParameter>();
     const auto iconRoot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
@@ -162,7 +164,7 @@ void SkillIndicators::SetCallback(asIScriptFunction *func)
 
 int SkillIndicators::AddSkillIndicator(const string &icon)
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     auto path = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR / ConvertUTF8ToUnicode(icon);
     const auto image = SImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8(path.wstring()), true);
     indicatorIcons.push_back(image);

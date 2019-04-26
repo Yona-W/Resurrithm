@@ -224,11 +224,10 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
 
 tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &utf8Str, const ColorTint &defcol)
 {
-    namespace bx = boost::xpressive;
     using namespace crc32_constexpr;
 
-    const bx::sregex cmd = bx::bos >> "${" >> (bx::s1 = -+bx::_w) >> "}";
-    const bx::sregex cmdhex = bx::bos >> "${#" >> (bx::s1 = bx::repeat<2, 2>(bx::xdigit)) >> (bx::s2 = bx::repeat<2, 2>(bx::xdigit)) >> (bx::s3 = bx::repeat<2, 2>(bx::xdigit)) >> "}";
+    const std::regex cmd("^\\$\\{([\\w]+?)\\}");
+    const std::regex cmdhex("^\\$\\{#([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})\\}");
     uint32_t cx = 0, cy = 0;
     uint32_t mx = 0;
     auto visible = true;
@@ -245,10 +244,9 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
         SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
     }
     auto ccp = utf8Str.begin();
-    bx::smatch match;
+    std::smatch match;
     while (ccp != utf8Str.end()) {
-        boost::sub_range<const string> sr(ccp, utf8Str.end());
-        if (bx::regex_search(sr, match, cmd)) {
+        if (std::regex_search(ccp, utf8Str.end(), match, cmd)) {
             auto tcmd = match[1].str();
             switch (Crc32Rec(0xffffffff, tcmd.c_str())) {
                 case "reset"_crc32:
@@ -301,7 +299,7 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
             ccp += match[0].length();
             continue;
         }
-        if (bx::regex_search(sr, match, cmdhex)) {
+        if (std::regex_search(ccp, utf8Str.end(), match, cmdhex)) {
             cr = std::stoi(match[1].str(), nullptr, 16);
             cg = std::stoi(match[2].str(), nullptr, 16);
             cb = std::stoi(match[3].str(), nullptr, 16);

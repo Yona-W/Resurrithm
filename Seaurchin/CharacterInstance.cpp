@@ -37,8 +37,7 @@ shared_ptr<CharacterInstance> CharacterInstance::CreateInstance(shared_ptr<Chara
 
 void CharacterInstance::LoadAbilities()
 {
-    using namespace boost::algorithm;
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     auto log = spdlog::get("main");
     const auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 
@@ -71,13 +70,13 @@ void CharacterInstance::LoadAbilities()
             auto value = arg.second;
             auto &vid = value.type();
             if (vid == typeid(int)) {
-                asINT64 avalue = boost::any_cast<int>(value);
+                asINT64 avalue = std::any_cast<int>(value);
                 args->Set(key, avalue);
             } else if (vid == typeid(double)) {
-                auto avalue = boost::any_cast<double>(value);
+                auto avalue = std::any_cast<double>(value);
                 args->Set(key, avalue);
             } else if (vid == typeid(string)) {
-                auto avalue = boost::any_cast<string>(value);
+                auto avalue = std::any_cast<string>(value);
                 args->Set(key, &avalue, scriptInterface->GetEngine()->GetTypeIdByDecl("string"));
             }
         }
@@ -97,9 +96,9 @@ void CharacterInstance::CreateImageSet()
     imageSet = CharacterImageSet::CreateImageSet(characterSource);
 }
 
-asIScriptObject* CharacterInstance::LoadAbilityObject(const boost::filesystem::path& filepath)
+asIScriptObject* CharacterInstance::LoadAbilityObject(const std::filesystem::path& filepath)
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     auto log = spdlog::get("main");
     auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
     //お茶を濁せ

@@ -220,8 +220,8 @@ using NoteCurvesList = std::unordered_map<std::shared_ptr<SusDrawableNoteData>, 
 // BMS派生フォーマットことSUS(SeaUrchinScore)の解析
 class SusAnalyzer final {
 private:
-    static boost::xpressive::sregex regexSusCommand;
-    static boost::xpressive::sregex regexSusData;
+    static std::regex regexSusCommand;
+    static std::regex regexSusData;
 
     const float defaultBeats = 4.0;
     const double defaultBpm = 120.0;
@@ -248,9 +248,9 @@ private:
     std::shared_ptr<SusHispeedTimeline> hispeedToApply, hispeedToMeasure;
     std::shared_ptr<SusNoteExtraAttribute> extraAttributeToApply;
 
-    void ProcessCommand(const boost::xpressive::smatch &result, bool onlyMeta, uint32_t line);
+    void ProcessCommand(const std::smatch &result, bool onlyMeta, uint32_t line);
     void ProcessRequest(const std::string &cmd, uint32_t line);
-    void ProcessData(const boost::xpressive::smatch &result, uint32_t line);
+    void ProcessData(const std::smatch &result, uint32_t line);
     void MakeMessage(const std::string &message) const;
     void MakeMessage(uint32_t line, const std::string &message) const;
     void MakeMessage(uint32_t meas, uint32_t tick, uint32_t lane, const std::string &message) const;

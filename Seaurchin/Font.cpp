@@ -37,7 +37,7 @@ Rect RectPacker::Insert(const int w, const int h)
 
 void Sif2Creator::InitializeFace(const string& fontpath)
 {
-    // boost::filesystem::path up = ConvertUTF8ToUnicode(fontpath);
+    // std::filesystem::path up = ConvertUTF8ToUnicode(fontpath);
     auto log = spdlog::get("main");
     if (faceMemory) return;
     ifstream fontfile(ConvertUTF8ToUnicode(fontpath), ios::in | ios::binary);
@@ -79,7 +79,7 @@ void Sif2Creator::RequestFace(const float size) const
     FT_Select_Charmap(face, FT_ENCODING_UNICODE);
 }
 
-void Sif2Creator::OpenSif2(boost::filesystem::path sif2Path)
+void Sif2Creator::OpenSif2(std::filesystem::path sif2Path)
 {
     sif2Stream.open(sif2Path.wstring(), ios::out | ios::trunc | ios::binary);
     sif2Stream.seekp(sizeof(Sif2Header));
@@ -89,7 +89,7 @@ void Sif2Creator::OpenSif2(boost::filesystem::path sif2Path)
 
 void Sif2Creator::PackImageSif2()
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
 
     Sif2Header header;
     header.Magic = sif2Magic;
@@ -135,7 +135,7 @@ void Sif2Creator::NewBitmap(const uint16_t width, const uint16_t height)
     packer.Init(width, height, 0);
 }
 
-void Sif2Creator::SaveBitmapCache(boost::filesystem::path cachepath) const
+void Sif2Creator::SaveBitmapCache(std::filesystem::path cachepath) const
 {
     FILE *file;
     fopen_s(&file, cachepath.string().c_str(), "wb");
@@ -212,9 +212,9 @@ Sif2Creator::~Sif2Creator()
     FT_Done_FreeType(freetype);
 }
 
-void Sif2Creator::CreateSif2(const Sif2CreatorOption &option, const boost::filesystem::path outputPath)
+void Sif2Creator::CreateSif2(const Sif2CreatorOption &option, const std::filesystem::path outputPath)
 {
-    using namespace boost::filesystem;
+    using namespace std::filesystem;
     auto log = spdlog::get("main");
     const auto cachepath = Setting::GetRootDirectory() / SU_DATA_DIR / SU_CACHE_DIR;
 

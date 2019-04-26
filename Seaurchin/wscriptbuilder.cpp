@@ -2,7 +2,7 @@
 #include "Misc.h"
 
 using namespace std;
-using namespace boost::filesystem;
+using namespace std::filesystem;
 
 BEGIN_AS_NAMESPACE
 

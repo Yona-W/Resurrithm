@@ -32,7 +32,7 @@ private:
     std::vector<std::shared_ptr<Scene>> scenesPending;
     std::vector<std::wstring> skinNames;
     std::unique_ptr<SkinHolder> skin;
-    std::unordered_map<std::string, boost::any> optionalData;
+    std::unordered_map<std::string, std::any> optionalData;
     DrawableResult lastResult;
     HIMC hImc;
     HANDLE hCommunicationPipe;
@@ -85,7 +85,7 @@ public:
     bool ExistsData(const std::string &name) { return optionalData.find(name) != optionalData.end(); }
 
 private:
-    bool CheckSkinStructure(const boost::filesystem::path& name) const;
+    bool CheckSkinStructure(const std::filesystem::path& name) const;
     void RegisterGlobalManagementFunction();
 };
 
@@ -98,13 +98,13 @@ void ExecutionManager::SetData(const std::string &name, const T & data)
 template<typename T>
 T ExecutionManager::GetData(const std::string &name)
 {
-    auto it = optionalData.find(name);
-    return it == optionalData.end() ? T() : boost::any_cast<T>(it->second);
+    const auto it = optionalData.find(name);
+    return it == optionalData.end() ? T() : std::any_cast<T>(it->second);
 }
 
 template<typename T>
 T ExecutionManager::GetData(const std::string &name, const T& defaultValue)
 {
-    auto it = optionalData.find(name);
-    return it == optionalData.end() ? defaultValue : boost::any_cast<T>(it->second);
+    const auto it = optionalData.find(name);
+    return it == optionalData.end() ? defaultValue : std::any_cast<T>(it->second);
 }

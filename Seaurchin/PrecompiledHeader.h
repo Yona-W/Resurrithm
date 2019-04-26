@@ -48,21 +48,13 @@
 #include <future>
 #include <thread>
 #include <numeric>
+#include <any>
+#include <filesystem>
+#include <regex>
+#include <set>
+#include <bitset>
 
-//Boost
-#include <boost/config.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/range/iterator_range.hpp>
-#include <boost/regex.hpp>
-#include <boost/xpressive/xpressive.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/clamp.hpp>
-#include <boost/crc.hpp>
-#include <boost/any.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/optional.hpp>
-#include <boost/range/sub_range.hpp>
-#include <boost/lockfree/queue.hpp>
+#define BOOST_ASSERT(...)
 
 //Libraries
 #include <DxLib.h>

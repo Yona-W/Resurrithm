@@ -144,8 +144,462 @@ SU_DEF_SINGLE_ARGUMENT_MOVER_FUNCTION_EXPRESSION(Sinh, sinh);
 SU_DEF_SINGLE_ARGUMENT_MOVER_FUNCTION_EXPRESSION(Cosh, cosh);
 SU_DEF_SINGLE_ARGUMENT_MOVER_FUNCTION_EXPRESSION(Tanh, tanh);
 
+template<typename T>
+MoverFunctionExpressionSharedPtr MakeExp()
+{
+    return std::make_shared<T>();
+}
 
-bool ParseMoverFunctionExpression(MoverFunctionExpressionSharedPtr &root, const std::string &);
+template<typename T>
+MoverFunctionExpressionSharedPtr MakeExp_double(double val)
+{
+    return std::make_shared<T>(val);
+}
+
+template<typename T>
+MoverFunctionExpressionSharedPtr MakeExp_Ptr(MoverFunctionExpressionSharedPtr lop)
+{
+    return std::make_shared<T>(lop);
+}
+
+template<typename T>
+MoverFunctionExpressionSharedPtr MakeExp_Ptr_Ptr(MoverFunctionExpressionSharedPtr lop, MoverFunctionExpressionSharedPtr rop)
+{
+    return std::make_shared<T>(lop, rop);
+}
+
+static bool GetExpression(MoverFunctionExpressionSharedPtr& ret, const char* expression, const char** seeked);
+static bool GetNode(MoverFunctionExpressionSharedPtr& ret, const char* expression, const char** seeked);
+
+bool GetExpression(MoverFunctionExpressionSharedPtr& ret, const char* expression, const char** seeked)
+{
+    std::cout << expression << std::endl;
+    ret.reset();
+
+    MoverFunctionExpressionSharedPtr op;
+
+#define SKIP_SP() while(!isgraph(*p)) ++p
+    const char* p = expression;
+    bool isNesting = false;
+
+    SKIP_SP();
+    if (*p == '(') {
+        isNesting = true;
+        ++p;
+
+        const char* next = p;
+
+        if (!GetExpression(op, p, &next)) return false;
+        p = next;
+    }
+    else {
+        const char* next = p;
+        if (!GetNode(op, p, &next)) return false;
+        p = next;
+    }
+
+    while (*p != '\0') {
+        SKIP_SP();
+        if (*p == '+') {
+            if (*(p + 1) == '+') return false;
+            ++p;
+
+            const char* next = p;
+            MoverFunctionExpressionSharedPtr rop;
+            if (!GetExpression(rop, p, &next)) return false;
+            p = next;
+
+            op.reset(new AddMoverFunctionExpression(op, rop));
+            continue;
+        }
+        else if (*p == '-') {
+            if (*(p + 1) == '-') return false;
+            ++p;
+
+            const char* next = p;
+            MoverFunctionExpressionSharedPtr rop;
+            if (!GetExpression(rop, p, &next)) return false;
+            p = next;
+
+            op.reset(new SubMoverFunctionExpression(op, rop));
+            continue;
+        }
+        else if (*p == '*') {
+            ++p;
+
+            const char* next = p;
+            MoverFunctionExpressionSharedPtr rop;
+            if (!GetNode(rop, p, &next)) return false;
+            p = next;
+
+            op.reset(new MulMoverFunctionExpression(op, rop));
+            continue;
+        }
+        else if (*p == '/') {
+            ++p;
+
+            const char* next = p;
+            MoverFunctionExpressionSharedPtr rop;
+            if (!GetNode(rop, p, &next)) return false;
+            p = next;
+
+            op.reset(new DivMoverFunctionExpression(op, rop));
+            continue;
+        }
+        else if (*p == '%') {
+            ++p;
+
+            const char* next = p;
+            MoverFunctionExpressionSharedPtr rop;
+            if (!GetNode(rop, p, &next)) return false;
+            p = next;
+
+            op.reset(new ModMoverFunctionExpression(op, rop));
+            continue;
+        }
+        else if (*p == '^') {
+            ++p;
+
+            const char* next = p;
+            MoverFunctionExpressionSharedPtr rop;
+            if (!GetNode(rop, p, &next)) return false;
+            p = next;
+
+            op.reset(new PowMoverFunctionExpression(op, rop));
+            continue;
+        }
+        else if (*p == ')') {
+            if (isNesting) ++p;
+
+            break;
+        }
+        else {
+            break;
+        }
+    }
+#undef SKIP_SP
+
+
+    if (!op) return false;
+
+    ret = op;
+    *seeked = p;
+
+    return true;
+}
+
+bool GetNode(MoverFunctionExpressionSharedPtr & ret, const char* expression, const char** seeked)
+{
+    ret.reset();
+
+#define SKIP_SP() while(!isgraph(*p)) ++p
+    const char* p = expression;
+    if (*p == '\0') return false;
+
+    SKIP_SP();
+
+    bool isPositive = false, isNegative = false;
+    if (*p == '+') {
+        if (*(p + 1) == '+') return false;
+        isPositive = true;
+        ++p;
+        SKIP_SP();
+    }
+    else if (*p == '-') {
+        if (*(p + 1) == '-') return false;
+        isNegative = true;
+        ++p;
+        SKIP_SP();
+    }
+
+    if (isdigit(*p) || *p == '.') {
+        double val = 0.0;
+        while (isdigit(*p)) {
+            val = val * 10.0 + (*p - '0');
+            ++p;
+        }
+        if (*p == '.') {
+            ++p;
+
+            double dig = 0.1;
+            while (isdigit(*p)) {
+                val += (*p - '0') * dig;
+                dig *= 0.1;
+                ++p;
+            }
+        }
+
+        if (isNegative) val *= -1.0;
+
+        ret.reset(new LiteralMoverFunctionExpression(val));
+        *seeked = p;
+        return true;
+    }
+    else if (isalpha(*p) || *p == '_') {
+        const char* head = p;
+        do ++p; while (isalnum(*p) || *p == '_');
+        const char* tail = p;
+        const size_t len = tail - head;
+
+        bool retval = false;
+        {
+            char* buf = (char*)malloc(sizeof(char) * (len + 1));
+            if (buf == NULL) return false;
+
+            memcpy(buf, head, len);
+            buf[len] = '\0';
+
+            switch (Crc32Rec(0xFFFFFFFF, buf)) {
+            case "add"_crc32:
+            case "sub"_crc32:
+            case "mul"_crc32:
+            case "div"_crc32:
+            case "mod"_crc32:
+            case "pow"_crc32:
+            case "min"_crc32:
+            case "max"_crc32:
+            case "rand"_crc32:
+            {
+                SKIP_SP();
+                if (*p != '(') break;
+                ++p;
+
+                MoverFunctionExpressionSharedPtr lop, rop;
+                const char* next = p;
+                if (!GetExpression(lop, p, &next)) break;
+                p = next;
+
+                SKIP_SP();
+                if (*p != ',') break;
+                ++p;
+
+                next = p;
+                if (!GetExpression(rop, p, &next)) break;
+                p = next;
+
+                SKIP_SP();
+                if (*p != ')') break;
+                ++p;
+
+                retval = true;
+                switch (Crc32Rec(0xFFFFFFFF, buf)) {
+                case "add"_crc32:
+                    ret.reset(new AddMoverFunctionExpression(lop, rop));
+                    break;
+                case "sub"_crc32:
+                    ret.reset(new SubMoverFunctionExpression(lop, rop));
+                    break;
+                case "mul"_crc32:
+                    ret.reset(new MulMoverFunctionExpression(lop, rop));
+                    break;
+                case "div"_crc32:
+                    ret.reset(new DivMoverFunctionExpression(lop, rop));
+                    break;
+                case "mod"_crc32:
+                    ret.reset(new ModMoverFunctionExpression(lop, rop));
+                    break;
+                case "pow"_crc32:
+                    ret.reset(new PowMoverFunctionExpression(lop, rop));
+                    break;
+                case "min"_crc32:
+                    ret.reset(new MinMoverFunctionExpression(lop, rop));
+                    break;
+                case "max"_crc32:
+                    ret.reset(new MaxMoverFunctionExpression(lop, rop));
+                    break;
+                case "rand"_crc32:
+                    ret.reset(new RandMoverFunctionExpression(lop, rop));
+                    break;
+                default:
+                    retval = false;
+                    break;
+                }
+                break;
+            }
+            case "abs"_crc32:
+            case "round"_crc32:
+            case "ceil"_crc32:
+            case "floor"_crc32:
+            case "exp"_crc32:
+            case "ln"_crc32:
+            case "log"_crc32:
+            case "sin"_crc32:
+            case "cos"_crc32:
+            case "tan"_crc32:
+            case "asin"_crc32:
+            case "acos"_crc32:
+            case "atan"_crc32:
+            case "sinh"_crc32:
+            case "cosh"_crc32:
+            case "tanh"_crc32:
+            {
+                SKIP_SP();
+                if (*p != '(') break;
+                ++p;
+
+                MoverFunctionExpressionSharedPtr op;
+                const char* next = p;
+                if (!GetExpression(op, p, &next)) break;
+                p = next;
+
+                SKIP_SP();;
+                if (*p != ')') break;
+                ++p;
+
+                retval = true;
+                switch (Crc32Rec(0xFFFFFFFF, buf)) {
+                case "abs"_crc32:
+                    ret.reset(new AbsMoverFunctionExpression(op));
+                    break;
+                case "round"_crc32:
+                    ret.reset(new RoundMoverFunctionExpression(op));
+                    break;
+                case "ceil"_crc32:
+                    ret.reset(new CeilMoverFunctionExpression(op));
+                    break;
+                case "floor"_crc32:
+                    ret.reset(new FloorMoverFunctionExpression(op));
+                    break;
+                case "exp"_crc32:
+                    ret.reset(new ExpMoverFunctionExpression(op));
+                    break;
+                case "ln"_crc32:
+                    ret.reset(new LnMoverFunctionExpression(op));
+                    break;
+                case "log"_crc32:
+                    ret.reset(new LogMoverFunctionExpression(op));
+                    break;
+                case "sin"_crc32:
+                    ret.reset(new SinMoverFunctionExpression(op));
+                    break;
+                case "cos"_crc32:
+                    ret.reset(new CosMoverFunctionExpression(op));
+                    break;
+                case "tan"_crc32:
+                    ret.reset(new TanMoverFunctionExpression(op));
+                    break;
+                case "asin"_crc32:
+                    ret.reset(new AsinMoverFunctionExpression(op));
+                    break;
+                case "acos"_crc32:
+                    ret.reset(new AcosMoverFunctionExpression(op));
+                    break;
+                case "atan"_crc32:
+                    ret.reset(new AtanMoverFunctionExpression(op));
+                    break;
+                case "sinh"_crc32:
+                    ret.reset(new SinhMoverFunctionExpression(op));
+                    break;
+                case "cosh"_crc32:
+                    ret.reset(new CoshMoverFunctionExpression(op));
+                    break;
+                case "tanh"_crc32:
+                    ret.reset(new TanhMoverFunctionExpression(op));
+                    break;
+                default:
+                    retval = false;
+                    break;
+                }
+                break;
+            }
+            case "begin"_crc32:
+                retval = true;
+                ret.reset(new BeginMoverFunctionExpression());
+                break;
+            case "end"_crc32:
+                retval = true;
+                ret.reset(new EndMoverFunctionExpression());
+                break;
+            case "diff"_crc32:
+                retval = true;
+                ret.reset(new DiffMoverFunctionExpression());
+                break;
+            case "current"_crc32:
+                retval = true;
+                ret.reset(new CurrentMoverFunctionExpression());
+                break;
+            case "progress"_crc32:
+                retval = true;
+                ret.reset(new ProgressMoverFunctionExpression());
+                break;
+            case "e"_crc32:
+                retval = true;
+                ret.reset(new EMoverFunctionExpression());
+                break;
+            case "log2e"_crc32:
+                retval = true;
+                ret.reset(new LOG2EMoverFunctionExpression());
+                break;
+            case "log10e"_crc32:
+                retval = true;
+                ret.reset(new LOG10EMoverFunctionExpression());
+                break;
+            case "ln2"_crc32:
+                retval = true;
+                ret.reset(new LN2MoverFunctionExpression());
+                break;
+            case "ln10"_crc32:
+                retval = true;
+                ret.reset(new LN10MoverFunctionExpression());
+                break;
+            case "pi"_crc32:
+                retval = true;
+                ret.reset(new PIMoverFunctionExpression());
+                break;
+            case "pi_2"_crc32:
+                retval = true;
+                ret.reset(new PI_2MoverFunctionExpression());
+                break;
+            case "pi_4"_crc32:
+                retval = true;
+                ret.reset(new PI_4MoverFunctionExpression());
+                break;
+            case "inv_pi"_crc32:
+                retval = true;
+                ret.reset(new INV_PIMoverFunctionExpression());
+                break;
+            case "inv_pi_2"_crc32:
+                retval = true;
+                ret.reset(new INV_PI_2MoverFunctionExpression());
+                break;
+            case "inv_sqrtpi_2"_crc32:
+                retval = true;
+                ret.reset(new INV_SQRTPI_2MoverFunctionExpression());
+                break;
+            case "sqrt2"_crc32:
+                retval = true;
+                ret.reset(new SQRT2MoverFunctionExpression());
+                break;
+            case "inv_sqrt2"_crc32:
+                retval = true;
+                ret.reset(new INV_SQRT2MoverFunctionExpression());
+                break;
+            default:
+                break;
+            }
+
+            free(buf);
+        }
+
+        if (retval) {
+            if (isNegative) {
+                ret.reset(new NegativeMoverFunctionExpression(ret));
+            }
+        }
+
+        if (retval)* seeked = p;
+        return retval;
+    }
+#undef SKIP_SP
+
+    return false;
+}
+
+bool ParseMoverFunctionExpression(MoverFunctionExpressionSharedPtr & root, const std::string & expression)
+{
+    const char* p = expression.c_str();
+    return GetExpression(root, expression.c_str(), &p) && (*p == '\0');
+}
 
 
 MoverFunctionExpressionManager * MoverFunctionExpressionManager::inst;
@@ -222,107 +676,3 @@ bool MoverFunctionExpressionManager::Find(const std::string &key, MoverFunctionE
     return true;
 }
 
-
-#define BOOST_RESULT_OF_USE_DECLTYPE
-#define BOOST_SPIRIT_USE_PHOENIX_V3
-
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix.hpp>
-
-template<typename T>
-MoverFunctionExpressionSharedPtr MakeExp()
-{
-    return std::make_shared<T>();
-}
-
-template<typename T>
-MoverFunctionExpressionSharedPtr MakeExp_double(double val)
-{
-    return std::make_shared<T>(val);
-}
-
-template<typename T>
-MoverFunctionExpressionSharedPtr MakeExp_Ptr(MoverFunctionExpressionSharedPtr lop)
-{
-    return std::make_shared<T>(lop);
-}
-
-template<typename T>
-MoverFunctionExpressionSharedPtr MakeExp_Ptr_Ptr(MoverFunctionExpressionSharedPtr lop, MoverFunctionExpressionSharedPtr rop)
-{
-    return std::make_shared<T>(lop, rop);
-}
-
-namespace parser_impl {
-    using namespace boost::spirit;
-    namespace phx = boost::phoenix;
-
-    template<typename Iterator>
-    struct mover_function_grammer
-        : qi::grammar<Iterator, MoverFunctionExpressionSharedPtr(), ascii::space_type>
-    {
-        qi::rule<Iterator, MoverFunctionExpressionSharedPtr(), ascii::space_type> expr, term, fctr;
-
-        mover_function_grammer() : mover_function_grammer::base_type(expr)
-        {
-            expr =           term[qi::_val = qi::_1]
-                >> *(('+' >> term[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<AddMoverFunctionExpression>, qi::_val, qi::_1)])
-                   | ('-' >> term[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<SubMoverFunctionExpression>, qi::_val, qi::_1)]));
-            term =           fctr[qi::_val = qi::_1]
-                >> *(('*' >> fctr[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<MulMoverFunctionExpression>, qi::_val, qi::_1)])
-                   | ('/' >> fctr[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<DivMoverFunctionExpression>, qi::_val, qi::_1)]));
-            fctr = qi::double_        [qi::_val = phx::bind(&MakeExp_double<LiteralMoverFunctionExpression>, qi::_1)]
-                | (qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = qi::_1]
-                | qi::lit("begin")       [qi::_val = phx::bind(&MakeExp<BeginMoverFunctionExpression>)]
-                | qi::lit("end")         [qi::_val = phx::bind(&MakeExp<EndMoverFunctionExpression>)]
-                | qi::lit("diff")        [qi::_val = phx::bind(&MakeExp<DiffMoverFunctionExpression>)]
-                | qi::lit("current")     [qi::_val = phx::bind(&MakeExp<CurrentMoverFunctionExpression>)]
-                | qi::lit("progress")    [qi::_val = phx::bind(&MakeExp<ProgressMoverFunctionExpression>)]
-                | qi::lit('e')           [qi::_val = phx::bind(&MakeExp<EMoverFunctionExpression>)]
-                | qi::lit("log2e")       [qi::_val = phx::bind(&MakeExp<LOG2EMoverFunctionExpression>)]
-                | qi::lit("log10e")      [qi::_val = phx::bind(&MakeExp<LOG10EMoverFunctionExpression>)]
-                | qi::lit("ln2")         [qi::_val = phx::bind(&MakeExp<LN2MoverFunctionExpression>)]
-                | qi::lit("ln10")        [qi::_val = phx::bind(&MakeExp<LN10MoverFunctionExpression>)]
-                | qi::lit("pi")          [qi::_val = phx::bind(&MakeExp<PIMoverFunctionExpression>)]
-                | qi::lit("pi_2")        [qi::_val = phx::bind(&MakeExp<PI_2MoverFunctionExpression>)]
-                | qi::lit("pi_4")        [qi::_val = phx::bind(&MakeExp<PI_4MoverFunctionExpression>)]
-                | qi::lit("inv_pi")      [qi::_val = phx::bind(&MakeExp<INV_PIMoverFunctionExpression>)]
-                | qi::lit("inv_pi_2")    [qi::_val = phx::bind(&MakeExp<INV_PI_2MoverFunctionExpression>)]
-                | qi::lit("inv_sqrtpi_2")[qi::_val = phx::bind(&MakeExp<INV_SQRTPI_2MoverFunctionExpression>)]
-                | qi::lit("sqrt2")       [qi::_val = phx::bind(&MakeExp<SQRT2MoverFunctionExpression>)]
-                | qi::lit("inv_sqrt2")   [qi::_val = phx::bind(&MakeExp<INV_SQRT2MoverFunctionExpression>)]
-                | (qi::lit("abs")   >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<AbsMoverFunctionExpression>,   qi::_1)]
-                | (qi::lit("round") >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<RoundMoverFunctionExpression>, qi::_1)]
-                | (qi::lit("ceil")  >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<CeilMoverFunctionExpression>,  qi::_1)]
-                | (qi::lit("floor") >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<FloorMoverFunctionExpression>, qi::_1)]
-                | (qi::lit("exp")   >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<ExpMoverFunctionExpression>,   qi::_1)]
-                | (qi::lit("ln")    >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<LnMoverFunctionExpression>,    qi::_1)]
-                | (qi::lit("log")   >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<LogMoverFunctionExpression>,   qi::_1)]
-                | (qi::lit("sin")   >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<CosMoverFunctionExpression>,   qi::_1)]
-                | (qi::lit("cos")   >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<SinMoverFunctionExpression>,   qi::_1)]
-                | (qi::lit("tan")   >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<TanMoverFunctionExpression>,   qi::_1)]
-                | (qi::lit("asin")  >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<AsinMoverFunctionExpression>,  qi::_1)]
-                | (qi::lit("acos")  >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<AcosMoverFunctionExpression>,  qi::_1)]
-                | (qi::lit("atan")  >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<AtanMoverFunctionExpression>,  qi::_1)]
-                | (qi::lit("sinh")  >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<SinhMoverFunctionExpression>,  qi::_1)]
-                | (qi::lit("cosh")  >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<CoshMoverFunctionExpression>,  qi::_1)]
-                | (qi::lit("tanh")  >> qi::lit('(') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr<TanhMoverFunctionExpression>,  qi::_1)]
-                | (qi::lit("add")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<AddMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("sub")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<SubMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("mul")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<MulMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("div")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<DivMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("mod")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<ModMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("pow")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<PowMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("min")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<MinMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("max")   >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<MaxMoverFunctionExpression>,  qi::_1, qi::_2)]
-                | (qi::lit("rand")  >> qi::lit('(') >> expr >> qi::lit(',') >> expr >> qi::lit(')'))[qi::_val = phx::bind(&MakeExp_Ptr_Ptr<RandMoverFunctionExpression>, qi::_1, qi::_2)];
-        }
-    };
-
-    mover_function_grammer<std::string::const_iterator> gMoverFunc;
-}
-
-bool ParseMoverFunctionExpression(MoverFunctionExpressionSharedPtr &root, const std::string &expression)
-{
-    return boost::spirit::qi::phrase_parse(expression.begin(), expression.end(), parser_impl::gMoverFunc, boost::spirit::ascii::space, root);
-}
