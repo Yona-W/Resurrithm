@@ -16,97 +16,97 @@ class CallbackObject;
 
 class AbilityParameter final {
 public:
-    std::string Name;
-    std::unordered_map<std::string, std::any> Arguments;
+	std::string Name;
+	std::unordered_map<std::string, std::any> Arguments;
 };
 
 class SkillDetail final {
 public:
-    int Level;
-    std::string Description;
-    std::vector<AbilityParameter> Abilities;
+	int Level;
+	std::string Description;
+	std::vector<AbilityParameter> Abilities;
 };
 
 class SkillParameter final {
 public:
-    int32_t GetMaxLevel() { return MaxLevel; }
-    SkillDetail& GetDetail(int32_t level)
-    {
-        auto l = level;
-        if (l > MaxLevel) l = MaxLevel;
-        while (l >= 0) {
-            auto d = Details.find(l);
-            if (d != Details.end()) return d->second;
-            --l;
-        }
-        return Details.begin()->second;
-    }
-    std::string GetDescription(int32_t level)
-    {
-        return GetDetail(level).Description;
-    }
+	int32_t GetMaxLevel() { return MaxLevel; }
+	SkillDetail& GetDetail(int32_t level)
+	{
+		auto l = level;
+		if (l > MaxLevel) l = MaxLevel;
+		while (l >= 0) {
+			auto d = Details.find(l);
+			if (d != Details.end()) return d->second;
+			--l;
+		}
+		return Details.begin()->second;
+	}
+	std::string GetDescription(int32_t level)
+	{
+		return GetDetail(level).Description;
+	}
 
 public:
-    std::string Name;
-    std::string IconPath;
-    std::map<int32_t, SkillDetail> Details;
-    int32_t CurrentLevel;
-    int32_t MaxLevel;
+	std::string Name;
+	std::string IconPath;
+	std::map<int32_t, SkillDetail> Details;
+	int32_t CurrentLevel;
+	int32_t MaxLevel;
 };
 
 enum class AbilityNoteType {
-    Tap = 1,
-    ExTap,
-    AwesomeExTap,
-    Flick,
-    Air,
-    HellTap,
-    Hold,
-    Slide,
-    AirAction,
+	Tap = 1,
+	ExTap,
+	AwesomeExTap,
+	Flick,
+	Air,
+	HellTap,
+	Hold,
+	Slide,
+	AirAction,
 };
 
 enum class AbilityJudgeType {
-    JusticeCritical = 1,
-    Justice,
-    Attack,
-    Miss,
+	JusticeCritical = 1,
+	Justice,
+	Attack,
+	Miss,
 };
 
 class SkillManager final {
 private:
-    std::vector<std::shared_ptr<SkillParameter>> skills;
-    int selected;
+	std::vector<std::shared_ptr<SkillParameter>> skills;
+	int selected;
 
-    void LoadFromToml(std::filesystem::path file);
+	void LoadFromToml(std::filesystem::path file);
 
 public:
-    explicit SkillManager();
+	explicit SkillManager();
 
-    void LoadAllSkills();
+	void LoadAllSkills();
 
-    void Next();
-    void Previous();
-    SkillParameter* GetSkillParameter(int relative);
-    std::shared_ptr<SkillParameter> GetSkillParameterSafe(int relative);
+	void Next();
+	void Previous();
+	SkillParameter* GetSkillParameter(int relative);
+	std::shared_ptr<SkillParameter> GetSkillParameterSafe(int relative);
 
-    int32_t GetSize() const;
+	int32_t GetSize() const;
 };
 
 class SkillIndicators final {
 private:
-    std::vector<SImage*> indicatorIcons;
-    mutable CallbackObject* callback;
+	std::vector<SImage*> indicatorIcons;
+	mutable CallbackObject* callback;
 
 public:
-    SkillIndicators();
-    ~SkillIndicators();
+	SkillIndicators();
+	~SkillIndicators();
 
-    uint32_t GetSkillIndicatorCount() const;
-    SImage* GetSkillIndicatorImage(uint32_t index);
-    void SetCallback(asIScriptFunction *func);
-    int AddSkillIndicator(const std::string &icon);
-    void TriggerSkillIndicator(int index) const;
+	uint32_t GetSkillIndicatorCount() const;
+	SImage* GetSkillIndicatorImage(uint32_t index);
+	void SetCallback(asIScriptFunction* func);
+	int AddSkillIndicator(const std::string& icon);
+	void TriggerSkillIndicator(int index) const;
 };
 
-void RegisterSkillTypes(asIScriptEngine *engine);
+void RegisterSkillTypes(asIScriptEngine* engine);

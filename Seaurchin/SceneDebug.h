@@ -4,14 +4,14 @@
 
 class SceneDebug final : public Scene {
 private:
-    int call = 0;
-    double calc = 0;
-    double fps = 0;
+	int call = 0;
+	double calc = 0;
+	double fps = 0;
 
 public:
-    ~SceneDebug() = default;
+	~SceneDebug() = default;
 
-    void Tick(double delta) override;
-    void Draw() override;
-    bool IsDead() override;
+	void Tick(double delta) override;
+	void Draw() override;
+	bool IsDead() override;
 };

@@ -17,5 +17,5 @@ void SceneDeveloperMode::Draw()
 
 bool SceneDeveloperMode::IsDead()
 {
-    return false;
+	return false;
 }

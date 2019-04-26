@@ -17,7 +17,7 @@ void Scene::Initialize()
 void Scene::Tick(double delta)
 {}
 
-void Scene::OnEvent(const std::string & message)
+void Scene::OnEvent(const std::string& message)
 {}
 
 void Scene::Draw()
@@ -25,7 +25,7 @@ void Scene::Draw()
 
 bool Scene::IsDead()
 {
-    return false;
+	return false;
 }
 
 void Scene::Disappear()

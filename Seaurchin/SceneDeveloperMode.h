@@ -6,11 +6,11 @@ class SceneDeveloperMode final : public Scene {
 private:
 
 public:
-    SceneDeveloperMode();
-    ~SceneDeveloperMode();
+	SceneDeveloperMode();
+	~SceneDeveloperMode();
 
-    void Initialize() override;
-    void Tick(double delta) override;
-    void Draw() override;
-    bool IsDead() override;
+	void Initialize() override;
+	void Tick(double delta) override;
+	void Draw() override;
+	bool IsDead() override;
 };

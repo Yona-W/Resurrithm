@@ -6,39 +6,39 @@
 // AngelScriptに登録した値型用の汎用処理アレ
 
 template <typename T>
-void AngelScriptValueConstruct(void *address)
+void AngelScriptValueConstruct(void* address)
 {
-    new (address) T;
+	new (address) T;
 }
 
 template <typename T>
-void AngelScriptValueDestruct(void *address)
+void AngelScriptValueDestruct(void* address)
 {
-    static_cast<T*>(address)->~T();
+	static_cast<T*>(address)->~T();
 }
 
 template<typename From, typename To>
-To* CastReferenceType(From *from)
+To* CastReferenceType(From* from)
 {
-    if (!from) return nullptr;
-    To* result = dynamic_cast<To*>(from);
-    if (result) result->AddRef();
-    return result;
+	if (!from) return nullptr;
+	To* result = dynamic_cast<To*>(from);
+	if (result) result->AddRef();
+	return result;
 }
 
 using PropList = std::vector<std::tuple<std::string, std::string>>;
 
-std::wstring ConvertUTF8ToUnicode(const std::string &utf8Str);
-std::string ConvertUnicodeToUTF8(const std::wstring &utf16Str);
-void ScriptSceneWarnOutOf(const std::string &funcName, const std::string &type, asIScriptContext *ctx);
-double ToDouble(const char *str);
+std::wstring ConvertUTF8ToUnicode(const std::string& utf8Str);
+std::string ConvertUnicodeToUTF8(const std::wstring& utf16Str);
+void ScriptSceneWarnOutOf(const std::string& funcName, const std::string& type, asIScriptContext* ctx);
+double ToDouble(const char* str);
 double NormalizedFmod(double x, double y);
-uint32_t ConvertUnsignedInteger(const std::string &input);
-int32_t ConvertInteger(const std::string &input);
-uint32_t ConvertHexatridecimal(const std::string &input);
-float ConvertFloat(const std::string &input);
-bool ConvertBoolean(const std::string &input);
-void SplitProps(const std::string &source, PropList &vec);
+uint32_t ConvertUnsignedInteger(const std::string& input);
+int32_t ConvertInteger(const std::string& input);
+uint32_t ConvertHexatridecimal(const std::string& input);
+float ConvertFloat(const std::string& input);
+bool ConvertBoolean(const std::string& input);
+void SplitProps(const std::string& source, PropList& vec);
 
 #define SU_TO_INT8(value)   static_cast<int8_t>((value))
 #define SU_TO_UINT8(value)  static_cast<uint8_t>((value))

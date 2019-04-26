@@ -2,14 +2,14 @@
 
 class ExtensionManager final {
 private:
-    std::vector<HINSTANCE> dllInstances;
-    void LoadDll(std::wstring path);
+	std::vector<HINSTANCE> dllInstances;
+	void LoadDll(std::wstring path);
 
 public:
-    ExtensionManager();
-    ~ExtensionManager();
+	ExtensionManager();
+	~ExtensionManager();
 
-    void LoadExtensions();
-    void Initialize(asIScriptEngine *engine);
-    void RegisterInterfaces();
+	void LoadExtensions();
+	void Initialize(asIScriptEngine* engine);
+	void RegisterInterfaces();
 };
