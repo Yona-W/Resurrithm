@@ -63,7 +63,6 @@ namespace
 		case 2: return new PlayableProcessor(src, true);
 		default: return nullptr;
 		}
-
 	}
 }
 
@@ -112,7 +111,7 @@ void ScenePlayer::SetProcessorOptions(ScoreProcessor * processor) const
 
 void ScenePlayer::EnqueueJudgeSound(const JudgeSoundType type)
 {
-	judgeSoundQueue.push(type);
+	judgeSoundQueue.Push(type);
 }
 
 
@@ -137,6 +136,7 @@ void ScenePlayer::Finalize()
 
 	DeleteGraph(hGroundBuffer);
 	if (movieBackground) DeleteGraph(movieBackground);
+	judgeSoundQueue.Dispose(JudgeSoundType::Disposing);
 	judgeSoundThread.join();
 }
 
@@ -386,12 +386,8 @@ void ScenePlayer::ProcessSoundQueue()
 {
 	JudgeSoundType type;
 	while (!isTerminating) {
-		if (judgeSoundQueue.empty()) {
-			Sleep(0);
-			continue;
-		}
-		type = judgeSoundQueue.front();
-		judgeSoundQueue.pop();
+		// NOTE: pop可能になるまで待機します。
+		type = judgeSoundQueue.Pop();
 		switch (type) {
 		case JudgeSoundType::Tap:
 			if (soundTap) SoundManager::PlayGlobal(soundTap->GetSample());

@@ -27,6 +27,42 @@
 #define SU_LANE_NOTE_WIDTH 192.0f
 #define SU_LANE_NOTE_HEIGHT 64.0f
 
+template<typename T, size_t N>
+class BoundedQueue {
+private:
+	std::queue<T> queue;
+	std::mutex guard;
+	std::condition_variable not_empty;
+	std::condition_variable not_full;
+public:
+	bool Push(T val) {
+		std::unique_lock<std::mutex> lk(guard);
+		if (queue.size() >= N) return false;
+
+		not_full.wait(lk, [this] {
+			return queue.size() < N;
+			});
+		queue.push(std::move(val));
+		not_empty.notify_all();
+
+		return true;
+	}
+	T Pop() {
+		std::unique_lock<std::mutex> lk(guard);
+		not_empty.wait(lk, [this] {
+			return !queue.empty();
+			});
+		T ret = std::move(queue.front());
+		queue.pop();
+		not_full.notify_all();
+		return ret;
+	}
+	void Dispose(T val) {
+		// HACK: こんな処理で大丈夫なのか...?
+		while (!Push(val));
+	}
+};
+
 enum class JudgeType {
 	ShortNormal = 0,
 	ShortEx,
@@ -50,6 +86,8 @@ enum class JudgeSoundType {
 	AirHolding,
 	AirHoldingStop,
 	Metronome,
+
+	Disposing
 };
 
 enum class PlayingState {
@@ -97,7 +135,7 @@ protected:
 	int hGroundBuffer{};
 	ExecutionManager* manager;
 	SoundManager* const soundManager; // soundManager のアドレスが不変、 soundManager の実体が持つ値は変わりうる
-	std::queue<JudgeSoundType> judgeSoundQueue;
+	BoundedQueue<JudgeSoundType, 32> judgeSoundQueue;
 	std::thread judgeSoundThread;
 	std::mutex asyncMutex;
 	std::thread loadWorkerThread;
