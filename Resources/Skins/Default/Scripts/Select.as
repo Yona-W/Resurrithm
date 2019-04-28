@@ -12,8 +12,9 @@ class Title : CoroutineScene {
   }
 
   void Run() {
-    @cursor = MusicCursor();
+    @cursor = GetMusicCursor();
     cursor.ReloadMusic();
+    cursor.ResetState();
     ExecuteScene(scCharacterSelect);
     RunCoroutine(Coroutine(Main), "Select:Main");
     RunCoroutine(Coroutine(KeyInput), "Select:KeyInput");

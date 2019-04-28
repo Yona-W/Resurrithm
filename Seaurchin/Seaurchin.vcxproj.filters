@@ -49,6 +49,9 @@
     <Filter Include="ヘッダー ファイル\ライブラリ">
       <UniqueIdentifier>{11261168-c68c-4cb0-a44c-605b63a7fdb2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="インターフェース\Manager">
+      <UniqueIdentifier>{4c06cc56-383d-46dc-b13b-d79f3a5cd6ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -87,12 +90,6 @@
     <ClCompile Include="ScriptFunction.cpp">
       <Filter>インターフェース\AngelScript</Filter>
     </ClCompile>
-    <ClCompile Include="MusicsManager.cpp">
-      <Filter>インターフェース\C++</Filter>
-    </ClCompile>
-    <ClCompile Include="SoundManager.cpp">
-      <Filter>インターフェース\C++</Filter>
-    </ClCompile>
     <ClCompile Include="SceneDeveloperMode.cpp">
       <Filter>ビルトインScene</Filter>
     </ClCompile>
@@ -122,9 +119,6 @@
     </ClCompile>
     <ClCompile Include="ExecutionManager.Interface.cpp">
       <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="ExtensionManager.cpp">
-      <Filter>インターフェース\C++</Filter>
     </ClCompile>
     <ClCompile Include="Character.cpp">
       <Filter>インターフェース\キャラクター</Filter>
@@ -174,6 +168,15 @@
     <ClCompile Include="ScriptSpriteMover.cpp">
       <Filter>インターフェース\描画システム</Filter>
     </ClCompile>
+    <ClCompile Include="SoundManager.cpp">
+      <Filter>インターフェース\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="ExtensionManager.cpp">
+      <Filter>インターフェース\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="MusicsManager.cpp">
+      <Filter>インターフェース\Manager</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h">
@@ -221,12 +224,6 @@
     <ClInclude Include="PrecompiledHeader.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="MusicsManager.h">
-      <Filter>インターフェース\C++</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundManager.h">
-      <Filter>インターフェース\C++</Filter>
-    </ClInclude>
     <ClInclude Include="SceneDeveloperMode.h">
       <Filter>ビルトインScene</Filter>
     </ClInclude>
@@ -246,9 +243,6 @@
       <Filter>インターフェース\AngelScript</Filter>
     </ClInclude>
     <ClInclude Include="SeaurchinExtension.h">
-      <Filter>インターフェース\C++</Filter>
-    </ClInclude>
-    <ClInclude Include="ExtensionManager.h">
       <Filter>インターフェース\C++</Filter>
     </ClInclude>
     <ClInclude Include="Character.h">
@@ -316,6 +310,15 @@
     </ClInclude>
     <ClInclude Include="ScriptSpriteMover.h">
       <Filter>インターフェース\描画システム</Filter>
+    </ClInclude>
+    <ClInclude Include="ExtensionManager.h">
+      <Filter>インターフェース\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="MusicsManager.h">
+      <Filter>インターフェース\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="SoundManager.h">
+      <Filter>インターフェース\Manager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

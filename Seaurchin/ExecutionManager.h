@@ -52,7 +52,8 @@ public:
 	std::shared_ptr<ScriptScene> CreateSceneFromScriptObject(asIScriptObject* obj) const;
 	int GetSceneCount() const { return scenes.size(); }
 
-	std::shared_ptr<MusicsManager> GetMusicsManager() const { return musics; }
+	std::shared_ptr<MusicsManager> GetMusicsManagerSafe() const { return musics; }
+	MusicsManager* GetMusicsManagerUnsafe() const { return musics.get(); }
 	std::shared_ptr<ControlState> GetControlStateSafe() const { return sharedControlState; }
 	std::shared_ptr<Setting> GetSettingInstanceSafe() const { return sharedSetting; }
 	std::shared_ptr<AngelScript> GetScriptInterfaceSafe() const { return scriptInterface; }

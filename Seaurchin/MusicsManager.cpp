@@ -6,51 +6,47 @@
 using namespace std;
 using namespace filesystem;
 
-typedef std::lock_guard<std::mutex> LockGuard;
+typedef lock_guard<mutex> LockGuard;
 
-//path sepath = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR;
+// CategoryInfo ---------------------------
 
-MusicsManager::MusicsManager(ExecutionManager* exm)
+/*!
+ * @param[in] path カテゴリの実体に当たるディレクトリへのパス。絶対パスを想定しています。
+ */
+CategoryInfo::CategoryInfo(const path& cpath)
 {
-	manager = exm;
-	analyzer = make_unique<SusAnalyzer>(192);
+	categoryPath = cpath;
+	name = ConvertUnicodeToUTF8(categoryPath.filename().wstring());
 }
+
+CategoryInfo::~CategoryInfo()
+= default;
+
+// ReSharper disable once CppMemberFunctionMayBeStatic
+void CategoryInfo::Reload(bool recreateCache) const
+{}
+
+
+// MusicsManager ---------------------------
+
+MusicsManager::MusicsManager()
+	: loading(false)
+	, analyzer(make_unique<SusAnalyzer>(192))
+	, categoryIndex(0)
+	, musicIndex(-1)
+	, variantIndex(-1)
+	, state(MusicSelectionState::Category)
+{}
 
 MusicsManager::~MusicsManager()
 = default;
 
-void MusicsManager::Initialize()
-{}
-
-void MusicsManager::Reload(const bool async)
-{
-	if (IsReloading()) return;
-
-	if (async) {
-		thread loadthread([this] { CreateMusicCache(); });
-		loadthread.detach();
-	}
-	else {
-		CreateMusicCache();
-	}
-}
-
-bool MusicsManager::IsReloading()
-{
-	LockGuard lock(flagMutex);
-	return loading;
-}
-
-path MusicsManager::GetSelectedScorePath()
-{
-	const auto ci = manager->GetData<int>("Selected:Category");
-	const auto mi = manager->GetData<int>("Selected:Music");
-	const auto vi = manager->GetData<int>("Selected:Variant");
-	auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(categories[ci]->GetName());
-	result /= categories[ci]->Musics[mi]->Scores[vi]->Path;
-	return result;
-}
-
+/*!
+ * @brief 譜面一覧を再読み込みします。
+ * @details 現在の譜面一覧を破棄し、該当ディレクトリから譜面を列挙し、所有するアナライザで譜面を解析します。
+ * かなりの時間がかかる処理になるので、外部からはこれを直接実行せず、
+ * loadingフラグを用いて適切に非同期処理することが推奨されます。
+ */
 void MusicsManager::CreateMusicCache()
 {
 	{
@@ -103,81 +99,46 @@ void MusicsManager::CreateMusicCache()
 	}
 }
 
-MusicSelectionCursor* MusicsManager::CreateMusicSelectionCursor()
+/*!
+ * @brief 譜面一覧を再読み込みします。
+ * @param[in] async 非同期で読み込みたい場合はtrueを渡してください。
+ * @return 関数の実行に成功するとSuccessが返ります。譜面一覧再読み込み中に実行するとReloadingを返します。
+ * @details エクステンションの列挙、初期化、登録を行うインターフェースを提供します。
+ */
+MusicSelectionState MusicsManager::ReloadMusic(const bool async)
 {
-	auto result = new MusicSelectionCursor(this);
-	result->AddRef();
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
-	return result;
-}
-
-// CategoryInfo ---------------------------
-
-CategoryInfo::CategoryInfo(const path & cpath)
-{
-	categoryPath = cpath;
-	name = ConvertUnicodeToUTF8(categoryPath.filename().wstring());
-}
-
-CategoryInfo::~CategoryInfo()
-= default;
-
-// ReSharper disable once CppMemberFunctionMayBeStatic
-void CategoryInfo::Reload(bool recreateCache) const
-{
-
-}
-
-//MusicSelectionCursor ------------------------------------------
-
-std::shared_ptr<CategoryInfo> MusicSelectionCursor::GetCategoryAt(const int32_t relative) const
-{
-	const auto categorySize = GetCategorySize();
-	if (categorySize <= 0) return nullptr;
-	auto actual = relative + categoryIndex;
-	while (actual < 0) actual += categorySize;
-	return manager->categories[actual % categorySize];
-}
-
-std::shared_ptr<MusicMetaInfo> MusicSelectionCursor::GetMusicAt(const int32_t relative) const
-{
-	const auto musicSize = GetMusicSize(0);
-	if (musicSize <= 0) return nullptr;
-	auto actual = relative + musicIndex;
-	while (actual < 0) actual += musicSize;
-	return GetCategoryAt(0)->Musics[actual % musicSize];
-}
-
-std::shared_ptr<MusicScoreInfo> MusicSelectionCursor::GetScoreVariantAt(const int32_t relative) const
-{
-	const auto music = GetMusicAt(relative);
-	if (!music) return nullptr;
-	const auto variant = min(int32_t(variantIndex), GetVariantSize(relative) - 1);
-	if (variant < 0) return nullptr;
-	return music->Scores[variant];
-}
-
-MusicSelectionCursor::MusicSelectionCursor(MusicsManager * manager)
-	: manager(manager)
-	, categoryIndex(0)
-	, musicIndex(-1)
-	, variantIndex(-1)
-	, state(MusicSelectionState::Category)
-{}
-
-MusicSelectionState MusicSelectionCursor::ReloadMusic(const bool async)
-{
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
-
-	manager->Reload(async);
+	if (async) {
+		// TODO: これ非同期再読み込み中にデストラクタ走ると死ぬのでは?
+		thread loadthread([this] { CreateMusicCache(); });
+		loadthread.detach();
+	}
+	else {
+		CreateMusicCache();
+	}
 
 	return MusicSelectionState::Success;
 }
 
-MusicSelectionState MusicSelectionCursor::ResetState()
+/*!
+ * @brief 譜面一覧の再読み込み中かどうかを確認します。
+ * @return 譜面一覧の再読み込み中ならtrueを返します。
+ */
+bool MusicsManager::IsReloading() const
 {
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
+	LockGuard lock(flagMutex);
+	return loading;
+}
+
+/*!
+ * @brief 譜面選択状態をリセットします。
+ * @return 関数の実行に成功するとSuccessが返ります。譜面一覧再読み込み中に実行するとReloadingを返します。
+ * @details 関数の実行に成功すると、カテゴリ選択状態で0番目のカテゴリを選択中の状態になります。
+ */
+MusicSelectionState MusicsManager::ResetState()
+{
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	categoryIndex = 0;
 	musicIndex = -1;
@@ -187,7 +148,82 @@ MusicSelectionState MusicSelectionCursor::ResetState()
 	return MusicSelectionState::Success;
 }
 
-std::string MusicSelectionCursor::GetPrimaryString(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中のカテゴリから相対位置を指定してカテゴリ情報を取得します。
+ * @param[in] relative 現在選択中のカテゴリに対する相対カテゴリ数。
+ * @return 該当位置にあるカテゴリ情報を返します。カテゴリ情報取得に失敗するとnullを返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+std::shared_ptr<CategoryInfo> MusicsManager::GetCategoryAt(const int32_t relative) const
+{
+	// NOTE: リロード中は負数が返ってくる
+	const auto categorySize = GetCategorySize();
+	if (categorySize <= 0) return nullptr;
+
+	auto actual = relative + categoryIndex;
+	while (actual < 0) actual += categorySize;
+	return categories[actual % categorySize];
+}
+
+/*!
+ * @brief 現在選択中の楽曲から相対位置を指定して楽曲情報を取得します。
+ * @param[in] relative 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にある楽曲情報を返します。楽曲情報取得に失敗するとnullを返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+std::shared_ptr<MusicMetaInfo> MusicsManager::GetMusicAt(const int32_t relative) const
+{
+	// NOTE: リロード中はnullが返ってくる
+	const auto category = GetCategoryAt(0);
+	if (!category) return nullptr;
+
+	const auto musicSize = category->Musics.size();
+	if (musicSize == 0) return nullptr;
+
+	auto actual = relative + musicIndex;
+	while (actual < 0) actual += musicSize;
+	return category->Musics[actual % musicSize];
+}
+
+/*!
+ * @brief 現在選択中の譜面から相対位置を指定して譜面情報を取得します。
+ * @param[in] relative 現在選択中の譜面に対する相対譜面差分数。
+ * @return 該当位置にある譜面情報を返します。譜面情報取得に失敗するとnullを返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+std::shared_ptr<MusicScoreInfo> MusicsManager::GetScoreVariantAt(const int32_t relative) const
+{
+	// NOTE: リロード中はnullが返ってくる
+	const auto music = GetMusicAt(relative);
+	if (!music) return nullptr;
+
+	const auto size = music->Scores.size();
+	if (size == 0 || variantIndex < 0) return nullptr;
+
+	return music->Scores[min(SU_TO_UINT32(variantIndex), size - 1)];
+}
+
+/*!
+ * @brief 現在選択中の譜面の実体となるSUSファイルのパスを返します。
+ * @return 現在選択中の譜面の実体となるSUSファイルへの絶対パス。パスの取得に失敗した場合、空のパスが返ります。
+ * @details 特にリロード中に実行するとパスの取得に失敗します。
+ */
+path MusicsManager::GetSelectedScorePath() const
+{
+	const auto cat = GetCategoryAt(0);
+	const auto score = GetScoreVariantAt(0);
+	if (!cat || !score) return path();
+
+	return Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(cat->GetName()) / score->Path;
+}
+
+/*!
+ * @brief 現在の選択状態で取得可能な文字列情報を相対位置を指定して取得します。
+ * @param[in] relativeIndex 現在選択中の項目に対する相対項目数。
+ * @return カテゴリ選択中ならカテゴリ名を、楽曲選択中なら楽曲名を返します。情報の取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+std::string MusicsManager::GetPrimaryString(const int32_t relativeIndex) const
 {
 	switch (state) {
 	case MusicSelectionState::Category:
@@ -195,77 +231,146 @@ std::string MusicSelectionCursor::GetPrimaryString(const int32_t relativeIndex) 
 	case MusicSelectionState::Music:
 		return GetMusicName(relativeIndex);
 	default:
-		return "";
+		return "Unavailable!";
 	}
 }
 
-string MusicSelectionCursor::GetCategoryName(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中のカテゴリから相対位置をしてカテゴリ名を取得します。
+ * @param[in] relativeIndex 現在選択中のカテゴリに対する相対カテゴリ数。
+ * @return 該当位置にあるカテゴリ名を返します。カテゴリ名の取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+string MusicsManager::GetCategoryName(const int32_t relativeIndex) const
 {
 	const auto category = GetCategoryAt(relativeIndex);
 	return category ? category->GetName() : "Unavailable!";
 }
 
-string MusicSelectionCursor::GetMusicName(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をして楽曲名を取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にある楽曲名を返します。楽曲名の取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+string MusicsManager::GetMusicName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
 	return music ? music->Name : "Unavailable!";
 }
 
-string MusicSelectionCursor::GetArtistName(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をしてアーティスト名を取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にあるアーティスト名を返します。アーティスト名の取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+string MusicsManager::GetArtistName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
 	return music ? music->Artist : "Unavailable!";
 }
 
-string MusicSelectionCursor::GetMusicJacketFileName(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をしてジャケットファイルパスを取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にあるジャケットファイルパスを返します。ジャケットファイルパスの取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+string MusicsManager::GetMusicJacketFileName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
 	if (!music || music->JacketPath.empty()) return "";
-	const auto result = (Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / music->JacketPath).wstring();
-	return ConvertUnicodeToUTF8(result);
-}
 
-string MusicSelectionCursor::GetBackgroundFileName(const int32_t relativeIndex) const
-{
-	const auto variant = GetScoreVariantAt(relativeIndex);
-	if (!variant || variant->BackgroundPath.empty()) return "";
-	auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / variant->Path.parent_path() / variant->BackgroundPath;
+	const auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / music->JacketPath;
 	return ConvertUnicodeToUTF8(result.wstring());
 }
 
-int MusicSelectionCursor::GetDifficulty(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をして背景動画ファイルパスを取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にある背景動画ファイルパスを返します。絶対パスです。背景動画ファイルパスの取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+string MusicsManager::GetBackgroundFileName(const int32_t relativeIndex) const
+{
+	const auto variant = GetScoreVariantAt(relativeIndex);
+	if (!variant || variant->BackgroundPath.empty()) return "";
+
+	const auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / variant->Path.parent_path() / variant->BackgroundPath;
+	return ConvertUnicodeToUTF8(result.wstring());
+}
+
+/*!
+ * @brief 現在選択中の楽曲から相対位置をして難易度を取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にある難易度を返します。難易度の取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+int MusicsManager::GetDifficulty(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->Difficulty : 0;
 }
 
-int MusicSelectionCursor::GetLevel(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をして譜面レベルを取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にある譜面レベルを返します。譜面レベルの取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+int MusicsManager::GetLevel(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->Level : 0;
 }
 
-double MusicSelectionCursor::GetBpm(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をしてBPMを取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にあるBPMを返します。BPMの取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+double MusicsManager::GetBpm(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->BpmToShow : 0;
 }
 
-std::string MusicSelectionCursor::GetExtraLevel(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をしてレベル追加情報を取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にあるレベル追加情報を返します。レベル追加情報の取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+std::string MusicsManager::GetExtraLevel(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->DifficultyName : "";
 }
 
-std::string MusicSelectionCursor::GetDesignerName(const int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をして譜面製作者名を取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当位置にある譜面製作者名を返します。譜面製作者名の取得に失敗すると"Unavailable!"を返します。
+ * @details 特にリロード中に実行すると情報取得に失敗します。
+ */
+std::string MusicsManager::GetDesignerName(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->Designer : "";
 }
 
-MusicSelectionState MusicSelectionCursor::Enter()
+/*!
+ * @brief 現在選択中の項目を「確定」します。
+ * @return 関数の実行に成功するとSuccess/Confirmedを返します。
+ * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
+ * @details 譜面選択操作のすべてが完了した際にはConfirmedが返ります。
+ * 「確定」できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
+ */
+MusicSelectionState MusicsManager::Enter()
 {
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	switch (state) {
 	case MusicSelectionState::Category:
@@ -276,11 +381,6 @@ MusicSelectionState MusicSelectionCursor::Enter()
 		return MusicSelectionState::Success;
 	case MusicSelectionState::Music:
 		//選曲終了
-		manager->manager->SetData<int>("Selected:Category", categoryIndex);
-		manager->manager->SetData<int>("Selected:Music", musicIndex);
-		manager->manager->SetData<int>("Selected:Variant", variantIndex);
-		manager->manager->SetData("Player:Jacket", GetMusicJacketFileName(0));
-		manager->manager->SetData("Player:Background", GetBackgroundFileName(0));
 		state = MusicSelectionState::OutOfFunction;
 		return MusicSelectionState::Confirmed;
 	default:
@@ -288,9 +388,15 @@ MusicSelectionState MusicSelectionCursor::Enter()
 	}
 }
 
-MusicSelectionState MusicSelectionCursor::Exit()
+/*!
+ * @brief 現在選択中の項目を「取り消し」ます。
+ * @return 関数の実行に成功するとSuccessを返します。
+ * 関数の実行に失敗するとReloading/OutOfFunctionが返ります。
+ * @details 「取り消し」できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
+ */
+MusicSelectionState MusicsManager::Exit()
 {
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	switch (state) {
 	case MusicSelectionState::Category:
@@ -298,6 +404,8 @@ MusicSelectionState MusicSelectionCursor::Exit()
 		break;
 	case MusicSelectionState::Music:
 		state = MusicSelectionState::Category;
+		musicIndex = -1;
+		variantIndex = -1;
 		break;
 	default:
 		return MusicSelectionState::OutOfFunction;
@@ -305,21 +413,29 @@ MusicSelectionState MusicSelectionCursor::Exit()
 	return MusicSelectionState::Success;
 }
 
-MusicSelectionState MusicSelectionCursor::Next()
+/*!
+ * @brief 現在選択中の項目に対して「次」の項目へ移ります。
+ * @return 関数の実行に成功するとSuccessを返します。
+ * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
+ * @details 「次」の項目を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
+ */
+MusicSelectionState MusicsManager::Next()
 {
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	switch (state) {
 	case MusicSelectionState::Category: {
 		const auto categorySize = GetCategorySize();
-		if (categorySize <= 0) return MusicSelectionState::Error;
+		if (categorySize <= 0 || categoryIndex < 0) return MusicSelectionState::Error;
+
 		categoryIndex = (categoryIndex + 1) % categorySize;
 		break;
 	}
 	case MusicSelectionState::Music: {
 		const auto musicSize = GetMusicSize(0);
 		const auto lastMusicIndex = musicIndex;
-		if (musicSize <= 0) return MusicSelectionState::Error;
+		if (musicSize <= 0 || musicIndex < 0) return MusicSelectionState::Error;
+
 		musicIndex = (musicIndex + 1) % musicSize;
 		const auto nextVariant = min(SU_TO_INT32(variantIndex), GetVariantSize(0) - 1);
 		if (nextVariant < 0) {
@@ -335,14 +451,21 @@ MusicSelectionState MusicSelectionCursor::Next()
 	return MusicSelectionState::Success;
 }
 
-MusicSelectionState MusicSelectionCursor::Previous()
+/*!
+ * @brief 現在選択中の項目に対して「前」の項目へ移ります。
+ * @return 関数の実行に成功するとSuccessを返します。
+ * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
+ * @details 「前」の項目を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
+ */
+MusicSelectionState MusicsManager::Previous()
 {
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	switch (state) {
 	case MusicSelectionState::Category: {
 		const auto categorySize = GetCategorySize();
-		if (categorySize <= 0) return MusicSelectionState::Error;
+		if (categorySize <= 0 || categoryIndex < 0) return MusicSelectionState::Error;
+
 		categoryIndex = (categoryIndex + categorySize - 1) % categorySize;
 		break;
 
@@ -350,7 +473,8 @@ MusicSelectionState MusicSelectionCursor::Previous()
 	case MusicSelectionState::Music: {
 		const auto musicSize = GetMusicSize(0);
 		const auto lastMusicIndex = musicIndex;
-		if (musicSize <= 0) return MusicSelectionState::Error;
+		if (musicSize <= 0 || musicIndex < 0) return MusicSelectionState::Error;
+
 		musicIndex = (musicIndex + musicSize - 1) % musicSize;
 		const auto nextVariant = min(SU_TO_INT32(variantIndex), GetVariantSize(0) - 1);
 		if (nextVariant < 0) {
@@ -366,14 +490,21 @@ MusicSelectionState MusicSelectionCursor::Previous()
 	return MusicSelectionState::Success;
 }
 
-MusicSelectionState MusicSelectionCursor::NextVariant()
+/*!
+ * @brief 現在選択中の項目に対して「次の差分」へ移ります。
+ * @return 関数の実行に成功するとSuccessを返します。
+ * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
+ * @details 「次の差分」を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
+ */
+MusicSelectionState MusicsManager::NextVariant()
 {
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	switch (state) {
 	case MusicSelectionState::Music: {
 		const auto variantSize = GetVariantSize(0);
-		if (variantSize <= 0) return MusicSelectionState::Error;
+		if (variantSize <= 0 || variantIndex < 0) return MusicSelectionState::Error;
+
 		variantIndex = (variantIndex + 1) % variantSize;
 		break;
 	}
@@ -383,14 +514,21 @@ MusicSelectionState MusicSelectionCursor::NextVariant()
 	return MusicSelectionState::Success;
 }
 
-MusicSelectionState MusicSelectionCursor::PreviousVariant()
+/*!
+ * @brief 現在選択中の項目に対して「前の差分」へ移ります。
+ * @return 関数の実行に成功するとSuccessを返します。
+ * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
+ * @details 「前の差分」を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
+ */
+MusicSelectionState MusicsManager::PreviousVariant()
 {
-	if (manager->IsReloading()) return MusicSelectionState::Reloading;
+	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	switch (state) {
 	case MusicSelectionState::Music: {
 		const auto variantSize = GetVariantSize(0);
-		if (variantSize <= 0) return MusicSelectionState::Error;
+		if (variantSize <= 0 || variantIndex < 0) return MusicSelectionState::Error;
+
 		variantIndex = (variantIndex + variantSize - 1) % variantSize;
 		break;
 	}
@@ -400,29 +538,54 @@ MusicSelectionState MusicSelectionCursor::PreviousVariant()
 	return MusicSelectionState::Success;
 }
 
-MusicSelectionState MusicSelectionCursor::GetState() const
+/*!
+ * @brief 現在の選択状態を返します。
+ * @return 現在の選択状態。
+ */
+MusicSelectionState MusicsManager::GetState() const
 {
-	return (manager->IsReloading()) ? MusicSelectionState::Reloading : state;
+	return IsReloading() ? MusicSelectionState::Reloading : state;
 }
 
-int32_t MusicSelectionCursor::GetCategorySize() const
+/*!
+ * @brief 総カテゴリ数を返します。
+ * @return 総カテゴリ数。
+ * @details 再読み込み中は負数が返ります。
+ */
+int32_t MusicsManager::GetCategorySize() const
 {
-	return manager->IsReloading() ? -1 : SU_TO_INT32(manager->categories.size());
+	return IsReloading() ? -1 : SU_TO_INT32(categories.size());
 }
 
-int32_t MusicSelectionCursor::GetMusicSize(int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中のカテゴリから相対位置をしてカテゴリ内の楽曲数を取得します。
+ * @param[in] relativeIndex 現在選択中のカテゴリに対する相対カテゴリ数。
+ * @return 該当するカテゴリ内の楽曲数。
+ * @details 再読み込み中は負数が返ります。
+ */
+int32_t MusicsManager::GetMusicSize(int32_t relativeIndex) const
 {
 	const auto category = GetCategoryAt(relativeIndex);
-	return (category) ? SU_TO_INT32(category->Musics.size()) : -1;
+	return category ? SU_TO_INT32(category->Musics.size()) : -1;
 }
 
-int32_t MusicSelectionCursor::GetVariantSize(int32_t relativeIndex) const
+/*!
+ * @brief 現在選択中の楽曲から相対位置をして楽曲内の譜面差分数を取得します。
+ * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
+ * @return 該当する楽曲内の差分譜面数。
+ * @details 再読み込み中は負数が返ります。
+ */
+int32_t MusicsManager::GetVariantSize(int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
-	return (music) ? SU_TO_INT32(music->Scores.size()) : -1;
+	return music ? SU_TO_INT32(music->Scores.size()) : -1;
 }
 
-void MusicSelectionCursor::RegisterScriptInterface(asIScriptEngine * engine)
+/*!
+ * @brief ミュージックカーソルクラスをスキンに登録します。
+ * @param[in] engine スクリプトエンジン。
+ */
+void MusicsManager::RegisterScriptInterface(asIScriptEngine* engine)
 {
 	engine->RegisterEnum(SU_IF_MSCSTATE);
 	engine->RegisterEnumValue(SU_IF_MSCSTATE, "OutOfFunction", int(MusicSelectionState::OutOfFunction));
@@ -433,30 +596,29 @@ void MusicSelectionCursor::RegisterScriptInterface(asIScriptEngine * engine)
 	engine->RegisterEnumValue(SU_IF_MSCSTATE, "Error", int(MusicSelectionState::Error));
 	engine->RegisterEnumValue(SU_IF_MSCSTATE, "Success", int(MusicSelectionState::Success));
 
-	engine->RegisterObjectType(SU_IF_MSCURSOR, 0, asOBJ_REF);
-	engine->RegisterObjectBehaviour(SU_IF_MSCURSOR, asBEHAVE_ADDREF, "void f()", asMETHOD(MusicSelectionCursor, AddRef), asCALL_THISCALL);
-	engine->RegisterObjectBehaviour(SU_IF_MSCURSOR, asBEHAVE_RELEASE, "void f()", asMETHOD(MusicSelectionCursor, Release), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " ReloadMusic(bool = false)", asMETHOD(MusicSelectionCursor, ReloadMusic), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " ResetState()", asMETHOD(MusicSelectionCursor, ResetState), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetPrimaryString(int = 0)", asMETHOD(MusicSelectionCursor, GetPrimaryString), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetCategoryName(int = 0)", asMETHOD(MusicSelectionCursor, GetCategoryName), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetMusicName(int = 0)", asMETHOD(MusicSelectionCursor, GetMusicName), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetArtistName(int = 0)", asMETHOD(MusicSelectionCursor, GetArtistName), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetMusicJacketFileName(int = 0)", asMETHOD(MusicSelectionCursor, GetMusicJacketFileName), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetBackgroundFileName(int = 0)", asMETHOD(MusicSelectionCursor, GetBackgroundFileName), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetDifficulty(int = 0)", asMETHOD(MusicSelectionCursor, GetDifficulty), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetLevel(int = 0)", asMETHOD(MusicSelectionCursor, GetLevel), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "double GetBpm(int = 0)", asMETHOD(MusicSelectionCursor, GetBpm), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetExtraLevel(int = 0)", asMETHOD(MusicSelectionCursor, GetExtraLevel), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetDesignerName(int = 0)", asMETHOD(MusicSelectionCursor, GetDesignerName), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Next()", asMETHOD(MusicSelectionCursor, Next), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Previous()", asMETHOD(MusicSelectionCursor, Previous), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " NextVariant()", asMETHOD(MusicSelectionCursor, NextVariant), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " PreviousVariant()", asMETHOD(MusicSelectionCursor, PreviousVariant), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Enter()", asMETHOD(MusicSelectionCursor, Enter), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Exit()", asMETHOD(MusicSelectionCursor, Exit), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " GetState()", asMETHOD(MusicSelectionCursor, GetState), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetCategorySize()", asMETHOD(MusicSelectionCursor, GetCategorySize), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetMusicSize(int = 0)", asMETHOD(MusicSelectionCursor, GetMusicSize), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetVariantSize(int = 0)", asMETHOD(MusicSelectionCursor, GetVariantSize), asCALL_THISCALL);
+	engine->RegisterObjectType(SU_IF_MSCURSOR, 0, asOBJ_REF | asOBJ_NOCOUNT);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " ReloadMusic(bool = false)", asMETHOD(MusicsManager, ReloadMusic), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " ResetState()", asMETHOD(MusicsManager, ResetState), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetPrimaryString(int = 0)", asMETHOD(MusicsManager, GetPrimaryString), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetCategoryName(int = 0)", asMETHOD(MusicsManager, GetCategoryName), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetMusicName(int = 0)", asMETHOD(MusicsManager, GetMusicName), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetArtistName(int = 0)", asMETHOD(MusicsManager, GetArtistName), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetMusicJacketFileName(int = 0)", asMETHOD(MusicsManager, GetMusicJacketFileName), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetBackgroundFileName(int = 0)", asMETHOD(MusicsManager, GetBackgroundFileName), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetDifficulty(int = 0)", asMETHOD(MusicsManager, GetDifficulty), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetLevel(int = 0)", asMETHOD(MusicsManager, GetLevel), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "double GetBpm(int = 0)", asMETHOD(MusicsManager, GetBpm), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetExtraLevel(int = 0)", asMETHOD(MusicsManager, GetExtraLevel), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetDesignerName(int = 0)", asMETHOD(MusicsManager, GetDesignerName), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Next()", asMETHOD(MusicsManager, Next), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Previous()", asMETHOD(MusicsManager, Previous), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " NextVariant()", asMETHOD(MusicsManager, NextVariant), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " PreviousVariant()", asMETHOD(MusicsManager, PreviousVariant), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Enter()", asMETHOD(MusicsManager, Enter), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " Exit()", asMETHOD(MusicsManager, Exit), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " GetState()", asMETHOD(MusicsManager, GetState), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetCategorySize()", asMETHOD(MusicsManager, GetCategorySize), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetMusicSize(int = 0)", asMETHOD(MusicsManager, GetMusicSize), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "int GetVariantSize(int = 0)", asMETHOD(MusicsManager, GetVariantSize), asCALL_THISCALL);
 }
+

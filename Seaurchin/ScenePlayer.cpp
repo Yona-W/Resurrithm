@@ -147,7 +147,7 @@ void ScenePlayer::LoadWorker()
 		isLoadCompleted = false;
 	}
 
-	auto mm = manager->GetMusicsManager();
+	auto mm = manager->GetMusicsManagerSafe();
 	auto scorefile = mm->GetSelectedScorePath();
 
 	// 譜面の読み込み
