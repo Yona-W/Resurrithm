@@ -39,7 +39,9 @@ MusicsManager::MusicsManager()
 {}
 
 MusicsManager::~MusicsManager()
-= default;
+{
+	if (loadWorker.joinable()) loadWorker.join();
+}
 
 /*!
  * @brief 譜面一覧を再読み込みします。
@@ -110,9 +112,13 @@ MusicSelectionState MusicsManager::ReloadMusic(const bool async)
 	if (IsReloading()) return MusicSelectionState::Reloading;
 
 	if (async) {
-		// TODO: これ非同期再読み込み中にデストラクタ走ると死ぬのでは?
+		if (loadWorker.joinable()) {
+			spdlog::get("main")->error(u8"MusicCursor::ReloadMusicは実行中です。");
+			return MusicSelectionState::Reloading;
+		}
+
 		thread loadthread([this] { CreateMusicCache(); });
-		loadthread.detach();
+		loadWorker.swap(loadthread);
 	}
 	else {
 		CreateMusicCache();

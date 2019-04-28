@@ -94,6 +94,7 @@ class MusicsManager final {
 private:
 	bool loading;							//!< 譜面一覧更新中か否か (排他制御してください)
 	mutable std::mutex flagMutex;			//!< 譜面一覧更新中か否かのフラグの排他制御に用いるミューテックス
+	std::thread loadWorker;					//!< 譜面一覧更新スレッド
 	std::unique_ptr<SusAnalyzer> analyzer;	//!< SUSファイルアナライザ
 	MusicList categories;					//!< 譜面一覧
 
