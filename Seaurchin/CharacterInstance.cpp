@@ -1,5 +1,6 @@
 ﻿#include "CharacterInstance.h"
 #include "CharacterManager.h"
+#include "SkillManager.h"
 #include "Setting.h"
 #include "ScriptScene.h"
 
@@ -296,7 +297,7 @@ CharacterImageSet* CharacterInstance::GetCharacterImages() const
 void RegisterCharacterSkillTypes(asIScriptEngine * engine)
 {
 	RegisterResultTypes(engine);
-	RegisterSkillTypes(engine);
+	SkillManager::RegisterType(engine);
 	CharacterManager::RegisterType(engine);
 
 	engine->RegisterFuncdef("void " SU_IF_JUDGE_CALLBACK "(" SU_IF_JUDGETYPE ", " SU_IF_JUDGE_DATA ", const string &in)");

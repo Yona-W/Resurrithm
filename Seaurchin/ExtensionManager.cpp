@@ -1,4 +1,12 @@
-﻿#include "ExtensionManager.h"
+﻿/*!
+ * @file ExtensionManager.cpp
+ * @brief エクステンション管理を行うクラス ExtensionManager の定義
+ * @author kb10uy
+ * @date 2019/04/29
+ * @details エクステンションの列挙、初期化、登録を行うインターフェースを提供します。
+ */
+
+#include "ExtensionManager.h"
 #include "SeaurchinExtension.h"
 #include "Setting.h"
 

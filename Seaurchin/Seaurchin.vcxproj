@@ -161,6 +161,7 @@
     <ClCompile Include="ScriptSpriteMover.cpp" />
     <ClCompile Include="Setting.cpp" />
     <ClCompile Include="Skill.cpp" />
+    <ClCompile Include="SkillManager.cpp" />
     <ClCompile Include="SkinHolder.cpp" />
     <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="ScriptFunction.cpp" />
@@ -210,6 +211,7 @@
     <ClInclude Include="ScriptSprite.h" />
     <ClInclude Include="Setting.h" />
     <ClInclude Include="Skill.h" />
+    <ClInclude Include="SkillManager.h" />
     <ClInclude Include="SkinHolder.h" />
     <ClInclude Include="SoundManager.h" />
     <ClInclude Include="ScriptFunction.h" />

@@ -135,6 +135,7 @@ void CharacterManager::Previous()
 
 /*!
  * @brief 相対位置を指定してキャラクター情報の生ポインタを返します。
+ * @param relative[in] 選択中のキャラクターに対する相対キャラクター数。
  * @return 該当するキャラクター情報の生ポインタ。該当するキャラクターがいない場合nullが返ります。
  */
 CharacterParameter * CharacterManager::GetCharacterParameterUnsafe(const int relative)
@@ -149,6 +150,7 @@ CharacterParameter * CharacterManager::GetCharacterParameterUnsafe(const int rel
 
 /*!
  * @brief 相対位置を指定してキャラクター情報のスマートポインタを返します。
+ * @param relative[in] 選択中のキャラクターに対する相対キャラクター数。
  * @return 該当するキャラクター情報のスマートポインタ。該当するキャラクターがいない場合nullが返ります。
  */
 shared_ptr<CharacterParameter> CharacterManager::GetCharacterParameterSafe(const int relative)
@@ -163,6 +165,7 @@ shared_ptr<CharacterParameter> CharacterManager::GetCharacterParameterSafe(const
 
 /*!
  * @brief 相対位置を指定してキャラクターの画像情報を生成します。
+ * @param relative[in] 選択中のキャラクターに対する相対キャラクター数。
  * @return 該当するキャラクターの画像情報の生ポインタ。該当するキャラクターがいない場合nullが返ります。
  */
 CharacterImageSet* CharacterManager::CreateCharacterImages(const int relative)
@@ -178,6 +181,7 @@ CharacterImageSet* CharacterManager::CreateCharacterImages(const int relative)
 
 /*!
  * @brief スキンにキャラクターマネージャーを登録します。
+ * @param engine[in] スクリプトエンジン。
  * @details 関連クラス(ImageSet,ImageMetric,Parameter)の登録も行います。
  */
 void CharacterManager::RegisterType(asIScriptEngine* engine)

@@ -1,17 +1,14 @@
 ﻿#pragma once
 
-#include "ScriptResource.h"
-
 #define SU_IF_ABILITY "Ability"
 #define SU_IF_SKILL "Skill"
-#define SU_IF_SKILL_MANAGER "SkillManager"
 #define SU_IF_SKILL_INDICATORS "SkillIndicators"
 #define SU_IF_SKILL_CALLBACK "SkillCallback"
 #define SU_IF_NOTETYPE "NoteType"
 #define SU_IF_JUDGETYPE "JudgeType"
 #define SU_IF_JUDGE_DATA "JudgeData"
 
-class ExecutionManager;
+class SImage;
 class CallbackObject;
 
 class AbilityParameter final {
@@ -22,7 +19,7 @@ public:
 
 class SkillDetail final {
 public:
-	int Level;
+	int32_t Level;
 	std::string Description;
 	std::vector<AbilityParameter> Abilities;
 };
@@ -32,24 +29,25 @@ public:
 	int32_t GetMaxLevel() { return MaxLevel; }
 	SkillDetail& GetDetail(int32_t level)
 	{
+		if (Details.size() == 0) return SkillDetail();
+
+		if (level <= 0) return Details.front();
+
 		auto l = level;
 		if (l > MaxLevel) l = MaxLevel;
 		while (l >= 0) {
-			auto d = Details.find(l);
-			if (d != Details.end()) return d->second;
+			const auto d = std::find_if(Details.begin(), Details.end(), [l](const auto& x) { return x.Level == l; });
+			if (d != Details.end()) return *d;
 			--l;
 		}
-		return Details.begin()->second;
+		return Details.front();
 	}
-	std::string GetDescription(int32_t level)
-	{
-		return GetDetail(level).Description;
-	}
+	std::string GetDescription(int32_t level) { return GetDetail(level).Description; }
 
 public:
 	std::string Name;
 	std::string IconPath;
-	std::map<int32_t, SkillDetail> Details;
+	std::vector<SkillDetail> Details;
 	int32_t CurrentLevel;
 	int32_t MaxLevel;
 };
@@ -71,25 +69,6 @@ enum class AbilityJudgeType {
 	Justice,
 	Attack,
 	Miss,
-};
-
-class SkillManager final {
-private:
-	std::vector<std::shared_ptr<SkillParameter>> skills;
-	int selected;
-
-	void LoadFromToml(std::filesystem::path file);
-
-public:
-	explicit SkillManager();
-
-	void LoadAllSkills();
-
-	int32_t GetSize() const { return SU_TO_INT32(skills.size()); }
-	void Next();
-	void Previous();
-	SkillParameter* GetSkillParameter(int relative);
-	std::shared_ptr<SkillParameter> GetSkillParameterSafe(int relative);
 };
 
 class SkillIndicators final {

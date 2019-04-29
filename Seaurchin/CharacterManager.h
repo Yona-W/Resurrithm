@@ -26,8 +26,8 @@ class CharacterManager final {
 	typedef std::vector<std::shared_ptr<CharacterParameter>> CharacterList;
 
 private:
-	CharacterList characters;	//<! キャラクター情報の配列
-	int selected;				//<! 選択項目のインデックス。キャラクター一覧が生成されていない時は負値を取ります。
+	CharacterList characters;	//!< キャラクター情報の配列
+	int selected;				//!< 選択項目のインデックス。キャラクター一覧が生成されていない時は負値を取ります。
 
 public:
 	explicit CharacterManager();
