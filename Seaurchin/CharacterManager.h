@@ -42,7 +42,7 @@ public:
 
 	CharacterParameter* GetCharacterParameterUnsafe(int relative);
 	std::shared_ptr<CharacterParameter> GetCharacterParameterSafe(int relative);
-	CharacterImageSet* CreateCharacterImagesUnsafe(int relative);
+	CharacterImageSet* CreateCharacterImages(int relative);
 
 	static void RegisterType(asIScriptEngine* engine);
 };

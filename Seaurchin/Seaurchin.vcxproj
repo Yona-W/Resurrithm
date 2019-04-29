@@ -129,7 +129,7 @@
     <ClCompile Include="AngelScriptManager.cpp" />
     <ClCompile Include="Character.cpp" />
     <ClCompile Include="CharacterInstance.cpp" />
-    <ClCompile Include="CharacterManger.cpp" />
+    <ClCompile Include="CharacterManager.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="Debug.cpp" />
     <ClCompile Include="Easing.cpp" />

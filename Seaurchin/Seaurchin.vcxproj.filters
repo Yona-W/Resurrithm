@@ -177,7 +177,7 @@
     <ClCompile Include="MusicsManager.cpp">
       <Filter>インターフェース\Manager</Filter>
     </ClCompile>
-    <ClCompile Include="CharacterManger.cpp">
+    <ClCompile Include="CharacterManager.cpp">
       <Filter>インターフェース\Manager</Filter>
     </ClCompile>
   </ItemGroup>
