@@ -1,6 +1,4 @@
 ﻿#include "Font.h"
-#include "Config.h"
-#include "Misc.h"
 #include "Setting.h"
 
 using namespace std;

@@ -1,5 +1,4 @@
-﻿#include "Misc.h"
-#include "Result.h"
+﻿#include "Result.h"
 
 void Result::SetAllNotes(const uint32_t hnotes)
 {

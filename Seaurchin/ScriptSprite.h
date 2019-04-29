@@ -1,10 +1,7 @@
 ﻿#pragma once
 
-#include "Misc.h"
 #include "ScriptSpriteMisc.h"
 #include "ScriptResource.h"
-
-#include "Crc32.h"
 
 #define SU_IF_COLOR "Color"
 #define SU_IF_TF2D "Transform2D"

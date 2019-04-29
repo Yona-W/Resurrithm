@@ -1,5 +1,4 @@
 ﻿#include "wscriptbuilder.h"
-#include "Misc.h"
 
 using namespace std;
 using namespace std::filesystem;

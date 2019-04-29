@@ -7,8 +7,6 @@
 #include <ctype.h>
 #include <string.h>
 
-#include "Misc.h"
-#include "Crc32.h"
 using namespace crc32_constexpr;
 
 

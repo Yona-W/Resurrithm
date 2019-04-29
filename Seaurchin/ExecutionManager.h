@@ -8,6 +8,7 @@
 #include "MusicsManager.h"
 #include "ExtensionManager.h"
 #include "SoundManager.h"
+#include "CharacterManager.h"
 #include "ScenePlayer.h"
 #include "Controller.h"
 #include "Character.h"

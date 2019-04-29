@@ -1,7 +1,6 @@
 ﻿#include "ScriptSprite.h"
 #include "ScriptSpriteMover.h"
 #include "ExecutionManager.h"
-#include "Misc.h"
 
 using namespace std;
 using namespace crc32_constexpr;

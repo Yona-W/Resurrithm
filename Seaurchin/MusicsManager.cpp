@@ -1,7 +1,6 @@
 ﻿#include "MusicsManager.h"
-#include "ExecutionManager.h"
-#include "Config.h"
-#include "Misc.h"
+#include "SusAnalyzer.h"
+#include "Setting.h"
 
 using namespace std;
 using namespace filesystem;

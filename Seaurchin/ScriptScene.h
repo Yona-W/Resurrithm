@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Config.h"
 #include "Scene.h"
 #include "ScriptSprite.h"
 #include "ScriptFunction.h"

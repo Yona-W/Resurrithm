@@ -1,7 +1,6 @@
 ﻿#include "SkinHolder.h"
 #include "Setting.h"
 #include "ExecutionManager.h"
-#include "Config.h"
 
 using namespace std;
 using namespace std::filesystem;

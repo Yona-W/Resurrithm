@@ -5,8 +5,6 @@
 #include "Result.h"
 #include "Character.h"
 #include "Setting.h"
-#include "Misc.h"
-#include "Config.h"
 
 using namespace std;
 

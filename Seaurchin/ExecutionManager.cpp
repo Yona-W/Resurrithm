@@ -1,6 +1,5 @@
 ﻿#include "ExecutionManager.h"
 
-#include "Config.h"
 #include "Setting.h"
 #include "Interfaces.h"
 

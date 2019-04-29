@@ -96,3 +96,5 @@
 #include <glm/ext.hpp>
 
 #include "Crc32.h"
+#include "Misc.h"
+#include "Config.h"

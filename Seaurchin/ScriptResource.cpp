@@ -1,6 +1,5 @@
 ﻿#include "ScriptResource.h"
 #include "ExecutionManager.h"
-#include "Misc.h"
 
 using namespace std;
 

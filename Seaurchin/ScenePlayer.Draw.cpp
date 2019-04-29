@@ -3,7 +3,6 @@
 #include "ScriptSpriteMover.h"
 #include "ExecutionManager.h"
 #include "Setting.h"
-#include "Config.h"
 
 using namespace std;
 

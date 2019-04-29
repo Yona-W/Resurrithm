@@ -1,9 +1,7 @@
 ﻿#include "ScriptFunction.h"
 
 #include "Setting.h"
-#include "Config.h"
 #include "Font.h"
-#include "Misc.h"
 
 using namespace std;
 using namespace std::filesystem;

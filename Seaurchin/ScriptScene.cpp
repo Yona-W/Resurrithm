@@ -1,8 +1,6 @@
 ﻿#include "ScriptScene.h"
 
-#include "Config.h"
 #include "ExecutionManager.h"
-#include "Misc.h"
 
 using namespace std;
 using namespace std::filesystem;

@@ -177,6 +177,9 @@
     <ClCompile Include="MusicsManager.cpp">
       <Filter>インターフェース\Manager</Filter>
     </ClCompile>
+    <ClCompile Include="CharacterManger.cpp">
+      <Filter>インターフェース\Manager</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h">
@@ -318,6 +321,9 @@
       <Filter>インターフェース\Manager</Filter>
     </ClInclude>
     <ClInclude Include="SoundManager.h">
+      <Filter>インターフェース\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="CharacterManager.h">
       <Filter>インターフェース\Manager</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,6 +1,5 @@
 ﻿#include "SusAnalyzer.h"
 #include <utility>
-#include "Misc.h"
 
 using namespace std;
 using namespace crc32_constexpr;

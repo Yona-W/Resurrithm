@@ -1,6 +1,4 @@
-﻿#include "Misc.h"
-
-using namespace std;
+﻿using namespace std;
 
 wstring ConvertUTF8ToUnicode(const string& utf8Str)
 {
