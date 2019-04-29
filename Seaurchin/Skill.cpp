@@ -11,58 +11,66 @@ SkillManager::SkillManager()
 
 void SkillManager::LoadAllSkills()
 {
-	using namespace std;
 	using namespace filesystem;
 	const auto skillroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR;
 
-	for (const auto& fdata : directory_iterator(skillroot)) {
-		if (is_directory(fdata)) continue;
-		const auto filename = ConvertUnicodeToUTF8(fdata.path().wstring());
-		const std::string ext(".toml");
-		size_t len1 = filename.size();
-		size_t len2 = ext.size();
-		if (!(len1 >= len2 && filename.compare(len1 - len2, len2, ext) == 0)) continue;
-		LoadFromToml(fdata.path());
+	if (exists(skillroot)) {
+		for (const auto& fdata : directory_iterator(skillroot)) {
+			if (is_directory(fdata)) continue;
+			if (fdata.path().extension() != ".toml") continue;
+			LoadFromToml(fdata.path());
+		}
 	}
-	spdlog::get("main")->info(u8"スキル総数: {0:d}", skills.size());
-	selected = skills.size() ? 0 : -1;
+
+	const auto size = skills.size();
+	spdlog::get("main")->info(u8"スキル総数: {0:d}", size);
+	selected = (size == 0) ? -1 : 0;
 }
 
 void SkillManager::Next()
 {
-	selected = (selected + skills.size() + 1) % skills.size();
+	const auto size = GetSize();
+	if (size <= 0 || selected < 0) return;
+
+	selected = (selected + 1) % size;
 }
 
 void SkillManager::Previous()
 {
-	selected = (selected + skills.size() - 1) % skills.size();
+	const auto size = GetSize();
+	if (size <= 0 || selected < 0) return;
+
+	selected = (selected + size - 1) % size;
 }
 
 SkillParameter * SkillManager::GetSkillParameter(const int relative)
 {
+	const auto size = GetSize();
+	if (size <= 0 || selected < 0) return nullptr;
+
 	auto ri = selected + relative;
-	while (ri < 0) ri += skills.size();
-	return skills[ri % skills.size()].get();
+	while (ri < 0) ri += size;
+	return skills[ri % size].get();
 }
 
 shared_ptr<SkillParameter> SkillManager::GetSkillParameterSafe(const int relative)
 {
-	auto ri = selected + relative;
-	while (ri < 0) ri += skills.size();
-	return skills[ri % skills.size()];
-}
+	const auto size = GetSize();
+	if (size <= 0 || selected < 0) return nullptr;
 
-int32_t SkillManager::GetSize() const
-{
-	return int32_t(skills.size());
+	auto ri = selected + relative;
+	while (ri < 0) ri += size;
+	return skills[ri % size];
 }
 
 void SkillManager::LoadFromToml(std::filesystem::path file)
 {
-	using namespace std::filesystem;
+	using namespace filesystem;
 	auto log = spdlog::get("main");
 	auto result = make_shared<SkillParameter>();
 	const auto iconRoot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
+
+	if (!exists(iconRoot)) return;
 
 	std::ifstream ifs(file.wstring(), ios::in);
 	auto pr = toml::parse(ifs);

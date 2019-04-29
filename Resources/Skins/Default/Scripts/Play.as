@@ -391,15 +391,17 @@ class CharacterInfo : CoroutineScene {
 
     @spCharacter = Sprite();
     spCharacter.Apply("x:8, y: 6");
-    ci.GetCharacterImages().ApplySmallImage(spCharacter);
+    CharacterImages@ cimg = ci.GetCharacterImages();
+    if (cimg !is null) cimg.ApplySmallImage(spCharacter);
 
     @spSkill = TextSprite(skin.GetFont("Normal32"), "");
     spSkill.Apply("x:11, y: 180, r: 0, g: 0, b: 0, scaleX: 0.75, scaleY: 0.75");
-    spSkill.SetText(ci.GetSkill().Name);
+    Skill@ skill = ci.GetSkill();
+    if(skill !is null) spSkill.SetText(skill.Name);
 
     @spDescription = TextSprite(skin.GetFont("Normal32"), "");
     spDescription.Apply("x:11, y: 208, r: 0, g: 0, b: 0, scaleX: 0.5, scaleY: 0.5");
-    spDescription.SetText(ci.GetSkill().GetDescription(0));
+    if(skill !is null) spDescription.SetText(ci.GetSkill().GetDescription(0));
     spDescription.SetRich(true);
 
     container.AddChild(spBack);
@@ -408,7 +410,7 @@ class CharacterInfo : CoroutineScene {
     container.AddChild(spDescription);
 
     @spIcon = Sprite();
-    spIcon.SetImage(Image(ci.GetSkill().IconPath));
+    if(skill !is null) spIcon.SetImage(Image(skill.IconPath));
     spIcon.Apply("x:217, y:180, scaleX:0.75, scaleY:0.75");
     container.AddChild(spIcon);
 

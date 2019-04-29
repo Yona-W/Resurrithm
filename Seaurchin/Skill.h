@@ -85,12 +85,11 @@ public:
 
 	void LoadAllSkills();
 
+	int32_t GetSize() const { return SU_TO_INT32(skills.size()); }
 	void Next();
 	void Previous();
 	SkillParameter* GetSkillParameter(int relative);
 	std::shared_ptr<SkillParameter> GetSkillParameterSafe(int relative);
-
-	int32_t GetSize() const;
 };
 
 class SkillIndicators final {

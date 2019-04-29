@@ -193,7 +193,10 @@ class Title : CoroutineScene {
           ExitApplication();
         }
         if (current == CursorState::OutOfFunction) {
-          if (Execute("Title.as")) Disappear();
+          if (Execute("Title.as")) {
+            Fire("Select:End");
+            Disappear();
+          }
         } else if (current == CursorState::Category) {
           isCategory = true;
           InitCursor();
@@ -321,7 +324,9 @@ class CharacterSelect : CoroutineScene {
 
   void UpdateInfo() {
     @ch = cm.GetCharacter(0);
+    if(ch is null) return;
     @cim = cm.CreateCharacterImages(0);
+    if(cim is null) return;
 
     spName.SetText(ch.Name);
     //spDescription.SetText(cm.GetDescription(0));
@@ -330,6 +335,8 @@ class CharacterSelect : CoroutineScene {
 
   void UpdateSkill() {
     @sk = sm.GetSkill(0);
+    if(sk is null) return;
+
     spSkill.SetText(sk.Name);
     spDescription.SetText(sk.GetDescription(0));
     spIcon.SetImage(Image(sk.IconPath));

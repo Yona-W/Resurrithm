@@ -36,10 +36,21 @@ shared_ptr<CharacterInstance> CharacterInstance::CreateInstance(shared_ptr<Chara
 
 void CharacterInstance::LoadAbilities()
 {
-	using namespace std::filesystem;
+	using namespace filesystem;
 	auto log = spdlog::get("main");
-	const auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 
+	for (const auto& t : abilityTypes) t->Release();
+	abilityTypes.clear();
+	for (const auto& o : this->abilities) o->Release();
+	this->abilities.clear();
+	abilityEvents.clear();
+
+	if (!skillSource) {
+		log->info(u8"有効なスキルが選択されていません。");
+		return;
+	}
+
+	const auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 	const auto& abilities = skillSource->GetDetail(skillSource->CurrentLevel).Abilities;
 	for (const auto& def : abilities) {
 		vector<string> params;
@@ -94,12 +105,20 @@ void CharacterInstance::LoadAbilities()
 
 void CharacterInstance::CreateImageSet()
 {
+	if (imageSet) imageSet->Release();
+	imageSet = nullptr;
+
+	if (!characterSource) {
+		spdlog::get("main")->info(u8"有効なキャラクターが選択されていません。");
+		return;
+	}
+
 	imageSet = CharacterImageSet::CreateImageSet(characterSource);
 }
 
-asIScriptObject* CharacterInstance::LoadAbilityObject(const std::filesystem::path & filepath)
+asIScriptObject* CharacterInstance::LoadAbilityObject(const filesystem::path & filepath)
 {
-	using namespace std::filesystem;
+	using namespace filesystem;
 	auto log = spdlog::get("main");
 	auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 	//お茶を濁せ
@@ -255,12 +274,12 @@ void CharacterInstance::SetCallback(asIScriptFunction * func, ScriptScene * scen
 
 CharacterParameter* CharacterInstance::GetCharacterParameter() const
 {
-	return characterSource.get();
+	return characterSource ? characterSource.get() : nullptr;
 }
 
 SkillParameter* CharacterInstance::GetSkillParameter() const
 {
-	return skillSource.get();
+	return skillSource ? skillSource.get() : nullptr;
 }
 
 SkillIndicators* CharacterInstance::GetSkillIndicators() const
@@ -270,7 +289,7 @@ SkillIndicators* CharacterInstance::GetSkillIndicators() const
 
 CharacterImageSet* CharacterInstance::GetCharacterImages() const
 {
-	imageSet->AddRef();
+	if (imageSet) imageSet->AddRef();
 	return imageSet;
 }
 

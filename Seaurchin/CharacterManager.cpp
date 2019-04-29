@@ -97,16 +97,18 @@ void CharacterManager::LoadAllCharacters()
 {
 	const auto sepath = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR;
 
-	for (const auto& fdata : directory_iterator(sepath)) {
-		if (is_directory(fdata)) continue;
-		if (fdata.path().extension() != ".toml") continue;
-		const auto param = LoadFromToml(fdata.path());
-		if (param) characters.push_back(param);
+	if (filesystem::exists(sepath)) {
+		for (const auto& fdata : directory_iterator(sepath)) {
+			if (is_directory(fdata)) continue;
+			if (fdata.path().extension() != ".toml") continue;
+			const auto param = LoadFromToml(fdata.path());
+			if (param) characters.push_back(param);
+		}
 	}
 
 	const auto size = characters.size();
 	spdlog::get("main")->info(u8"キャラクター総数: {0:d}", size);
-	selected = size == 0 ? -1 : 0;
+	selected = (size == 0) ? -1 : 0;
 }
 
 /*!
@@ -115,9 +117,9 @@ void CharacterManager::LoadAllCharacters()
 void CharacterManager::Next()
 {
 	const auto size = GetSize();
-	if (size <= 0) return;
+	if (size <= 0 || selected < 0) return;
 
-	selected = (selected + size + 1) % size;
+	selected = (selected + 1) % size;
 }
 
 /*!
@@ -126,7 +128,7 @@ void CharacterManager::Next()
 void CharacterManager::Previous()
 {
 	const auto size = GetSize();
-	if (size <= 0) return;
+	if (size <= 0 || selected < 0) return;
 
 	selected = (selected + size - 1) % size;
 }
