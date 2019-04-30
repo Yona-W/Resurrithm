@@ -8,7 +8,7 @@
 
 #include "ExtensionManager.h"
 #include "SeaurchinExtension.h"
-#include "Setting.h"
+#include "SettingManager.h"
 
 ExtensionManager::ExtensionManager()
 = default;
@@ -28,7 +28,7 @@ ExtensionManager::~ExtensionManager()
 void ExtensionManager::LoadExtensions()
 {
 	using namespace std::filesystem;
-	const auto root = Setting::GetRootDirectory() / SU_DATA_DIR / SU_EXTENSION_DIR;
+	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_EXTENSION_DIR;
 	for (const auto& fdata : directory_iterator(root)) {
 		if (is_directory(fdata)) continue;
 		const auto filename = fdata.path().string();

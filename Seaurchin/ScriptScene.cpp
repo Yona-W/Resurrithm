@@ -1,6 +1,8 @@
 ﻿#include "ScriptScene.h"
 
 #include "ExecutionManager.h"
+#include "AngelScriptManager.h"
+#include "Controller.h"
 
 using namespace std;
 using namespace std::filesystem;

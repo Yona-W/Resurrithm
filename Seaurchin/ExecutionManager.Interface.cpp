@@ -1,4 +1,7 @@
 ﻿#include "ExecutionManager.h"
+#include "Scene.h"
+#include "ScenePlayer.h"
+#include "SettingManager.h"
 
 using namespace std;
 
@@ -47,5 +50,5 @@ SSettingItem* ExecutionManager::GetSettingItem(const string & group, const strin
 
 void ExecutionManager::GetStoredResult(DrawableResult * result) const
 {
-	*result = lastResult;
+	*result = *lastResult;
 }

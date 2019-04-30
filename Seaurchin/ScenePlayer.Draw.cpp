@@ -2,6 +2,7 @@
 #include "ScriptSprite.h"
 #include "ScriptSpriteMover.h"
 #include "ExecutionManager.h"
+#include "SettingManager.h"
 #include "Setting.h"
 
 using namespace std;
@@ -52,7 +53,7 @@ void ScenePlayer::LoadResources()
 	soundHoldStep = dynamic_cast<SSound*>(resources["SoundHoldStep"]);
 	soundMetronome = dynamic_cast<SSound*>(resources["Metronome"]);
 
-	const auto setting = manager->GetSettingInstanceSafe();
+	const auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe();
 	if (soundHoldLoop) soundHoldLoop->SetLoop(true);
 	if (soundSlideLoop) soundSlideLoop->SetLoop(true);
 	if (soundAirLoop) soundAirLoop->SetLoop(true);

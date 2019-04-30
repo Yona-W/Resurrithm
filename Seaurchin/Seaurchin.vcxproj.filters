@@ -183,6 +183,9 @@
     <ClCompile Include="SkillManager.cpp">
       <Filter>インターフェース\Manager</Filter>
     </ClCompile>
+    <ClCompile Include="SettingManager.cpp">
+      <Filter>インターフェース\Manager</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h">
@@ -330,6 +333,9 @@
       <Filter>インターフェース\Manager</Filter>
     </ClInclude>
     <ClInclude Include="SkillManager.h">
+      <Filter>インターフェース\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingManager.h">
       <Filter>インターフェース\Manager</Filter>
     </ClInclude>
   </ItemGroup>

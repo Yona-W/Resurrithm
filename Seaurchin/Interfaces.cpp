@@ -1,6 +1,7 @@
 ﻿#include "Interfaces.h"
 
 #include "ExecutionManager.h"
+#include "AngelScriptManager.h"
 #include "ScriptFunction.h"
 
 using namespace std;

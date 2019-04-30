@@ -1,7 +1,7 @@
 ﻿#include "CharacterInstance.h"
 #include "CharacterManager.h"
 #include "SkillManager.h"
-#include "Setting.h"
+#include "SettingManager.h"
 #include "ScriptScene.h"
 
 using namespace std;
@@ -51,7 +51,7 @@ void CharacterInstance::LoadAbilities()
 		return;
 	}
 
-	const auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
+	const auto abroot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 	const auto& abilities = skillSource->GetDetail(skillSource->CurrentLevel).Abilities;
 	for (const auto& def : abilities) {
 		vector<string> params;
@@ -121,7 +121,7 @@ asIScriptObject* CharacterInstance::LoadAbilityObject(const filesystem::path & f
 {
 	using namespace filesystem;
 	auto log = spdlog::get("main");
-	auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
+	auto abroot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 	//お茶を濁せ
 	const auto modulename = ConvertUnicodeToUTF8(filepath.c_str());
 	auto mod = scriptInterface->GetExistModule(modulename);

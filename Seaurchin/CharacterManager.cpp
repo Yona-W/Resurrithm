@@ -1,6 +1,14 @@
-﻿#include "CharacterManager.h"
+﻿/*!
+ * @file CharacterManager.cpp
+ * @brief キャラクターの管理を行うクラス CharacterManager の定義
+ * @author kb10uy
+ * @date 2019/04/29
+ * @details キャラクターの列挙、ロード、取得を行うインターフェースを提供します。
+ */
+
+#include "CharacterManager.h"
 #include "Character.h"
-#include "Setting.h"
+#include "SettingManager.h"
 
 using namespace std;
 
@@ -28,7 +36,7 @@ namespace {
 
 		try {
 			result->Name = root.get<string>("Name");
-			const auto imgpath = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR / ConvertUTF8ToUnicode(root.get<string>("Image"));
+			const auto imgpath = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR / ConvertUTF8ToUnicode(root.get<string>("Image"));
 			result->ImagePath = ConvertUnicodeToUTF8(imgpath.wstring());
 
 			const auto ws = root.find("Metric.WholeScale");
@@ -95,7 +103,7 @@ CharacterManager::CharacterManager()
  */
 void CharacterManager::LoadAllCharacters()
 {
-	const auto sepath = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR;
+	const auto sepath = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR;
 
 	if (filesystem::exists(sepath)) {
 		for (const auto& fdata : directory_iterator(sepath)) {
@@ -134,8 +142,8 @@ void CharacterManager::Previous()
 }
 
 /*!
- * @brief 相対位置を指定してキャラクター情報の生ポインタを返します。
- * @param relative[in] 選択中のキャラクターに対する相対キャラクター数。
+ * @brief 相対位置を指定してキャラクター情報の生ポインタを取得します。
+ * @param[in] relative 選択中のキャラクターに対する相対キャラクター数。
  * @return 該当するキャラクター情報の生ポインタ。該当するキャラクターがいない場合nullが返ります。
  */
 CharacterParameter * CharacterManager::GetCharacterParameterUnsafe(const int relative)
@@ -149,8 +157,8 @@ CharacterParameter * CharacterManager::GetCharacterParameterUnsafe(const int rel
 }
 
 /*!
- * @brief 相対位置を指定してキャラクター情報のスマートポインタを返します。
- * @param relative[in] 選択中のキャラクターに対する相対キャラクター数。
+ * @brief 相対位置を指定してキャラクター情報のスマートポインタを取得します。
+ * @param[in] relative 選択中のキャラクターに対する相対キャラクター数。
  * @return 該当するキャラクター情報のスマートポインタ。該当するキャラクターがいない場合nullが返ります。
  */
 shared_ptr<CharacterParameter> CharacterManager::GetCharacterParameterSafe(const int relative)
@@ -165,7 +173,7 @@ shared_ptr<CharacterParameter> CharacterManager::GetCharacterParameterSafe(const
 
 /*!
  * @brief 相対位置を指定してキャラクターの画像情報を生成します。
- * @param relative[in] 選択中のキャラクターに対する相対キャラクター数。
+ * @param[in] relative 選択中のキャラクターに対する相対キャラクター数。
  * @return 該当するキャラクターの画像情報の生ポインタ。該当するキャラクターがいない場合nullが返ります。
  */
 CharacterImageSet* CharacterManager::CreateCharacterImages(const int relative)
@@ -181,7 +189,7 @@ CharacterImageSet* CharacterManager::CreateCharacterImages(const int relative)
 
 /*!
  * @brief スキンにキャラクターマネージャーを登録します。
- * @param engine[in] スクリプトエンジン。
+ * @param[in] engine スクリプトエンジン。
  * @details 関連クラス(ImageSet,ImageMetric,Parameter)の登録も行います。
  */
 void CharacterManager::RegisterType(asIScriptEngine* engine)

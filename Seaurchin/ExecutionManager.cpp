@@ -1,14 +1,27 @@
 ﻿#include "ExecutionManager.h"
 
 #include "Setting.h"
+#include "Settingmanager.h"
 #include "Interfaces.h"
 
+#include "AngelScriptManager.h"
+#include "Scene.h"
+#include "ScenePlayer.h"
 #include "ScriptResource.h"
 #include "ScriptScene.h"
 #include "ScriptSprite.h"
-#include "MoverFunctionExpression.h"
+#include "SkinHolder.h"
+#include "MusicsManager.h"
+#include "ExtensionManager.h"
+#include "SoundManager.h"
+#include "CharacterManager.h"
+#include "SkillManager.h"
 #include "ScenePlayer.h"
+#include "Controller.h"
 #include "CharacterInstance.h"
+#include "Character.h"
+#include "Skill.h"
+#include "MoverFunctionExpression.h"
 
 using namespace std::filesystem;
 using namespace std;
@@ -24,9 +37,8 @@ const static toml::Array defaultAirStringKeys = {
 	toml::Array { KEY_INPUT_PGUP }, toml::Array { KEY_INPUT_PGDN }, toml::Array { KEY_INPUT_HOME }, toml::Array { KEY_INPUT_END }
 };
 
-ExecutionManager::ExecutionManager(const shared_ptr<Setting>& setting)
-	: sharedSetting(setting)
-	, settingManager(new setting2::SettingItemManager(sharedSetting))
+ExecutionManager::ExecutionManager(const shared_ptr<SettingTree>& setting)
+	: settingManager(new SettingManager(setting))
 	, scriptInterface(new AngelScript())
 	, sound(new SoundManager())
 	, musics(new MusicsManager())
@@ -35,7 +47,7 @@ ExecutionManager::ExecutionManager(const shared_ptr<Setting>& setting)
 	, extensions(new ExtensionManager())
 	, random(new mt19937(random_device()()))
 	, sharedControlState(new ControlState)
-	, lastResult()
+	, lastResult(new DrawableResult())
 	, hImc(nullptr)
 	, hCommunicationPipe(nullptr)
 	, immConversion(0)
@@ -44,20 +56,23 @@ ExecutionManager::ExecutionManager(const shared_ptr<Setting>& setting)
 	, mixerSe(nullptr)
 {}
 
+ExecutionManager::~ExecutionManager()
+= default;
+
 void ExecutionManager::Initialize()
 {
 	auto log = spdlog::get("main");
 	std::ifstream slfile;
 	string procline;
 	// ルートのSettingList読み込み
-	const auto slpath = sharedSetting->GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SETTING_DEFINITION_FILE;
+	const auto slpath = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SETTING_DEFINITION_FILE;
 	settingManager->LoadItemsFromToml(slpath);
 	settingManager->RetrieveAllValues();
 
 	// 入力設定
 	sharedControlState->Initialize();
 
-	auto loadedSliderKeys = sharedSetting->ReadValue<toml::Array>("Play", "SliderKeys", defaultSliderKeys);
+	auto loadedSliderKeys = settingManager->GetSettingInstanceSafe()->ReadValue<toml::Array>("Play", "SliderKeys", defaultSliderKeys);
 	if (loadedSliderKeys.size() >= 16) {
 		for (auto i = 0; i < 16; i++) sharedControlState->SetSliderKeyCombination(i, loadedSliderKeys[i].as<vector<int>>());
 	}
@@ -65,7 +80,7 @@ void ExecutionManager::Initialize()
 		log->warn(u8"スライダーキー設定の配列が16要素未満のため、フォールバックを利用します");
 	}
 
-	auto loadedAirStringKeys = sharedSetting->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
+	auto loadedAirStringKeys = settingManager->GetSettingInstanceSafe()->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
 	if (loadedAirStringKeys.size() >= 4) {
 		for (auto i = 0; i < 4; i++) sharedControlState->SetAirStringKeyCombination(i, loadedAirStringKeys[i].as<vector<int>>());
 	}
@@ -174,7 +189,7 @@ void ExecutionManager::EnumerateSkins()
 	using namespace filesystem;
 	auto log = spdlog::get("main");
 
-	const auto sepath = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR;
+	const auto sepath = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR;
 
 	for (const auto& fdata : directory_iterator(sepath)) {
 		if (!is_directory(fdata)) continue;
@@ -202,12 +217,12 @@ void ExecutionManager::ExecuteSkin()
 	using namespace std::filesystem;
 	auto log = spdlog::get("main");
 
-	const auto sn = sharedSetting->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
+	const auto sn = settingManager->GetSettingInstanceSafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
 	if (find(skinNames.begin(), skinNames.end(), ConvertUTF8ToUnicode(sn)) == skinNames.end()) {
 		log->error(u8"スキン \"{0}\"が見つかりませんでした", sn);
 		return;
 	}
-	const auto skincfg = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / ConvertUTF8ToUnicode(sn) / SU_SETTING_DEFINITION_FILE;
+	const auto skincfg = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / ConvertUTF8ToUnicode(sn) / SU_SETTING_DEFINITION_FILE;
 	if (exists(skincfg)) {
 		log->info(u8"スキンの設定定義ファイルが有効です");
 		settingManager->LoadItemsFromToml(skincfg);
@@ -258,7 +273,7 @@ void ExecutionManager::ExecuteSystemMenu()
 	using namespace filesystem;
 	auto log = spdlog::get("main");
 
-	auto sysmf = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SYSTEM_MENU_FILE;
+	auto sysmf = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SYSTEM_MENU_FILE;
 	if (!exists(sysmf)) {
 		log->error(u8"システムメニュースクリプトが見つかりませんでした");
 		return;

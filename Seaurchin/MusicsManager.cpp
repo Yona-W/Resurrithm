@@ -1,6 +1,6 @@
 ﻿#include "MusicsManager.h"
 #include "SusAnalyzer.h"
-#include "Setting.h"
+#include "SettingManager.h"
 
 using namespace std;
 using namespace filesystem;
@@ -57,7 +57,7 @@ void MusicsManager::CreateMusicCache()
 
 	categories.clear();
 
-	const auto mlpath = Setting::GetRootDirectory() / SU_MUSIC_DIR;
+	const auto mlpath = SettingManager::GetRootDirectory() / SU_MUSIC_DIR;
 	for (const auto& fdata : directory_iterator(mlpath)) {
 		if (!is_directory(fdata)) continue;
 
@@ -219,7 +219,7 @@ path MusicsManager::GetSelectedScorePath() const
 	const auto score = GetScoreVariantAt(0);
 	if (!cat || !score) return path();
 
-	return Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(cat->GetName()) / score->Path;
+	return SettingManager::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(cat->GetName()) / score->Path;
 }
 
 /*!
@@ -287,7 +287,7 @@ string MusicsManager::GetMusicJacketFileName(const int32_t relativeIndex) const
 	const auto music = GetMusicAt(relativeIndex);
 	if (!music || music->JacketPath.empty()) return "";
 
-	const auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / music->JacketPath;
+	const auto result = SettingManager::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / music->JacketPath;
 	return ConvertUnicodeToUTF8(result.wstring());
 }
 
@@ -302,7 +302,7 @@ string MusicsManager::GetBackgroundFileName(const int32_t relativeIndex) const
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	if (!variant || variant->BackgroundPath.empty()) return "";
 
-	const auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / variant->Path.parent_path() / variant->BackgroundPath;
+	const auto result = SettingManager::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / variant->Path.parent_path() / variant->BackgroundPath;
 	return ConvertUnicodeToUTF8(result.wstring());
 }
 

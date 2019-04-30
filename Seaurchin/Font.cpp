@@ -1,5 +1,5 @@
 ﻿#include "Font.h"
-#include "Setting.h"
+#include "SettingManager.h"
 
 using namespace std;
 
@@ -98,7 +98,7 @@ void Sif2Creator::PackImageSif2()
 	for (auto i = 0; i < imageIndex; ++i) {
 		ostringstream fss;
 		fss << "FontCache" << i << ".png";
-		auto path = Setting::GetRootDirectory() / SU_DATA_DIR / SU_CACHE_DIR / fss.str();
+		auto path = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_CACHE_DIR / fss.str();
 
 		std::ifstream fif;
 		fif.open(path.wstring(), ios::binary | ios::in);
@@ -214,7 +214,7 @@ void Sif2Creator::CreateSif2(const Sif2CreatorOption & option, const std::filesy
 {
 	using namespace std::filesystem;
 	auto log = spdlog::get("main");
-	const auto cachepath = Setting::GetRootDirectory() / SU_DATA_DIR / SU_CACHE_DIR;
+	const auto cachepath = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_CACHE_DIR;
 
 	InitializeFace(option.FontPath);
 	RequestFace(option.Size);

@@ -1,5 +1,5 @@
 ﻿#include "SkinHolder.h"
-#include "Setting.h"
+#include "SettingManager.h"
 #include "ExecutionManager.h"
 
 using namespace std;
@@ -15,7 +15,7 @@ SkinHolder::SkinHolder(const wstring& name, const shared_ptr<AngelScript>& scrip
 	: scriptInterface(script)
 	, soundInterface(sound)
 	, skinName(name)
-	, skinRoot(Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / skinName)
+	, skinRoot(SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / skinName)
 {}
 
 SkinHolder::~SkinHolder()

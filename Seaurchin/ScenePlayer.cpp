@@ -2,6 +2,10 @@
 #include "ScriptSprite.h"
 #include "ScriptSpriteMover.h"
 #include "ExecutionManager.h"
+#include "SettingManager.h"
+#include "MusicsManager.h"
+#include "CharacterManager.h"
+#include "SkillManager.h"
 #include "Result.h"
 #include "Character.h"
 #include "Setting.h"
@@ -72,9 +76,9 @@ ScenePlayer::ScenePlayer(ExecutionManager * exm)
 	, processor(CreateScoreProcessor(exm, this))
 	, isLoadCompleted(false) // 若干危険ですけどね……
 	, currentResult(new Result())
-	, hispeedMultiplier(exm->GetSettingInstanceSafe()->ReadValue<double>("Play", "Hispeed", 6))
-	, soundBufferingLatency(manager->GetSettingInstanceSafe()->ReadValue<int>("Sound", "BufferLatency", 30) / 1000.0)
-	, airRollSpeed(manager->GetSettingInstanceSafe()->ReadValue<double>("Play", "AirRollMultiplier", 1.5))
+	, hispeedMultiplier(exm->GetSettingManagerUnsafe()->GetSettingInstanceSafe()->ReadValue<double>("Play", "Hispeed", 6))
+	, soundBufferingLatency(manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe()->ReadValue<int>("Sound", "BufferLatency", 30) / 1000.0)
+	, airRollSpeed(manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe()->ReadValue<double>("Play", "AirRollMultiplier", 1.5))
 {
 	judgeSoundThread = thread([this]() {
 		ProcessSoundQueue();
@@ -99,7 +103,7 @@ void ScenePlayer::Initialize()
 
 void ScenePlayer::SetProcessorOptions(ScoreProcessor * processor) const
 {
-	auto setting = manager->GetSettingInstanceSafe();
+	auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe();
 	const auto jas = setting->ReadValue<int>("Play", "JudgeAdjustSlider", 0) / 1000.0;
 	const auto jms = setting->ReadValue<double>("Play", "JudgeMultiplierSlider", 1);
 	const auto jaa = setting->ReadValue<int>("Play", "JudgeAdjustAirString", 200) / 1000.0;
@@ -627,7 +631,7 @@ void ScenePlayer::GetMetrics(ScenePlayerMetrics * metrics)
 
 void ScenePlayer::StoreResult() const
 {
-	currentResult->GetCurrentResult(&manager->lastResult);
+	currentResult->GetCurrentResult(manager->lastResult.get());
 }
 
 double ScenePlayer::GetFirstNoteTime() const

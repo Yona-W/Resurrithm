@@ -8,7 +8,7 @@
 
 #include "SkillManager.h"
 #include "Skill.h"
-#include "Setting.h"
+#include "SettingManager.h"
 
 using namespace std;
 
@@ -24,7 +24,7 @@ namespace {
 	{
 		auto log = spdlog::get("main");
 		auto result = make_shared<SkillParameter>();
-		const auto iconRoot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
+		const auto iconRoot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
 
 		ifstream ifs(file.wstring(), ios::in);
 		auto pr = toml::parse(ifs);
@@ -97,7 +97,7 @@ SkillManager::SkillManager()
 void SkillManager::LoadAllSkills()
 {
 	using namespace filesystem;
-	const auto skillroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR;
+	const auto skillroot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR;
 
 	if (exists(skillroot)) {
 		for (const auto& fdata : directory_iterator(skillroot)) {

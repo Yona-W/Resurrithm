@@ -32,6 +32,14 @@
 #define SU_SYSTEM_MENU_FILE L"System.as"
 #define SU_SETTING_DEFINITION_FILE L"SettingList.toml"
 
+//! @def SU_SETTING_GENERAL
+//! @brief 「全体設定」に属する設定値のグループ名
+#define SU_SETTING_GENERAL "General"
+
+//! @def SU_SETTING_SKIN
+//! @brief 「全体設定/スキン」に属する設定値のキー名
+#define SU_SETTING_SKIN "Skin"
+
 #define SU_FONT_SYSTEM "ＭＳ ゴシック"
 
 #define SU_RES_WIDTH 1280

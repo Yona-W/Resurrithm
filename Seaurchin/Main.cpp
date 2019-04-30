@@ -3,6 +3,7 @@
 #include "Debug.h"
 #include "Setting.h"
 #include "ExecutionManager.h"
+#include "AngelScriptManager.h"
 #include "SceneDebug.h"
 #include "MoverFunctionExpression.h"
 #include "Easing.h"
@@ -17,7 +18,7 @@ void Run();
 void Terminate();
 LRESULT CALLBACK CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-shared_ptr<Setting> setting;
+shared_ptr<SettingTree> setting;
 shared_ptr<Logger> logger;
 unique_ptr<ExecutionManager> manager;
 WNDPROC dxlibWndProc;
@@ -44,8 +45,8 @@ void PreInitialize(HINSTANCE hInstance)
 	logger->Initialize();
 	logger->LogDebug(u8"ロガー起動");
 
-	setting = make_shared<Setting>(hInstance);
-	setting->Load(SU_SETTING_FILE);
+	setting = make_shared<SettingTree>(hInstance, "config.toml");
+	setting->Load();
 	const auto vs = setting->ReadValue<bool>("Graphic", "WaitVSync", false);
 	const auto fs = setting->ReadValue<bool>("Graphic", "Fullscreen", false);
 
@@ -124,7 +125,6 @@ void Terminate()
 	if (manager) manager->Shutdown();
 	manager.reset(nullptr);
 	MoverFunctionExpressionManager::Finalize();
-	if (setting) setting->Save();
 	if (setting) setting.reset();
 	DxLib_End();
 	if (logger) logger->Terminate();

@@ -1,6 +1,7 @@
 ﻿#include "ScriptSprite.h"
 #include "ScriptSpriteMover.h"
 #include "ExecutionManager.h"
+#include "AngelScriptManager.h"
 
 using namespace std;
 using namespace crc32_constexpr;

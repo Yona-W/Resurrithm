@@ -33,6 +33,8 @@ public:
 
 	void LoadAllSkills();
 
+	//! @brief スキル一覧の総キャラクター数を返します。
+	//! @details スキル一覧が生成されていない時は負値を返します。
 	int32_t GetSize() const { return SU_TO_INT32(skills.size()); }
 	void Next();
 	void Previous();

@@ -1,26 +1,28 @@
 ﻿#pragma once
 
-#include "Setting.h"
-#include "AngelScriptManager.h"
-#include "Scene.h"
-#include "ScriptScene.h"
-#include "SkinHolder.h"
-#include "MusicsManager.h"
-#include "ExtensionManager.h"
-#include "SoundManager.h"
-#include "CharacterManager.h"
-#include "SkillManager.h"
-#include "ScenePlayer.h"
-#include "Controller.h"
-#include "Character.h"
-#include "Skill.h"
+class SettingTree;
+class SettingManager;
+class AngelScript;
+class SoundManager;
+class MusicsManager;
+class CharacterManager;
+class SkillManager;
+class ExtensionManager;
+class ControlState;
+class Scene;
+class SkinHolder;
+struct DrawableResult;
+class SSoundMixer;
+class ScriptScene;
+class ScenePlayer;
+class SSettingItem;
+
 
 class ExecutionManager final {
 	friend class ScenePlayer;
 
 private:
-	const std::shared_ptr<Setting> sharedSetting;
-	const std::unique_ptr<setting2::SettingItemManager> settingManager;
+	const std::unique_ptr<SettingManager> settingManager;
 	const std::shared_ptr<AngelScript> scriptInterface;
 	const std::shared_ptr<SoundManager> sound;
 	const std::shared_ptr<MusicsManager> musics;
@@ -35,14 +37,15 @@ private:
 	std::vector<std::wstring> skinNames;
 	std::unique_ptr<SkinHolder> skin;
 	std::unordered_map<std::string, std::any> optionalData;
-	DrawableResult lastResult;
+	const std::shared_ptr<DrawableResult> lastResult;
 	HIMC hImc;
 	HANDLE hCommunicationPipe;
 	DWORD immConversion, immSentence;
 	SSoundMixer* mixerBgm, * mixerSe;
 
 public:
-	explicit ExecutionManager(const std::shared_ptr<Setting>& setting);
+	explicit ExecutionManager(const std::shared_ptr<SettingTree>& setting);
+	~ExecutionManager();
 
 	void EnumerateSkins();
 	void Tick(double delta);
@@ -54,10 +57,10 @@ public:
 	std::shared_ptr<ScriptScene> CreateSceneFromScriptObject(asIScriptObject* obj) const;
 	int GetSceneCount() const { return scenes.size(); }
 
+	SettingManager* GetSettingManagerUnsafe() const { return settingManager.get(); }
 	std::shared_ptr<MusicsManager> GetMusicsManagerSafe() const { return musics; }
 	MusicsManager* GetMusicsManagerUnsafe() const { return musics.get(); }
 	std::shared_ptr<ControlState> GetControlStateSafe() const { return sharedControlState; }
-	std::shared_ptr<Setting> GetSettingInstanceSafe() const { return sharedSetting; }
 	std::shared_ptr<AngelScript> GetScriptInterfaceSafe() const { return scriptInterface; }
 	ControlState* GetControlStateUnsafe() const { return sharedControlState.get(); }
 	AngelScript* GetScriptInterfaceUnsafe() const { return scriptInterface.get(); }

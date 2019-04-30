@@ -1,6 +1,10 @@
 ﻿#include "Skill.h"
-#include "Setting.h"
+#include "SettingManager.h"
 #include "ExecutionManager.h"
+#include "ScriptSprite.h"
+#include "ScriptScene.h"
+#include "CharacterInstance.h"
+#include "AngelScriptManager.h"
 
 using namespace std;
 
@@ -44,7 +48,7 @@ void SkillIndicators::SetCallback(asIScriptFunction * func)
 int SkillIndicators::AddSkillIndicator(const string & icon)
 {
 	using namespace std::filesystem;
-	auto path = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR / ConvertUTF8ToUnicode(icon);
+	auto path = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR / ConvertUTF8ToUnicode(icon);
 	const auto image = SImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8(path.wstring()), true);
 	indicatorIcons.push_back(image);
 	return indicatorIcons.size() - 1;
