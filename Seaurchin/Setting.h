@@ -9,7 +9,7 @@
 #pragma once
 
 /*!
- * @breif 全設定項目の設定値を管理します
+ * @brief 全設定項目の設定値を管理します
  * @details 全ての設定項目の設定値が[グループ名].[キー名]で参照可能な1階層の toml::Table に格納されます。
  * 設定値の型情報があらかじめ判明している場合はグループ名、キー名から直接読み書き可能ですが、
  * 原則として設定項目(SettingItem)を経由して参照することが期待されます。
@@ -29,27 +29,27 @@ public:
 	~SettingTree() { Save(); }
 
 	bool Load();
-	//! @breif 設定値を再読み込みします。
+	//! @brief 設定値を再読み込みします。
 	bool Reload() { return Load(); }
 	void Save() const;
 
-	//! @breif アプリケーションのワーキングディレクトリへの絶対パスを取得します。
+	//! @brief アプリケーションのワーキングディレクトリへの絶対パスを取得します。
 	//! @return アプリケーションのワーキングディレクトリへの絶対パス。
 	const std::filesystem::path GetRootDir() const { return rootDir; }
 
-	//! @breif 全設定項目の設定値を格納したテーブルを取得します。
+	//! @brief 全設定項目の設定値を格納したテーブルを取得します。
 	//! @return 全設定項目の設定値を格納した1oml::Table。[グループ名].[キー名]で設定値を参照できます。
 	const toml::Value& GetRoot() const { return setting; }
 	const toml::Value* GetGroup(const std::string& group) const;
 	const toml::Value* GetValues(const std::string& group, const std::string& key) const;
 
-	//! @breif グループ名、キー名に対応する設定項目の設定値を取得します。
+	//! @brief グループ名、キー名に対応する設定項目の設定値を取得します。
 	//! @tparam T 設定値として期待される型。
 	//! @param group 設定項目のグループ名。
 	//! @param key 設定項目のキー名。
 	//! @param defValue デフォルト値。設定値が存在しない/期待した型の値ではない場合に用いられます。
 	//! @return 引数に対応する設定項目の設定値。設定値が存在しない/期待した型の値ではない場合、 defValue が返ります。
-	//! @bote  設定値が存在しない/期待した型の値ではない場合、設定値として defValue が設定されます。
+	//! @note  設定値が存在しない/期待した型の値ではない場合、設定値として defValue が設定されます。
 	template<typename T>
 	T ReadValue(const std::string& group, const std::string& key, T defValue)
 	{
@@ -59,12 +59,12 @@ public:
 		return defValue;
 	}
 
-	//! @breif グループ名、キー名に対応する設定項目の設定値を設定します。
+	//! @brief グループ名、キー名に対応する設定項目の設定値を設定します。
 	//! @tparam T 設定値の型。
 	//! @param group 設定項目のグループ名。
 	//! @param key 設定項目のキー名。
 	//! @param value 設定する値。
-	//! @bote  現在の設定値の型/値に関係なく設定値を書き変えます。
+	//! @note  現在の設定値の型/値に関係なく設定値を書き変えます。
 	template<typename T>
 	void WriteValue(const std::string& group, const std::string& key, T value)
 	{
@@ -74,7 +74,7 @@ public:
 
 
 /*!
- * @breif 設定項目として設定値を操作するインターフェースを提供します
+ * @brief 設定項目として設定値を操作するインターフェースを提供します
  * @details 設定項目定義に従い設定値を操作する設定項目クラスの基底クラスです。
  */
 class SettingItem {
@@ -92,40 +92,40 @@ public:
 	SettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key);
 	virtual ~SettingItem() = default;
 
-	//! @breif 設定項目に対する説明(概要)を取得します。
+	//! @brief 設定項目に対する説明(概要)を取得します。
 	//! @return 説明(概要)。
 	std::string GetDescription() const { return description; }
 
-	//! @breif 設定項目の設定値を文字列として取得します。
+	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
 	virtual std::string GetItemString() = 0;
 
-	//! @breif 設定値を次の値へ変更します。
+	//! @brief 設定値を次の値へ変更します。
 	virtual void MoveNext() = 0;
 
-	//! @breif 設定値を前の値へ変更します。
+	//! @brief 設定値を前の値へ変更します。
 	virtual void MovePrevious() = 0;
 
-	//! @breif 設定値を反映します。
+	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
 	virtual void SaveValue() = 0;
 
-	//! @breif 設定値を読み込みます。
+	//! @brief 設定値を読み込みます。
 	//! @note 設定ファイルから読み込むのではなく、設定値管理クラスに設定された値を読み込むのみです。
 	virtual void RetrieveValue() = 0;
 
-	//! @breif 設定項目定義をメンバへ反映します。
+	//! @brief 設定項目定義をメンバへ反映します。
 	//! @param table この設定項目に対する設定項目定義を格納したtoml::Table。
 	virtual void Build(const toml::Value& table);
 };
 
 /*!
- * @breif 区間[最小値, 最大値]内でstep刻みで変更可能な設定項目を定義するテンプレートクラス。
+ * @brief 区間[最小値, 最大値]内でstep刻みで変更可能な設定項目を定義するテンプレートクラス。
  * @tparam T 設定値に用いる型。
  * @tparam min 最小値。
  * @tparam max 最大値。
  * @tparam step 刻み幅。
- * @bote 非型テンプレートの制約上、Tはint型から変換可能な型に限られます。
+ * @note 非型テンプレートの制約上、Tはint型から変換可能な型に限られます。
  */
 template<typename T, int min, int max, int step>
 class StepSettingItem final : public SettingItem {
@@ -149,25 +149,25 @@ public:
 		, defaultValue(T())
 	{}
 
-	//! @breif 設定項目の設定値を文字列として取得します。
+	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
 	std::string GetItemString() override { return fmt::format("{0}", value); }
 
-	//! @breif 設定値を次の値へ変更します。
+	//! @brief 設定値を次の値へ変更します。
 	void MoveNext() override { if ((value += step) > maxValue) value = maxValue; }
 
-	//! @breif 設定値を前の値へ変更します。
+	//! @brief 設定値を前の値へ変更します。
 	void MovePrevious() override { if ((value -= step) < minValue) value = minValue; }
 
-	//! @breif 設定値を反映します。
+	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
 	void SaveValue() override { settingInstance->WriteValue<T>(group, key, value); }
 
-	//! @breif 設定値を読み込みます。
+	//! @brief 設定値を読み込みます。
 	//! @note 設定ファイルから読み込むのではなく、設定値管理クラスに設定された値を読み込むのみです。
 	void RetrieveValue() override { value = settingInstance->ReadValue(group, key, defaultValue); }
 
-	//! @breif 設定項目定義をメンバへ反映します。
+	//! @brief 設定項目定義をメンバへ反映します。
 	//! @param table この設定項目に対する設定項目定義を格納したtoml::Table。
 	void Build(const toml::Value& table) override
 	{
@@ -198,20 +198,20 @@ public:
 };
 
 /*!
- * @breif 区間[最小値, 最大値]内でstep刻みで変更可能なint型の設定値を持つ設定項目。
- * @bote デフォルトの区間は[0, 0]、刻み幅は1です。
+ * @brief 区間[最小値, 最大値]内でstep刻みで変更可能なint型の設定値を持つ設定項目。
+ * @note デフォルトの区間は[0, 0]、刻み幅は1です。
  */
 typedef StepSettingItem<int64_t, 0, 0, 1> IntegerStepSettingItem;
 
 /*!
- * @breif 区間[最小値, 最大値]内でstep刻みで変更可能なdouble型の設定値を持つ設定項目。
- * @bote デフォルトの区間は[0, 0]、刻み幅は1です。
+ * @brief 区間[最小値, 最大値]内でstep刻みで変更可能なdouble型の設定値を持つ設定項目。
+ * @note デフォルトの区間は[0, 0]、刻み幅は1です。
  */
 typedef StepSettingItem<double, 0, 0, 1> FloatStepSettingItem;
 
 /*!
- * @breif 真偽値を設定値にもつ設定項目。
- * @bote 取得できる値はtrue/falseそれぞれに紐づけられた文字列です。
+ * @brief 真偽値を設定値にもつ設定項目。
+ * @note 取得できる値はtrue/falseそれぞれに紐づけられた文字列です。
  */
 class BooleanSettingItem final : public SettingItem {
 private:
@@ -226,32 +226,32 @@ public:
 	//! @param key この設定項目で操作する設定値のキー名。
 	BooleanSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key);
 
-	//! @breif 設定項目の設定値を文字列として取得します。
+	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
 	std::string GetItemString() override { return value ? truthy : falsy; }
 
-	//! @breif 設定値を次の値へ変更します。
+	//! @brief 設定値を次の値へ変更します。
 	void MoveNext() override { value = !value; }
 
-	//! @breif 設定値を前の値へ変更します。
+	//! @brief 設定値を前の値へ変更します。
 	void MovePrevious() override { value = !value; }
 
-	//! @breif 設定値を反映します。
+	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
 	void SaveValue() override { settingInstance->WriteValue<bool>(group, key, value); }
 
-	//! @breif 設定値を読み込みます。
+	//! @brief 設定値を読み込みます。
 	//! @note 設定ファイルから読み込むのではなく、設定値管理クラスに設定された値を読み込むのみです。
 	void RetrieveValue() override { value = settingInstance->ReadValue(group, key, defaultValue); }
 
-	//! @breif 設定項目定義をメンバへ反映します。
+	//! @brief 設定項目定義をメンバへ反映します。
 	//! @param table この設定項目に対する設定項目定義を格納したtoml::Table。
 	void Build(const toml::Value& table) override;
 };
 
 /*!
- * @breif 文字列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief 文字列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 class StringSettingItem final : public SettingItem {
 private:
@@ -264,31 +264,31 @@ public:
 	//! @param key この設定項目で操作する設定値のキー名。
 	StringSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key);
 
-	//! @breif 設定項目の設定値を文字列として取得します。
+	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
 	std::string GetItemString() override { return value; }
 
-	//! @breif 設定値を次の値へ変更します。
+	//! @brief 設定値を次の値へ変更します。
 	void MoveNext() override {}
 
-	//! @breif 設定値を前の値へ変更します。
+	//! @brief 設定値を前の値へ変更します。
 	void MovePrevious() override {}
 
-	//! @breif 設定値を反映します。
+	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
 	void SaveValue() override { settingInstance->WriteValue<std::string>(group, key, value); }
 
-	//! @breif 設定値を読み込みます。
+	//! @brief 設定値を読み込みます。
 	//! @note 設定ファイルから読み込むのではなく、設定値管理クラスに設定された値を読み込むのみです。
 	void RetrieveValue() override { value = settingInstance->ReadValue(group, key, defaultValue); }
 
-	//! @breif 設定項目定義をメンバへ反映します。
+	//! @brief 設定項目定義をメンバへ反映します。
 	//! @param table この設定項目に対する設定項目定義を格納したtoml::Table。
 	void Build(const toml::Value& table) override;
 };
 
 /*!
- * @breif 設定値をリストに含まれる値から選択可能な設定項目を定義するテンプレートクラス。
+ * @brief 設定値をリストに含まれる値から選択可能な設定項目を定義するテンプレートクラス。
  * @tparam T 設定値に用いる型。
  * @todo Retriveした際のインデックス修正を丁寧に行いたい
  */
@@ -311,25 +311,25 @@ public:
 		, selected(-1)
 	{}
 
-	//! @breif 設定項目の設定値を文字列として取得します。
+	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
 	std::string GetItemString() override { return fmt::format("{0}", value); }
 
-	//! @breif 設定値を次の値へ変更します。
+	//! @brief 設定値を次の値へ変更します。
 	void MoveNext() override { value = values[selected = (selected + 1) % values.size()]; }
 
-	//! @breif 設定値を前の値へ変更します。
+	//! @brief 設定値を前の値へ変更します。
 	void MovePrevious() override { value = values[selected = (selected + values.size() - 1) % values.size()]; }
 
-	//! @breif 設定値を反映します。
+	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
 	void SaveValue() override { settingInstance->WriteValue<T>(group, key, value); }
 
-	//! @breif 設定値を読み込みます。
+	//! @brief 設定値を読み込みます。
 	//! @note 設定ファイルから読み込むのではなく、設定値管理クラスに設定された値を読み込むのみです。
 	void RetrieveValue() override { value = settingInstance->ReadValue(group, key, defaultValue); }
 
-	//! @breif 設定項目定義をメンバへ反映します。
+	//! @brief 設定項目定義をメンバへ反映します。
 	//! @param table この設定項目に対する設定項目定義を格納したtoml::Table。
 	void Build(const toml::Value& table) override
 	{
@@ -349,19 +349,19 @@ public:
 	}
 };
 
-//! @breif 設定値をリストに含まれる値から選択可能なint型設定値を持つ設定項目。
+//! @brief 設定値をリストに含まれる値から選択可能なint型設定値を持つ設定項目。
 typedef SelectSettingItem<int64_t> IntegerSelectSettingItem;
 
-//! @breif 設定値をリストに含まれる値から選択可能なdouble型設定値を持つ設定項目。
+//! @brief 設定値をリストに含まれる値から選択可能なdouble型設定値を持つ設定項目。
 typedef SelectSettingItem<double> FloatSelectSettingItem;
 
-//! @breif 設定値をリストに含まれる値から選択可能な文字列型設定値を持つ設定項目。
+//! @brief 設定値をリストに含まれる値から選択可能な文字列型設定値を持つ設定項目。
 typedef SelectSettingItem<std::string> StringSelectSettingItem;
 
 /*!
- * @breif 一次元配列を設定値にもつ設定項目定義するテンプレートクラス。
+ * @brief 一次元配列を設定値にもつ設定項目定義するテンプレートクラス。
  * @tparam T 設定値に用いる型。
- * @bote 現状外部から設定値を変更できません。
+ * @note 現状外部から設定値を変更できません。
  */
 template<typename T>
 class ListSettingItem final : public SettingItem {
@@ -381,17 +381,17 @@ public:
 		, separator(",")
 	{}
 
-	//! @breif 設定項目の設定値を文字列として取得します。
+	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
 	std::string GetItemString() override { return fmt::format("{0}", fmt::join(values.begin(), values.end(), separator)); }
 
-	//! @breif 設定値を次の値へ変更します。
+	//! @brief 設定値を次の値へ変更します。
 	void MoveNext() override {}
 
-	//! @breif 設定値を前の値へ変更します。
+	//! @brief 設定値を前の値へ変更します。
 	void MovePrevious() override {}
 
-	//! @breif 設定値を反映します。
+	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
 	void SaveValue() override
 	{
@@ -400,7 +400,7 @@ public:
 		settingInstance->WriteValue(group, key, arr);
 	}
 
-	//! @breif 設定値を読み込みます。
+	//! @brief 設定値を読み込みます。
 	//! @note 設定ファイルから読み込むのではなく、設定値管理クラスに設定された値を読み込むのみです。
 	void RetrieveValue() override
 	{
@@ -422,7 +422,7 @@ public:
 		}
 	}
 
-	//! @breif 設定項目定義をメンバへ反映します。
+	//! @brief 設定項目定義をメンバへ反映します。
 	//! @param table この設定項目に対する設定項目定義を格納したtoml::Table。
 	void Build(const toml::Value& table) override
 	{
@@ -440,33 +440,33 @@ public:
 };
 
 /*!
- * @breif int型一次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief int型一次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef ListSettingItem<int64_t> IntegerListSettingItem;
 
 /*!
- * @breif double型一次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief double型一次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef ListSettingItem<double> FloatListSettingItem;
 
 /*!
- * @breif 真偽値の一次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief 真偽値の一次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef ListSettingItem<bool> BooleanListSettingItem;
 
 /*!
- * @breif 文字列型一次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief 文字列型一次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef ListSettingItem<std::string> StringListSettingItem;
 
 /*!
- * @breif 二次元配列を設定値にもつ設定項目定義するテンプレートクラス。
+ * @brief 二次元配列を設定値にもつ設定項目定義するテンプレートクラス。
  * @tparam T 設定値に用いる型。
- * @bote 現状外部から設定値を変更できません。
+ * @note 現状外部から設定値を変更できません。
  */
 template<typename T>
 class TableSettingItem final : public SettingItem {
@@ -488,7 +488,7 @@ public:
 		, listSeparator("\r\n")
 	{}
 
-	//! @breif 設定項目の設定値を文字列として取得します。
+	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
 	std::string GetItemString() override
 	{
@@ -497,13 +497,13 @@ public:
 		return fmt::format("{0}", fmt::join(joinedList.begin(), joinedList.end(), listSeparator));
 	}
 
-	//! @breif 設定値を次の値へ変更します。
+	//! @brief 設定値を次の値へ変更します。
 	void MoveNext() override {}
 
-	//! @breif 設定値を前の値へ変更します。
+	//! @brief 設定値を前の値へ変更します。
 	void MovePrevious() override {}
 
-	//! @breif 設定値を反映します。
+	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
 	void SaveValue() override
 	{
@@ -516,7 +516,7 @@ public:
 		settingInstance->WriteValue(group, key, arr);
 	}
 
-	//! @breif 設定値を読み込みます。
+	//! @brief 設定値を読み込みます。
 	//! @note 設定ファイルから読み込むのではなく、設定値管理クラスに設定された値を読み込むのみです。
 	void RetrieveValue() override
 	{
@@ -542,7 +542,7 @@ public:
 		}
 	}
 
-	//! @breif 設定項目定義をメンバへ反映します。
+	//! @brief 設定項目定義をメンバへ反映します。
 	//! @param table この設定項目に対する設定項目定義を格納したtoml::Table。
 	void Build(const toml::Value& table) override
 	{
@@ -569,25 +569,25 @@ public:
 };
 
 /*!
- * @breif int型二次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief int型二次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef TableSettingItem<int64_t> IntegerTableSettingItem;
 
 /*!
- * @breif double型二次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief double型二次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef TableSettingItem<double> FloatTableSettingItem;
 
 /*!
- * @breif 真偽値の二次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief 真偽値の二次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef TableSettingItem<bool> BooleanTableSettingItem;
 
 /*!
- * @breif 文字列型二次元配列を設定値にもつ設定項目。
- * @bote 現状外部から設定値を変更できません。
+ * @brief 文字列型二次元配列を設定値にもつ設定項目。
+ * @note 現状外部から設定値を変更できません。
  */
 typedef TableSettingItem<std::string> StringTableSettingItem;
