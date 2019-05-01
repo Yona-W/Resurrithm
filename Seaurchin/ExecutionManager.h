@@ -54,7 +54,6 @@ public:
 	void Draw();
 
 	void AddScene(Scene* scene);
-	ScriptScene* CreateSceneFromScriptType(asITypeInfo* type) const;
 	ScriptScene* CreateSceneFromScriptObject(asIScriptObject* obj) const;
 	int GetSceneCount() const { return scenes.size(); }
 
@@ -72,10 +71,10 @@ public:
 	SkillManager* GetSkillManagerUnsafe() const { return skills.get(); }
 
 	bool CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* pResult) const;
-	void ExecuteSkin();
+	bool ExecuteSkin();
 	bool ExecuteSkin(const std::string& file);
 	bool ExecuteScene(asIScriptObject* sceneObject);
-	void ExecuteSystemMenu();
+	bool ExecuteSystemMenu();
 	void Fire(const std::string& message);
 	void WriteLog(const std::string& message) const;
 	ScenePlayer* CreatePlayer();

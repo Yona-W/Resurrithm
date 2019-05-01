@@ -26,7 +26,9 @@ public:
 
 	bool Initialize();
 	void Terminate();
-	asIScriptObject* ExecuteSkinScript(const std::wstring& file, bool forceReload = false);
+
+	asIScriptObject* ExecuteSkinScript(const std::filesystem::path& file, bool forceReload = false);
+
 	void LoadSkinImage(const std::string& key, const std::string& filename);
 	void LoadSkinImageFromMem(const std::string& key, void* buffer, size_t size);
 	void LoadSkinFont(const std::string& key, const std::string& filename);

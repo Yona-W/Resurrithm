@@ -57,7 +57,8 @@ void CharacterInstance::LoadAbilities()
 		vector<string> params;
 		auto scrpath = ConvertUTF8ToUnicode(def.Name + ".as");
 
-		auto abo = LoadAbilityObject(scrpath);
+		const auto abroot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
+		const auto abo = scriptInterface->ExecuteScript(abroot, scrpath, true);
 		if (!abo) continue;
 		auto abt = abo->GetObjectType();
 		abt->AddRef();
@@ -115,46 +116,6 @@ void CharacterInstance::CreateImageSet()
 	}
 
 	imageSet = CharacterImageSet::CreateImageSet(characterSource);
-}
-
-asIScriptObject* CharacterInstance::LoadAbilityObject(const filesystem::path & filepath)
-{
-	using namespace filesystem;
-	auto log = spdlog::get("main");
-	auto abroot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
-	//お茶を濁せ
-	const auto modulename = ConvertUnicodeToUTF8(filepath.c_str());
-	auto mod = scriptInterface->GetExistModule(modulename);
-	if (!mod) {
-		scriptInterface->StartBuildModule(modulename);
-		scriptInterface->LoadFile(abroot / filepath);
-		if (!scriptInterface->FinishBuildModule()) {
-			scriptInterface->GetLastModule()->Discard();
-			return nullptr;
-		}
-		mod = scriptInterface->GetLastModule();
-	}
-
-	//エントリポイント検索
-	const int cnt = mod->GetObjectTypeCount();
-	asITypeInfo * type = nullptr;
-	for (auto i = 0; i < cnt; i++) {
-		const auto cti = mod->GetObjectTypeByIndex(i);
-		if (!(scriptInterface->CheckMetaData(cti, "EntryPoint") || cti->GetUserData(SU_UDTYPE_ENTRYPOINT))) continue;
-		type = cti;
-		type->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
-		break;
-	}
-	if (!type) {
-		log->critical(u8"アビリティーにEntryPointがありません");
-		return nullptr;
-	}
-
-	type->AddRef();
-	const auto obj = scriptInterface->InstantiateObject(type);
-
-	type->Release();
-	return obj;
 }
 
 void CharacterInstance::CallEventFunction(asIScriptObject * obj, asIScriptFunction * func) const

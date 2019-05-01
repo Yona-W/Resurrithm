@@ -209,14 +209,14 @@ bool ExecutionManager::CheckSkinStructure(const path & name) const
 	return true;
 }
 
-void ExecutionManager::ExecuteSkin()
+bool ExecutionManager::ExecuteSkin()
 {
 	auto log = spdlog::get("main");
 
 	const auto sn = settingManager->GetSettingInstanceUnsafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
 	if (find(skinNames.begin(), skinNames.end(), ConvertUTF8ToUnicode(sn)) == skinNames.end()) {
 		log->error(u8"スキン \"{0}\"が見つかりませんでした", sn);
-		return;
+		return false;
 	}
 	const auto skincfg = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / ConvertUTF8ToUnicode(sn) / SU_SETTING_DEFINITION_FILE;
 	if (exists(skincfg)) {
@@ -228,19 +228,18 @@ void ExecutionManager::ExecuteSkin()
 	skin = make_unique<SkinHolder>(ConvertUTF8ToUnicode(sn), scriptInterface);
 	if (!skin->Initialize()) {
 		log->critical(u8"スキン読み込みに失敗しました。");
-		return;
+		return false;
 	}
 
 	log->info(u8"スキン読み込み完了");
-	ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
+	return ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
 }
 
-bool ExecutionManager::ExecuteSkin(const string & file)
+bool ExecutionManager::ExecuteSkin(const string& file)
 {
-	auto log = spdlog::get("main");
 	auto obj = skin->ExecuteSkinScript(ConvertUTF8ToUnicode(file));
 	if (!obj) {
-		log->error(u8"スクリプトをコンパイルできませんでした");
+		spdlog::get("main")->error(u8"スクリプトをコンパイルできませんでした");
 		return false;
 	}
 
@@ -255,56 +254,26 @@ bool ExecutionManager::ExecuteScene(asIScriptObject * sceneObject)
 {
 	if (!sceneObject) return false;
 
-	auto log = spdlog::get("main");
-
 	sceneObject->AddRef();
 	const auto s = CreateSceneFromScriptObject(sceneObject);
-	if (!s) return false;
-
-	AddScene(s);
+	if (s) AddScene(s);
 
 	sceneObject->Release();
-	return true;
+	return !!s;
 }
 
-void ExecutionManager::ExecuteSystemMenu()
+bool ExecutionManager::ExecuteSystemMenu()
 {
-	using namespace std;
-	using namespace filesystem;
-	auto log = spdlog::get("main");
+	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR;
+	const auto obj = scriptInterface->ExecuteScript(root, SU_SYSTEM_MENU_FILE, true);
+	if (!obj) return false;
 
-	auto sysmf = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SYSTEM_MENU_FILE;
-	if (!exists(sysmf)) {
-		log->error(u8"システムメニュースクリプトが見つかりませんでした");
-		return;
-	}
+	obj->AddRef();
+	const auto scene = CreateSceneFromScriptObject(obj);
+	if (scene) AddScene(scene);
 
-	scriptInterface->StartBuildModule("SystemMenu");
-	scriptInterface->LoadFile(sysmf);
-	if (!scriptInterface->FinishBuildModule()) {
-		log->error(u8"システムメニュースクリプトをコンパイルできませんでした");
-		return;
-	}
-	const auto mod = scriptInterface->GetLastModule();
-
-	//エントリポイント検索
-	const int cnt = mod->GetObjectTypeCount();
-	asITypeInfo* type = nullptr;
-	for (auto i = 0; i < cnt; i++) {
-		const auto cti = mod->GetObjectTypeByIndex(i);
-		if (!scriptInterface->CheckMetaData(cti, "EntryPoint")) continue;
-		type = cti;
-		type->AddRef();
-		break;
-	}
-	if (!type) {
-		log->error(u8"システムメニュースクリプトにEntryPointが見つかりませんでした");
-		return;
-	}
-
-	AddScene(CreateSceneFromScriptType(type));
-
-	type->Release();
+	obj->Release();
+	return !!scene;
 }
 
 
@@ -358,16 +327,7 @@ void ExecutionManager::AddScene(Scene* scene)
 	scene->Initialize();
 }
 
-ScriptScene* ExecutionManager::CreateSceneFromScriptType(asITypeInfo * type) const
-{
-	const auto obj = scriptInterface->InstantiateObject(type);
-	obj->AddRef();
-	const auto ret = CreateSceneFromScriptObject(obj);
-	obj->Release();
-	return ret;
-}
-
-ScriptScene* ExecutionManager::CreateSceneFromScriptObject(asIScriptObject * obj) const
+ScriptScene* ExecutionManager::CreateSceneFromScriptObject(asIScriptObject* obj) const
 {
 	if (!obj) return nullptr;
 

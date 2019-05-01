@@ -19,19 +19,12 @@ SkinHolder::~SkinHolder()
 bool SkinHolder::Initialize()
 {
 	auto log = spdlog::get("main");
-	scriptInterface->StartBuildModule("SkinLoader");
-	scriptInterface->LoadFile(skinRoot / SU_SKIN_MAIN_FILE);
-	scriptInterface->FinishBuildModule();
 
-	auto mod = scriptInterface->GetLastModule();
-	const auto fc = mod->GetFunctionCount();
-	asIScriptFunction * ep = nullptr;
-	for (asUINT i = 0; i < fc; i++) {
-		const auto func = mod->GetFunctionByIndex(i);
-		if (!scriptInterface->CheckMetaData(func, "EntryPoint")) continue;
-		ep = func;
-		break;
-	}
+	const bool forceReload = true;
+	const auto mod = scriptInterface->GetModule(skinRoot, SU_SKIN_MAIN_FILE, forceReload);
+	if (!mod) return false;
+
+	asIScriptFunction* ep = scriptInterface->GetEntryPointAsFunction(mod);
 	if (!ep) {
 		log->critical(u8"スキンにEntryPointがありません");
 		mod->Discard();
@@ -61,40 +54,13 @@ void SkinHolder::Terminate()
 	for (const auto& it : animatedImages) it.second->Release();
 }
 
-asIScriptObject * SkinHolder::ExecuteSkinScript(const wstring & file, const bool forceReload)
+asIScriptObject * SkinHolder::ExecuteSkinScript(const path& file, const bool forceReload)
 {
 	auto log = spdlog::get("main");
 
-	const auto modulename = ConvertUnicodeToUTF8(file);
-	auto mod = scriptInterface->GetExistModule(modulename);
-	if (!mod || forceReload) {
-		scriptInterface->StartBuildModule(modulename);
-		scriptInterface->LoadFile(skinRoot / SU_SCRIPT_DIR / file);
-		if (!scriptInterface->FinishBuildModule()) {
-			scriptInterface->GetLastModule()->Discard();
-			return nullptr;
-		}
-		mod = scriptInterface->GetLastModule();
-	}
+	const auto obj = scriptInterface->ExecuteScript(skinRoot, SU_SCRIPT_DIR / file, forceReload);
+	if (!obj) return nullptr;
 
-	//エントリポイント検索
-	const int cnt = mod->GetObjectTypeCount();
-	asITypeInfo * type = nullptr;
-	for (auto i = 0; i < cnt; i++) {
-		// ScriptBuilderのMetaDataのテーブルは毎回破棄されるので
-		// asITypeInfoに情報を保持
-		const auto cti = mod->GetObjectTypeByIndex(i);
-		if (!(scriptInterface->CheckMetaData(cti, "EntryPoint") || cti->GetUserData(SU_UDTYPE_ENTRYPOINT))) continue;
-		type = cti;
-		type->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
-		break;
-	}
-	if (!type) {
-		log->critical(u8"スキンにEntryPointがありません");
-		return nullptr;
-	}
-
-	auto obj = scriptInterface->InstantiateObject(type);
 	obj->SetUserData(this, SU_UDTYPE_SKIN);
 	return obj;
 }

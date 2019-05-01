@@ -6,8 +6,6 @@ private:
 	asIScriptContext* sharedContext;
 	CWScriptBuilder builder;
 
-	void ScriptMessageCallback(const asSMessageInfo* message) const;
-
 public:
 	AngelScript();
 	~AngelScript();
@@ -15,35 +13,25 @@ public:
 	asIScriptEngine* GetEngine() const { return engine; }
 	asIScriptContext* GetContext() const { return sharedContext; }
 
-	//新しくModuleする
-	void StartBuildModule(const std::string& name);
-
-	asIScriptModule* GetExistModule(std::string name) const { return engine->GetModule(name.c_str()); }
-
-	//ファイル読み込み
-	void LoadFile(const std::filesystem::path& path);
-
-	//ビルドする
-	bool FinishBuildModule();
-
-	//FinishしたModuleを取得
-	asIScriptModule* GetLastModule() { return builder.GetModule(); }
-
-	//特定クラスにメタデータが付与されてるか
-	bool CheckMetaData(asITypeInfo* type, const std::string& meta);
-
-	//特定グロ関に(ry
-	bool CheckMetaData(asIScriptFunction* type, const std::string& meta);
-
 
 	//実装をチェック
-	bool CheckImplementation(asITypeInfo* type, std::string name) const
+	bool CheckImplementation(asITypeInfo* type, const std::string& name) const
 	{
-		return type->Implements(engine->GetTypeInfoByName(name.c_str()));
+		return CheckImplementation(type, name.c_str());
+	}
+	bool CheckImplementation(asITypeInfo* type, const char* name) const
+	{
+		return type->Implements(engine->GetTypeInfoByName(name));
 	}
 
 	//asITypeInfoからインスタンス作成
 	asIScriptObject* InstantiateObject(asITypeInfo* type) const;
+
+
+	asIScriptModule* GetModule(const std::filesystem::path& root, const std::filesystem::path& file, bool forceReload);
+	asITypeInfo* GetEntryPointAsTypeInfo(asIScriptModule* module);
+	asIScriptFunction* GetEntryPointAsFunction(asIScriptModule* module);
+	asIScriptObject* AngelScript::ExecuteScript(const std::filesystem::path& root, const std::filesystem::path& file, bool forceReload);
 };
 
 #define SU_DEF_SETARG_ALL(CONTEXT) \
