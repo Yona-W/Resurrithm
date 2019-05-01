@@ -73,12 +73,12 @@ ScenePlayer::ScenePlayer(ExecutionManager * exm)
 	, soundManager(manager->GetSoundManagerUnsafe())
 	, judgeSoundQueue()
 	, analyzer(make_unique<SusAnalyzer>(192))
-	, processor(CreateScoreProcessor(exm, this))
-	, isLoadCompleted(false) // 若干危険ですけどね……
+	, processor(CreateScoreProcessor(exm, this)) // 若干危険ですけどね……
+	, isLoadCompleted(false)
 	, currentResult(new Result())
-	, hispeedMultiplier(exm->GetSettingManagerUnsafe()->GetSettingInstanceSafe()->ReadValue<double>("Play", "Hispeed", 6))
-	, soundBufferingLatency(manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe()->ReadValue<int>("Sound", "BufferLatency", 30) / 1000.0)
-	, airRollSpeed(manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe()->ReadValue<double>("Play", "AirRollMultiplier", 1.5))
+	, hispeedMultiplier(exm->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<double>("Play", "Hispeed", 6))
+	, soundBufferingLatency(manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<int>("Sound", "BufferLatency", 30) / 1000.0)
+	, airRollSpeed(manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<double>("Play", "AirRollMultiplier", 1.5))
 {
 	judgeSoundThread = thread([this]() {
 		ProcessSoundQueue();
@@ -103,7 +103,7 @@ void ScenePlayer::Initialize()
 
 void ScenePlayer::SetProcessorOptions(ScoreProcessor * processor) const
 {
-	auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe();
+	auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe();
 	const auto jas = setting->ReadValue<int>("Play", "JudgeAdjustSlider", 0) / 1000.0;
 	const auto jms = setting->ReadValue<double>("Play", "JudgeMultiplierSlider", 1);
 	const auto jaa = setting->ReadValue<int>("Play", "JudgeAdjustAirString", 200) / 1000.0;

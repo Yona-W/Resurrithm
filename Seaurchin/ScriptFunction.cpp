@@ -53,10 +53,10 @@ SFont* LoadSystemFont(const std::string& file)
 	return SFont::CreateLoadedFontFromFile(ConvertUnicodeToUTF8(p.wstring()));
 }
 
-SSound * LoadSystemSound(SoundManager * smng, const std::string & file)
+SSound * LoadSystemSound(const std::string & file)
 {
 	auto p = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SOUND_DIR / ConvertUTF8ToUnicode(file);
-	return SSound::CreateSoundFromFile(smng, ConvertUnicodeToUTF8(p.wstring()), 4);
+	return SSound::CreateSoundFromFile(ConvertUnicodeToUTF8(p.wstring()), 4);
 }
 
 void CreateImageFont(const string & fileName, const string & saveName, const int size)

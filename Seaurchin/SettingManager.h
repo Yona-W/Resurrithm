@@ -22,11 +22,11 @@ class SettingManager final {
 private:
 	static std::filesystem::path rootDirectory;	//!< アプリケーションのワーキングディレクトリへの絶対パス
 
-	const std::shared_ptr<SettingTree> setting;	//!< 設定値集合
+	const std::unique_ptr<SettingTree> setting;	//!< 設定値集合
 	SettingItemMap items;						//!< 設定項目名をキーとした設定項目の集合
 
 public:
-	explicit SettingManager(std::shared_ptr<SettingTree> setting);
+	explicit SettingManager(SettingTree* setting);
 
 	//! @brief アプリケーションのワーキングディレクトリへの絶対パスを取得します。
 	static std::filesystem::path GetRootDirectory() { return rootDirectory; }
@@ -36,7 +36,7 @@ public:
 	void SaveAllValues();
 
 	//! @brief 設定値集合のスマートポインタを取得します。
-	std::shared_ptr<SettingTree> GetSettingInstanceSafe() { return setting; }
+	SettingTree* GetSettingInstanceUnsafe() { return setting.get(); }
 
 	std::shared_ptr<SettingItem> GetSettingItem(const std::string& group, const std::string& key);
 };

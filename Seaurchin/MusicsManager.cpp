@@ -590,7 +590,7 @@ int32_t MusicsManager::GetVariantSize(int32_t relativeIndex) const
  * @brief ミュージックカーソルクラスをスキンに登録します。
  * @param[in] engine スクリプトエンジン。
  */
-void MusicsManager::RegisterScriptInterface(asIScriptEngine* engine)
+void MusicsManager::RegisterType(asIScriptEngine* engine)
 {
 	engine->RegisterEnum(SU_IF_MSCSTATE);
 	engine->RegisterEnumValue(SU_IF_MSCSTATE, "OutOfFunction", int(MusicSelectionState::OutOfFunction));

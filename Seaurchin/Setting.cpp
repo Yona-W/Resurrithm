@@ -114,7 +114,7 @@ const toml::Value* SettingTree::GetValues(const string& group, const std::string
 }
 
 
-SettingItem::SettingItem(const shared_ptr<SettingTree> setting, const string& igroup, const string& ikey)
+SettingItem::SettingItem(SettingTree* setting, const string& igroup, const string& ikey)
 	: settingInstance(setting)
 	, description(u8"説明はありません")
 	, group(igroup)
@@ -130,7 +130,7 @@ void SettingItem::Build(const toml::Value& table)
 }
 
 
-BooleanSettingItem::BooleanSettingItem(const std::shared_ptr<SettingTree> setting, const std::string & group, const std::string & key)
+BooleanSettingItem::BooleanSettingItem(SettingTree* setting, const std::string & group, const std::string & key)
 	: SettingItem(setting, group, key)
 	, value(false)
 	, defaultValue(false)
@@ -162,7 +162,7 @@ void BooleanSettingItem::Build(const toml::Value& table)
 }
 
 
-StringSettingItem::StringSettingItem(const std::shared_ptr<SettingTree> setting, const std::string & group, const std::string & key)
+StringSettingItem::StringSettingItem(SettingTree* setting, const std::string & group, const std::string & key)
 	: SettingItem(setting, group, key)
 	, value("")
 	, defaultValue("")

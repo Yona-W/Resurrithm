@@ -464,7 +464,7 @@ void SSound::SetVolume(const double vol) const
 	sample->SetVolume(vol);
 }
 
-SSound* SSound::CreateSound(SoundManager * smanager)
+SSound* SSound::CreateSound()
 {
 	auto result = new SSound(nullptr);
 	result->AddRef();
@@ -473,7 +473,7 @@ SSound* SSound::CreateSound(SoundManager * smanager)
 	return result;
 }
 
-SSound* SSound::CreateSoundFromFile(SoundManager * smanager, const std::string & file, const int simul)
+SSound* SSound::CreateSoundFromFile(const std::string & file, const int simul)
 {
 	const auto hs = SoundSample::CreateFromFile(ConvertUTF8ToUnicode(file), simul);
 	auto result = new SSound(hs);

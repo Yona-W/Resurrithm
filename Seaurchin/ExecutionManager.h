@@ -32,8 +32,8 @@ private:
 	const std::shared_ptr<std::mt19937> random;
 	const std::shared_ptr<ControlState> sharedControlState;
 
-	std::vector<std::shared_ptr<Scene>> scenes;
-	std::vector<std::shared_ptr<Scene>> scenesPending;
+	std::vector<std::unique_ptr<Scene>> scenes;
+	std::vector<std::unique_ptr<Scene>> scenesPending;
 	std::vector<std::wstring> skinNames;
 	std::unique_ptr<SkinHolder> skin;
 	std::unordered_map<std::string, std::any> optionalData;
@@ -44,17 +44,18 @@ private:
 	SSoundMixer* mixerBgm, * mixerSe;
 
 public:
-	explicit ExecutionManager(const std::shared_ptr<SettingTree>& setting);
+	explicit ExecutionManager(SettingTree* setting);
 	~ExecutionManager();
+
+	void Initialize();
 
 	void EnumerateSkins();
 	void Tick(double delta);
 	void Draw();
-	void Initialize();
-	void Shutdown();
-	void AddScene(const std::shared_ptr<Scene>& scene);
-	std::shared_ptr<ScriptScene> CreateSceneFromScriptType(asITypeInfo* type) const;
-	std::shared_ptr<ScriptScene> CreateSceneFromScriptObject(asIScriptObject* obj) const;
+
+	void AddScene(Scene* scene);
+	ScriptScene* CreateSceneFromScriptType(asITypeInfo* type) const;
+	ScriptScene* CreateSceneFromScriptObject(asIScriptObject* obj) const;
 	int GetSceneCount() const { return scenes.size(); }
 
 	SettingManager* GetSettingManagerUnsafe() const { return settingManager.get(); }
@@ -70,7 +71,7 @@ public:
 	CharacterManager* GetCharacterManagerUnsafe() const { return characters.get(); }
 	SkillManager* GetSkillManagerUnsafe() const { return skills.get(); }
 
-	std::tuple<bool, LRESULT> CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) const;
+	bool CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* pResult) const;
 	void ExecuteSkin();
 	bool ExecuteSkin(const std::string& file);
 	bool ExecuteScene(asIScriptObject* sceneObject);

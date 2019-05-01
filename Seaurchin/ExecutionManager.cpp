@@ -37,7 +37,7 @@ const static toml::Array defaultAirStringKeys = {
 	toml::Array { KEY_INPUT_PGUP }, toml::Array { KEY_INPUT_PGDN }, toml::Array { KEY_INPUT_HOME }, toml::Array { KEY_INPUT_END }
 };
 
-ExecutionManager::ExecutionManager(const shared_ptr<SettingTree>& setting)
+ExecutionManager::ExecutionManager(SettingTree* setting)
 	: settingManager(new SettingManager(setting))
 	, scriptInterface(new AngelScript())
 	, sound(new SoundManager())
@@ -57,13 +57,32 @@ ExecutionManager::ExecutionManager(const shared_ptr<SettingTree>& setting)
 {}
 
 ExecutionManager::~ExecutionManager()
-= default;
+{
+	for (auto& scene : scenes) scene->Disappear();
+	scenes.clear();
+	for (auto& scene : scenesPending) scene->Disappear();
+	scenesPending.clear();
+
+	if (skin) skin->Terminate();
+
+	settingManager->SaveAllValues();
+	sharedControlState->Terminate();
+
+	BOOST_ASSERT(mixerBgm->GetRefCount() == 1);
+	BOOST_ASSERT(mixerSe->GetRefCount() == 1);
+
+	mixerBgm->Release();
+	mixerSe->Release();
+	if (hCommunicationPipe != INVALID_HANDLE_VALUE) {
+		DisconnectNamedPipe(hCommunicationPipe);
+		CloseHandle(hCommunicationPipe);
+	}
+}
 
 void ExecutionManager::Initialize()
 {
 	auto log = spdlog::get("main");
-	std::ifstream slfile;
-	string procline;
+
 	// ルートのSettingList読み込み
 	const auto slpath = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SETTING_DEFINITION_FILE;
 	settingManager->LoadItemsFromToml(slpath);
@@ -72,7 +91,8 @@ void ExecutionManager::Initialize()
 	// 入力設定
 	sharedControlState->Initialize();
 
-	auto loadedSliderKeys = settingManager->GetSettingInstanceSafe()->ReadValue<toml::Array>("Play", "SliderKeys", defaultSliderKeys);
+	const auto setting = settingManager->GetSettingInstanceUnsafe();
+	auto loadedSliderKeys = setting->ReadValue<toml::Array>("Play", "SliderKeys", defaultSliderKeys);
 	if (loadedSliderKeys.size() >= 16) {
 		for (auto i = 0; i < 16; i++) sharedControlState->SetSliderKeyCombination(i, loadedSliderKeys[i].as<vector<int>>());
 	}
@@ -80,7 +100,7 @@ void ExecutionManager::Initialize()
 		log->warn(u8"スライダーキー設定の配列が16要素未満のため、フォールバックを利用します");
 	}
 
-	auto loadedAirStringKeys = settingManager->GetSettingInstanceSafe()->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
+	auto loadedAirStringKeys = setting->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
 	if (loadedAirStringKeys.size() >= 4) {
 		for (auto i = 0; i < 4; i++) sharedControlState->SetAirStringKeyCombination(i, loadedAirStringKeys[i].as<vector<int>>());
 	}
@@ -97,12 +117,14 @@ void ExecutionManager::Initialize()
 	mixerSe = SSoundMixer::CreateMixer(sound.get());
 
 	// AngelScriptインターフェース登録
+	const auto engine = scriptInterface->GetEngine();
 	InterfacesRegisterEnum(this);
 	RegisterScriptResource(this);
 	RegisterScriptSprite(this);
 	RegisterScriptScene(this);
-	RegisterScriptSkin(this);
-	RegisterCharacterSkillTypes(scriptInterface->GetEngine());
+	SkinHolder::RegisterType(engine);
+	MusicsManager::RegisterType(engine);
+	RegisterCharacterSkillTypes(engine);
 	RegisterPlayerScene(this);
 	InterfacesRegisterSceneFunction(this);
 	InterfacesRegisterGlobalFunction(this);
@@ -129,32 +151,9 @@ void ExecutionManager::Initialize()
 	*/
 }
 
-void ExecutionManager::Shutdown()
-{
-	for (auto& scene : scenes) scene->Disappear();
-	scenes.clear();
-	for (auto& scene : scenesPending) scene->Disappear();
-	scenesPending.clear();
-
-	if (skin) skin->Terminate();
-	settingManager->SaveAllValues();
-	sharedControlState->Terminate();
-
-	BOOST_ASSERT(mixerBgm->GetRefCount() == 1);
-	BOOST_ASSERT(mixerSe->GetRefCount() == 1);
-
-	mixerBgm->Release();
-	mixerSe->Release();
-	if (hCommunicationPipe != INVALID_HANDLE_VALUE) {
-		DisconnectNamedPipe(hCommunicationPipe);
-		CloseHandle(hCommunicationPipe);
-	}
-}
-
 void ExecutionManager::RegisterGlobalManagementFunction()
 {
 	auto engine = scriptInterface->GetEngine();
-	MusicsManager::RegisterScriptInterface(engine);
 
 	engine->RegisterGlobalFunction("void ExitApplication()", asFUNCTION(InterfacesExitApplication), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void WriteLog(const string &in)", asMETHOD(ExecutionManager, WriteLog), asCALL_THISCALL_ASGLOBAL, this);
@@ -185,25 +184,23 @@ void ExecutionManager::RegisterGlobalManagementFunction()
 
 void ExecutionManager::EnumerateSkins()
 {
-	using namespace std;
-	using namespace filesystem;
 	auto log = spdlog::get("main");
 
 	const auto sepath = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR;
 
-	for (const auto& fdata : directory_iterator(sepath)) {
-		if (!is_directory(fdata)) continue;
-		if (!CheckSkinStructure(fdata.path())) continue;
-		skinNames.push_back(fdata.path().filename().wstring());
+	skinNames.clear();
+	if (exists(sepath)) {
+		for (const auto& fdata : directory_iterator(sepath)) {
+			if (!is_directory(fdata)) continue;
+			if (!CheckSkinStructure(fdata.path())) continue;
+			skinNames.push_back(fdata.path().filename().wstring());
+		}
 	}
 	log->info(u8"スキン総数: {0:d}", skinNames.size());
 }
 
 bool ExecutionManager::CheckSkinStructure(const path & name) const
 {
-	using namespace std;
-	using namespace filesystem;
-
 	if (!exists(name / SU_SKIN_MAIN_FILE)) return false;
 	if (!exists(name / SU_SCRIPT_DIR / SU_SKIN_TITLE_FILE)) return false;
 	if (!exists(name / SU_SCRIPT_DIR / SU_SKIN_SELECT_FILE)) return false;
@@ -214,10 +211,9 @@ bool ExecutionManager::CheckSkinStructure(const path & name) const
 
 void ExecutionManager::ExecuteSkin()
 {
-	using namespace std::filesystem;
 	auto log = spdlog::get("main");
 
-	const auto sn = settingManager->GetSettingInstanceSafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
+	const auto sn = settingManager->GetSettingInstanceUnsafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
 	if (find(skinNames.begin(), skinNames.end(), ConvertUTF8ToUnicode(sn)) == skinNames.end()) {
 		log->error(u8"スキン \"{0}\"が見つかりませんでした", sn);
 		return;
@@ -229,8 +225,12 @@ void ExecutionManager::ExecuteSkin()
 		settingManager->RetrieveAllValues();
 	}
 
-	skin = make_unique<SkinHolder>(ConvertUTF8ToUnicode(sn), scriptInterface, sound);
-	skin->Initialize();
+	skin = make_unique<SkinHolder>(ConvertUTF8ToUnicode(sn), scriptInterface);
+	if (!skin->Initialize()) {
+		log->critical(u8"スキン読み込みに失敗しました。");
+		return;
+	}
+
 	log->info(u8"スキン読み込み完了");
 	ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
 }
@@ -238,29 +238,29 @@ void ExecutionManager::ExecuteSkin()
 bool ExecutionManager::ExecuteSkin(const string & file)
 {
 	auto log = spdlog::get("main");
-	const auto obj = skin->ExecuteSkinScript(ConvertUTF8ToUnicode(file));
+	auto obj = skin->ExecuteSkinScript(ConvertUTF8ToUnicode(file));
 	if (!obj) {
 		log->error(u8"スクリプトをコンパイルできませんでした");
 		return false;
 	}
-	const auto s = CreateSceneFromScriptObject(obj);
-	if (!s) {
-		log->error(u8"{0}にEntryPointが見つかりませんでした", file);
-		obj->Release();
-		return false;
-	}
-	AddScene(s);
+
+	obj->AddRef();
+	bool result = ExecuteScene(obj);
 
 	obj->Release();
-	return true;
+	return result;
 }
 
 bool ExecutionManager::ExecuteScene(asIScriptObject * sceneObject)
 {
+	if (!sceneObject) return false;
+
 	auto log = spdlog::get("main");
+
+	sceneObject->AddRef();
 	const auto s = CreateSceneFromScriptObject(sceneObject);
 	if (!s) return false;
-	sceneObject->SetUserData(skin.get(), SU_UDTYPE_SKIN);
+
 	AddScene(s);
 
 	sceneObject->Release();
@@ -279,8 +279,8 @@ void ExecutionManager::ExecuteSystemMenu()
 		return;
 	}
 
-	scriptInterface->StartBuildModule("SystemMenu", [](auto inc, auto from, auto sb) { return true; });
-	scriptInterface->LoadFile(sysmf.wstring());
+	scriptInterface->StartBuildModule("SystemMenu");
+	scriptInterface->LoadFile(sysmf);
 	if (!scriptInterface->FinishBuildModule()) {
 		log->error(u8"システムメニュースクリプトをコンパイルできませんでした");
 		return;
@@ -314,9 +314,9 @@ void ExecutionManager::Tick(const double delta)
 	sharedControlState->Update();
 
 	//シーン操作
-	for (auto& scene : scenesPending) scenes.push_back(scene);
+	for (auto& scene : scenesPending) scenes.push_back(move(scene));
 	scenesPending.clear();
-	sort(scenes.begin(), scenes.end(), [](const shared_ptr<Scene> sa, const shared_ptr<Scene> sb) { return sa->GetIndex() < sb->GetIndex(); });
+	sort(scenes.begin(), scenes.end(), [](const auto& sa, const auto& sb) { return sa->GetIndex() < sb->GetIndex(); });
 	auto i = scenes.begin();
 	while (i != scenes.end()) {
 		(*i)->Tick(delta);
@@ -348,54 +348,57 @@ void ExecutionManager::Draw()
 	ScreenFlip();
 }
 
-void ExecutionManager::AddScene(const shared_ptr<Scene> & scene)
+void ExecutionManager::AddScene(Scene* scene)
 {
-	scenesPending.push_back(scene);
+	if (!scene) return;
+
+	unique_ptr<Scene> ptr(scene);
+	scenesPending.push_back(move(ptr));
 	scene->SetManager(this);
 	scene->Initialize();
 }
 
-shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptType(asITypeInfo * type) const
+ScriptScene* ExecutionManager::CreateSceneFromScriptType(asITypeInfo * type) const
 {
-	auto log = spdlog::get("main");
-	shared_ptr<ScriptScene> ret;
-	if (scriptInterface->CheckImplementation(type, SU_IF_COSCENE)) {
-		auto obj = scriptInterface->InstantiateObject(type);
-		return static_pointer_cast<ScriptScene>(make_shared<ScriptCoroutineScene>(obj));
-	}
-	if (scriptInterface->CheckImplementation(type, SU_IF_SCENE))  //最後
-	{
-		auto obj = scriptInterface->InstantiateObject(type);
-		return make_shared<ScriptScene>(obj);
-	}
-	log->error(u8"{0}クラスにScene系インターフェースが実装されていません", type->GetName());
-	return nullptr;
+	const auto obj = scriptInterface->InstantiateObject(type);
+	obj->AddRef();
+	const auto ret = CreateSceneFromScriptObject(obj);
+	obj->Release();
+	return ret;
 }
 
-shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptObject(asIScriptObject * obj) const
+ScriptScene* ExecutionManager::CreateSceneFromScriptObject(asIScriptObject * obj) const
 {
-	auto log = spdlog::get("main");
-	shared_ptr<ScriptScene> ret;
+	if (!obj) return nullptr;
+
 	const auto type = obj->GetObjectType();
+	ScriptScene* ret = nullptr;
 	if (scriptInterface->CheckImplementation(type, SU_IF_COSCENE)) {
-		return static_pointer_cast<ScriptScene>(make_shared<ScriptCoroutineScene>(obj));
+		ret = new ScriptCoroutineScene(obj);
 	}
-	if (scriptInterface->CheckImplementation(type, SU_IF_SCENE))  //最後
-	{
-		return make_shared<ScriptScene>(obj);
+	else if (scriptInterface->CheckImplementation(type, SU_IF_SCENE)) {
+		ret = new ScriptScene(obj);
 	}
-	log->error(u8"{0}クラスにScene系インターフェースが実装されていません", type->GetName());
-	return nullptr;
+	else {
+		spdlog::get("main")->error(u8"{0}クラスにScene系インターフェースが実装されていません", type->GetName());
+	}
+
+	if (ret) {
+		obj->SetUserData(skin.get(), SU_UDTYPE_SKIN);
+	}
+
+	obj->Release();
+	return ret;
 }
 
-// ReSharper disable once CppMemberFunctionMayBeStatic
-std::tuple<bool, LRESULT> ExecutionManager::CustomWindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) const
+bool ExecutionManager::CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* pResult) const
 {
-	ostringstream buffer;
+//	ostringstream buffer;
 	switch (msg) {
 	case WM_SEAURCHIN_ABORT:
 		InterfacesExitApplication();
-		return make_tuple(true, 0);
+		*pResult = LRESULT(0);
+		return true;
 		/*
 			//IME
 		case WM_INPUTLANGCHANGE:
@@ -420,7 +423,7 @@ std::tuple<bool, LRESULT> ExecutionManager::CustomWindowProc(const HWND hWnd, co
 			return make_tuple(false, 0);
 			*/
 	default:
-		return make_tuple(false, LRESULT(0));
+		*pResult = LRESULT(0);
+		return false;
 	}
-
 }

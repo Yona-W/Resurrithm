@@ -6,7 +6,7 @@ using namespace filesystem;
 
 path SettingManager::rootDirectory;
 
-SettingManager::SettingManager(shared_ptr<SettingTree> setting)
+SettingManager::SettingManager(SettingTree* setting)
 	: setting(setting)
 {
 	BOOST_ASSERT(setting);
@@ -63,46 +63,46 @@ void SettingManager::LoadItemsFromToml(const path& file)
 		shared_ptr<SettingItem> si;
 		switch (Crc32Rec(0xffffffff, type.c_str())) {
 		case "Integer"_crc32:
-			si = make_shared<IntegerStepSettingItem>(setting, group, key);
+			si = make_shared<IntegerStepSettingItem>(setting.get(), group, key);
 			break;
 		case "Float"_crc32:
-			si = make_shared<FloatStepSettingItem>(setting, group, key);
+			si = make_shared<FloatStepSettingItem>(setting.get(), group, key);
 			break;
 		case "Boolean"_crc32:
-			si = make_shared<BooleanSettingItem>(setting, group, key);
+			si = make_shared<BooleanSettingItem>(setting.get(), group, key);
 			break;
 		case "String"_crc32:
-			si = make_shared<StringSettingItem>(setting, group, key);
+			si = make_shared<StringSettingItem>(setting.get(), group, key);
 			break;
 		case "IntegerSelect"_crc32:
-			si = make_shared<IntegerSelectSettingItem>(setting, group, key);
+			si = make_shared<IntegerSelectSettingItem>(setting.get(), group, key);
 			break;
 		case "FloatSelect"_crc32:
-			si = make_shared<FloatSelectSettingItem>(setting, group, key);
+			si = make_shared<FloatSelectSettingItem>(setting.get(), group, key);
 			break;
 		case "StringSelect"_crc32:
-			si = make_shared<StringSelectSettingItem>(setting, group, key);
+			si = make_shared<StringSelectSettingItem>(setting.get(), group, key);
 			break;
 		case "IntegerList"_crc32:
-			si = make_shared<IntegerListSettingItem>(setting, group, key);
+			si = make_shared<IntegerListSettingItem>(setting.get(), group, key);
 			break;
 		case "FloatList"_crc32:
-			si = make_shared<FloatListSettingItem>(setting, group, key);
+			si = make_shared<FloatListSettingItem>(setting.get(), group, key);
 			break;
 		case "BooleanList"_crc32:
-			si = make_shared<BooleanListSettingItem>(setting, group, key);
+			si = make_shared<BooleanListSettingItem>(setting.get(), group, key);
 			break;
 		case "IntegerTable"_crc32:
-			si = make_shared<IntegerTableSettingItem>(setting, group, key);
+			si = make_shared<IntegerTableSettingItem>(setting.get(), group, key);
 			break;
 		case "FloatTable"_crc32:
-			si = make_shared<FloatTableSettingItem>(setting, group, key);
+			si = make_shared<FloatTableSettingItem>(setting.get(), group, key);
 			break;
 		case "BooleanTable"_crc32:
-			si = make_shared<BooleanTableSettingItem>(setting, group, key);
+			si = make_shared<BooleanTableSettingItem>(setting.get(), group, key);
 			break;
 		case "StringTable"_crc32:
-			si = make_shared<StringTableSettingItem>(setting, group, key);
+			si = make_shared<StringTableSettingItem>(setting.get(), group, key);
 			break;
 		default:
 			log->warn(u8"不明な設定タイプです: {0}", type);

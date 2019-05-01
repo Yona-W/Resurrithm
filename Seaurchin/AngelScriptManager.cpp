@@ -1,7 +1,6 @@
 ﻿#include "AngelScriptManager.h"
 
 using namespace std;
-static int ScriptIncludeCallback(const wchar_t* include, const wchar_t* from, CWScriptBuilder* builder, void* userParam);
 
 AngelScript::AngelScript()
 	: engine(asCreateScriptEngine())
@@ -15,7 +14,6 @@ AngelScript::AngelScript()
 
 	//Script Interface
 	sharedContext = engine->CreateContext();
-	builder.SetIncludeCallback(ScriptIncludeCallback, this);
 }
 
 AngelScript::~AngelScript()
@@ -24,20 +22,14 @@ AngelScript::~AngelScript()
 	engine->ShutDownAndRelease();
 }
 
-void AngelScript::StartBuildModule(const string& name, const IncludeCallback callback)
+void AngelScript::StartBuildModule(const string& name)
 {
-	includeFunc = callback;
 	builder.StartNewModule(engine, name.c_str());
 }
 
-void AngelScript::LoadFile(const wstring& filename)
+void AngelScript::LoadFile(const filesystem::path& path)
 {
-	builder.AddSectionFromFile(filename.c_str());
-}
-
-bool AngelScript::IncludeFile(const wstring& include, const wstring& from)
-{
-	return includeFunc(include, from, &builder);
+	builder.AddSectionFromFile(path.wstring().c_str());
 }
 
 bool AngelScript::FinishBuildModule()
@@ -85,12 +77,6 @@ void AngelScript::ScriptMessageCallback(const asSMessageInfo* message) const
 		log->error(u8"{0} ({1:d}行{2:d}列): {3}", message->section, message->row, message->col, message->message);
 		break;
 	}
-}
-
-int ScriptIncludeCallback(const wchar_t* include, const wchar_t* from, CWScriptBuilder* builder, void* userParam)
-{
-	auto as = reinterpret_cast<AngelScript*>(userParam);
-	return as->IncludeFile(include, from) ? 1 : -1;
 }
 
 MethodObject::MethodObject(asIScriptEngine* engine, asIScriptObject* object, asIScriptFunction* method)

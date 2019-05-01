@@ -1,36 +1,26 @@
 ﻿#include "SkinHolder.h"
+#include "AngelScriptManager.h"
+#include "SoundManager.h"
+#include "ScriptResource.h"
 #include "SettingManager.h"
-#include "ExecutionManager.h"
+
 
 using namespace std;
 using namespace std::filesystem;
 
-// ReSharper disable once CppParameterNeverUsed
-bool SkinHolder::IncludeScript(std::wstring include, std::wstring from, CWScriptBuilder* builder)
-{
-	return false;
-}
-
-SkinHolder::SkinHolder(const wstring& name, const shared_ptr<AngelScript>& script, const std::shared_ptr<SoundManager>& sound)
+SkinHolder::SkinHolder(const wstring& name, const shared_ptr<AngelScript>& script)
 	: scriptInterface(script)
-	, soundInterface(sound)
-	, skinName(name)
-	, skinRoot(SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / skinName)
+	, skinRoot(SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / name)
 {}
 
 SkinHolder::~SkinHolder()
 = default;
 
-void SkinHolder::Initialize()
+bool SkinHolder::Initialize()
 {
 	auto log = spdlog::get("main");
-	scriptInterface->StartBuildModule("SkinLoader",
-		[this](wstring inc, wstring from, CWScriptBuilder * b) {
-			if (!exists(skinRoot / SU_SCRIPT_DIR / inc)) return false;
-			b->AddSectionFromFile((skinRoot / SU_SCRIPT_DIR / inc).wstring().c_str());
-			return true;
-		});
-	scriptInterface->LoadFile((skinRoot / SU_SKIN_MAIN_FILE).wstring());
+	scriptInterface->StartBuildModule("SkinLoader");
+	scriptInterface->LoadFile(skinRoot / SU_SKIN_MAIN_FILE);
 	scriptInterface->FinishBuildModule();
 
 	auto mod = scriptInterface->GetLastModule();
@@ -45,7 +35,7 @@ void SkinHolder::Initialize()
 	if (!ep) {
 		log->critical(u8"スキンにEntryPointがありません");
 		mod->Discard();
-		return;
+		return false;
 	}
 
 	auto ctx = scriptInterface->GetEngine()->CreateContext();
@@ -54,16 +44,16 @@ void SkinHolder::Initialize()
 	ctx->Execute();
 	ctx->Release();
 	mod->Discard();
+
+	return true;
 }
 
 void SkinHolder::Terminate()
 {
-	// ReSharper disable CppDeclaratorNeverUsed
 	for (const auto& it : images) BOOST_ASSERT(it.second->GetRefCount() == 1);
 	for (const auto& it : sounds) BOOST_ASSERT(it.second->GetRefCount() == 1);
 	for (const auto& it : fonts) BOOST_ASSERT(it.second->GetRefCount() == 1);
 	for (const auto& it : animatedImages) BOOST_ASSERT(it.second->GetRefCount() == 1);
-	// ReSharper restore CppDeclaratorNeverUsed
 
 	for (const auto& it : images) it.second->Release();
 	for (const auto& it : sounds) it.second->Release();
@@ -74,17 +64,12 @@ void SkinHolder::Terminate()
 asIScriptObject * SkinHolder::ExecuteSkinScript(const wstring & file, const bool forceReload)
 {
 	auto log = spdlog::get("main");
-	//お茶を濁せ
+
 	const auto modulename = ConvertUnicodeToUTF8(file);
 	auto mod = scriptInterface->GetExistModule(modulename);
 	if (!mod || forceReload) {
-		scriptInterface->StartBuildModule(modulename,
-			[this](wstring inc, wstring from, CWScriptBuilder * b) {
-				if (!exists(skinRoot / SU_SCRIPT_DIR / inc)) return false;
-				b->AddSectionFromFile((skinRoot / SU_SCRIPT_DIR / inc).wstring().c_str());
-				return true;
-			});
-		scriptInterface->LoadFile((skinRoot / SU_SCRIPT_DIR / file).wstring());
+		scriptInterface->StartBuildModule(modulename);
+		scriptInterface->LoadFile(skinRoot / SU_SCRIPT_DIR / file);
 		if (!scriptInterface->FinishBuildModule()) {
 			scriptInterface->GetLastModule()->Discard();
 			return nullptr;
@@ -141,7 +126,7 @@ void SkinHolder::LoadSkinFontFromMem(const string & key, void* buffer, const siz
 void SkinHolder::LoadSkinSound(const std::string & key, const std::string & filename)
 {
 	if (sounds[key]) sounds[key]->Release();
-	sounds[key] = SSound::CreateSoundFromFile(soundInterface.get(), ConvertUnicodeToUTF8((skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename)).wstring()), 1);
+	sounds[key] = SSound::CreateSoundFromFile(ConvertUnicodeToUTF8((skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename)).wstring()), 1);
 }
 
 void SkinHolder::LoadSkinSoundFromMem(const string & key, const void* buffer, const size_t size)
@@ -194,10 +179,8 @@ SAnimatedImage* SkinHolder::GetSkinAnime(const std::string & key)
 	return it->second;
 }
 
-void RegisterScriptSkin(ExecutionManager * exm)
+void SkinHolder::RegisterType(asIScriptEngine* engine)
 {
-	auto engine = exm->GetScriptInterfaceUnsafe()->GetEngine();
-
 #ifdef  _WIN64
 	engine->RegisterTypedef(SU_IF_SIZE, "uint64");
 	engine->RegisterTypedef(SU_IF_VOID_PTR, "uint64");

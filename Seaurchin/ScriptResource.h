@@ -124,8 +124,8 @@ public:
 	void SetLoop(bool looping) const;
 	void SetVolume(double vol) const;
 
-	static SSound* CreateSound(SoundManager* smanager);
-	static SSound* CreateSoundFromFile(SoundManager* smanager, const std::string& file, int simul);
+	static SSound* CreateSound();
+	static SSound* CreateSoundFromFile(const std::string& file, int simul);
 };
 
 class SSoundMixer : public SResource {

@@ -53,7 +53,7 @@ void ScenePlayer::LoadResources()
 	soundHoldStep = dynamic_cast<SSound*>(resources["SoundHoldStep"]);
 	soundMetronome = dynamic_cast<SSound*>(resources["Metronome"]);
 
-	const auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceSafe();
+	const auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe();
 	if (soundHoldLoop) soundHoldLoop->SetLoop(true);
 	if (soundSlideLoop) soundSlideLoop->SetLoop(true);
 	if (soundAirLoop) soundAirLoop->SetLoop(true);

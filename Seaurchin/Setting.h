@@ -79,7 +79,7 @@ public:
  */
 class SettingItem {
 protected:
-	std::shared_ptr<SettingTree> settingInstance;	//!< 設定値管理クラスへの参照
+	SettingTree* const settingInstance;	//!< 設定値管理クラスへの参照
 
 	std::string description;	//!< 説明(概要)
 	std::string group;			//!< グループ名
@@ -89,7 +89,7 @@ public:
 	//! @param setting この設定項目で操作する設定値を保持する設定値管理クラス。
 	//! @param group この設定項目で操作する設定値のグループ名。
 	//! @param key この設定項目で操作する設定値のキー名。
-	SettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key);
+	SettingItem(SettingTree* setting, const std::string& group, const std::string& key);
 	virtual ~SettingItem() = default;
 
 	//! @brief 設定項目に対する説明(概要)を取得します。
@@ -140,7 +140,7 @@ public:
 	//! @param setting この設定項目で操作する設定値を保持する設定値管理クラス。
 	//! @param group この設定項目で操作する設定値のグループ名。
 	//! @param key この設定項目で操作する設定値のキー名。
-	StepSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key)
+	StepSettingItem(SettingTree* setting, const std::string& group, const std::string& key)
 		: SettingItem(setting, group, key)
 		, value(T())
 		, minValue(min)
@@ -224,7 +224,7 @@ public:
 	//! @param setting この設定項目で操作する設定値を保持する設定値管理クラス。
 	//! @param group この設定項目で操作する設定値のグループ名。
 	//! @param key この設定項目で操作する設定値のキー名。
-	BooleanSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key);
+	BooleanSettingItem(SettingTree* setting, const std::string& group, const std::string& key);
 
 	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
@@ -262,7 +262,7 @@ public:
 	//! @param setting この設定項目で操作する設定値を保持する設定値管理クラス。
 	//! @param group この設定項目で操作する設定値のグループ名。
 	//! @param key この設定項目で操作する設定値のキー名。
-	StringSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key);
+	StringSettingItem(SettingTree* setting, const std::string& group, const std::string& key);
 
 	//! @brief 設定項目の設定値を文字列として取得します。
 	//! @return 文字列化した設定値。
@@ -304,7 +304,7 @@ public:
 	//! @param setting この設定項目で操作する設定値を保持する設定値管理クラス。
 	//! @param group この設定項目で操作する設定値のグループ名。
 	//! @param key この設定項目で操作する設定値のキー名。
-	SelectSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key)
+	SelectSettingItem(SettingTree* setting, const std::string& group, const std::string& key)
 		: SettingItem(setting, group, key)
 		, value(T())
 		, defaultValue(T())
@@ -374,7 +374,7 @@ public:
 	//! @param setting この設定項目で操作する設定値を保持する設定値管理クラス。
 	//! @param group この設定項目で操作する設定値のグループ名。
 	//! @param key この設定項目で操作する設定値のキー名。
-	ListSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key)
+	ListSettingItem(SettingTree* setting, const std::string& group, const std::string& key)
 		: SettingItem(setting, group, key)
 		, values()
 		, defaultValues()
@@ -480,7 +480,7 @@ public:
 	//! @param setting この設定項目で操作する設定値を保持する設定値管理クラス。
 	//! @param group この設定項目で操作する設定値のグループ名。
 	//! @param key この設定項目で操作する設定値のキー名。
-	TableSettingItem(std::shared_ptr<SettingTree> setting, const std::string& group, const std::string& key)
+	TableSettingItem(SettingTree* setting, const std::string& group, const std::string& key)
 		: SettingItem(setting, group, key)
 		, values()
 		, defaultValues()

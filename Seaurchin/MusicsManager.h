@@ -145,7 +145,7 @@ public:
 	int32_t GetMusicSize(int32_t relativeIndex) const;
 	int32_t GetVariantSize(int32_t relativeIndex) const;
 
-	static void RegisterScriptInterface(asIScriptEngine* engine);
+	static void RegisterType(asIScriptEngine* engine);
 };
 
 

@@ -55,7 +55,7 @@ void CharacterInstance::LoadAbilities()
 	const auto& abilities = skillSource->GetDetail(skillSource->CurrentLevel).Abilities;
 	for (const auto& def : abilities) {
 		vector<string> params;
-		auto scrpath = abroot / ConvertUTF8ToUnicode(def.Name + ".as");
+		auto scrpath = ConvertUTF8ToUnicode(def.Name + ".as");
 
 		auto abo = LoadAbilityObject(scrpath);
 		if (!abo) continue;
@@ -126,12 +126,8 @@ asIScriptObject* CharacterInstance::LoadAbilityObject(const filesystem::path & f
 	const auto modulename = ConvertUnicodeToUTF8(filepath.c_str());
 	auto mod = scriptInterface->GetExistModule(modulename);
 	if (!mod) {
-		scriptInterface->StartBuildModule(modulename, [=](wstring inc, wstring from, CWScriptBuilder * b) {
-			if (!exists(abroot / inc)) return false;
-			b->AddSectionFromFile((abroot / inc).wstring().c_str());
-			return true;
-			});
-		scriptInterface->LoadFile(filepath.wstring());
+		scriptInterface->StartBuildModule(modulename);
+		scriptInterface->LoadFile(abroot / filepath);
 		if (!scriptInterface->FinishBuildModule()) {
 			scriptInterface->GetLastModule()->Discard();
 			return nullptr;
@@ -147,7 +143,6 @@ asIScriptObject* CharacterInstance::LoadAbilityObject(const filesystem::path & f
 		if (!(scriptInterface->CheckMetaData(cti, "EntryPoint") || cti->GetUserData(SU_UDTYPE_ENTRYPOINT))) continue;
 		type = cti;
 		type->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
-		type->AddRef();
 		break;
 	}
 	if (!type) {
@@ -155,7 +150,9 @@ asIScriptObject* CharacterInstance::LoadAbilityObject(const filesystem::path & f
 		return nullptr;
 	}
 
+	type->AddRef();
 	const auto obj = scriptInterface->InstantiateObject(type);
+
 	type->Release();
 	return obj;
 }

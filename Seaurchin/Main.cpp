@@ -10,7 +10,6 @@
 #include "ScriptSpriteMover.h"
 
 using namespace std;
-using namespace std::chrono;
 
 void PreInitialize(HINSTANCE hInstance);
 bool Initialize();
@@ -18,11 +17,9 @@ void Run();
 void Terminate();
 LRESULT CALLBACK CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-shared_ptr<SettingTree> setting;
-shared_ptr<Logger> logger;
+unique_ptr<Logger> logger;
 unique_ptr<ExecutionManager> manager;
 WNDPROC dxlibWndProc;
-HWND hDxlibWnd;
 
 int WINAPI WinMain(const HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -41,11 +38,11 @@ int WINAPI WinMain(const HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpC
 
 void PreInitialize(HINSTANCE hInstance)
 {
-	logger = make_shared<Logger>();
+	logger = make_unique<Logger>();
 	logger->Initialize();
 	logger->LogDebug(u8"ロガー起動");
 
-	setting = make_shared<SettingTree>(hInstance, "config.toml");
+	auto setting = make_unique<SettingTree>(hInstance, "config.toml");
 	setting->Load();
 	const auto vs = setting->ReadValue<bool>("Graphic", "WaitVSync", false);
 	const auto fs = setting->ReadValue<bool>("Graphic", "Fullscreen", false);
@@ -60,6 +57,8 @@ void PreInitialize(HINSTANCE hInstance)
 	SetGraphMode(SU_RES_WIDTH, SU_RES_HEIGHT, 32);
 	SetFullSceneAntiAliasingMode(2, 2);
 
+	manager = make_unique<ExecutionManager>(setting.release());
+
 	logger->LogDebug(u8"PreInitialize完了");
 }
 
@@ -70,9 +69,12 @@ bool Initialize()
 	logger->LogInfo(u8"DxLib初期化OK");
 
 	//WndProc差し替え
-	hDxlibWnd = GetMainWindowHandle();
-	dxlibWndProc = WNDPROC(GetWindowLong(hDxlibWnd, GWL_WNDPROC));
-	SetWindowLong(hDxlibWnd, GWL_WNDPROC, LONG(CustomWindowProc));
+	{
+		const HWND hDxlibWnd = GetMainWindowHandle();
+		dxlibWndProc = WNDPROC(GetWindowLong(hDxlibWnd, GWL_WNDPROC));
+		SetWindowLong(hDxlibWnd, GWL_WNDPROC, LONG(CustomWindowProc));
+	}
+
 	//D3D設定
 	SetUseZBuffer3D(TRUE);
 	SetWriteZBuffer3D(TRUE);
@@ -84,7 +86,6 @@ bool Initialize()
 		return false;
 	}
 
-	manager = make_unique<ExecutionManager>(setting);
 	manager->Initialize();
 
 	SSpriteMover::StrTypeId = manager->GetScriptInterfaceUnsafe()->GetEngine()->GetTypeIdByDecl("string");
@@ -96,6 +97,8 @@ bool Initialize()
 
 void Run()
 {
+	using namespace std::chrono;
+
 	if (CheckHitKey(KEY_INPUT_F2)) {
 		manager->ExecuteSystemMenu();
 	}
@@ -106,7 +109,7 @@ void Run()
 		manager->ExecuteSkin();
 		logger->LogDebug(u8"Skin.as終了");
 	}
-	manager->AddScene(static_pointer_cast<Scene>(make_shared<SceneDebug>()));
+	manager->AddScene(new SceneDebug());
 
 
 	auto start = high_resolution_clock::now();
@@ -122,21 +125,18 @@ void Run()
 
 void Terminate()
 {
-	if (manager) manager->Shutdown();
-	manager.reset(nullptr);
+	manager.reset();
 	MoverFunctionExpressionManager::Finalize();
-	if (setting) setting.reset();
 	DxLib_End();
-	if (logger) logger->Terminate();
+	logger->Terminate();
+	logger.reset();
 }
 
 LRESULT CALLBACK CustomWindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam)
 {
-	bool processed;
 	LRESULT result;
-	tie(processed, result) = manager->CustomWindowProc(hWnd, msg, wParam, lParam);
 
-	if (processed) {
+	if (manager->CustomWindowProc(hWnd, msg, wParam, lParam, &result)) {
 		return result;
 	}
 	else {
