@@ -54,7 +54,7 @@ public:
 	T ReadValue(const std::string& group, const std::string& key, T defValue)
 	{
 		const auto v = GetValues(group, key);
-		if (v->is<T>()) return v->as<T>();
+		if (v && v->is<T>()) return v->as<T>();
 		WriteValue(group, key, defValue);
 		return defValue;
 	}
