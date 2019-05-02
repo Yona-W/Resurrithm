@@ -81,12 +81,64 @@ public:
 		return context->SetObject(object);
 	}
 
-	int Execute() { return context->Execute(); }
-	int Unprepare() { return context->Unprepare(); }
+	bool SetArgument(std::function<int(asIScriptContext*)> f) { /* TODO: ログ */ return f(context); }
+	int Execute()
+	{
+		const auto result = context->Execute();
 
-	SU_DEF_SETARG_BEGIN;
-	SU_DEF_SETARG_ALL(context);
-	SU_DEF_SETARG_END;
+		switch (result) {
+		case asEXECUTION_FINISHED: // 正常終了
+			break;
+		case asEXECUTION_SUSPENDED: // 中断
+			spdlog::get("main")->error(u8"期待しない動作 : 関数実行が終了しませんでした。");
+			break;
+		case asEXECUTION_ABORTED: // Abort 現状起こりえない
+			spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
+			break;
+		case asEXECUTION_EXCEPTION:
+		{
+			int col;
+			const char* at;
+			const auto row = context->GetExceptionLineNumber(&col, &at);
+			spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, context->GetExceptionString());
+			break;
+		}
+		default:
+			spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
+			break;
+		}
+
+		return result;
+	}
+	int ExecuteAsSuspendable()
+	{
+		const auto result = context->Execute();
+
+		switch (result) {
+		case asEXECUTION_FINISHED: // 正常終了
+		case asEXECUTION_SUSPENDED: // 中断
+			break;
+		case asEXECUTION_ABORTED: // Abort 現状起こりえない
+			spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
+			break;
+		case asEXECUTION_EXCEPTION:
+		{
+			int col;
+			const char* at;
+			const auto row = context->GetExceptionLineNumber(&col, &at);
+			spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, context->GetExceptionString());
+			break;
+		}
+		default:
+			spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
+			break;
+		}
+
+		return result;
+	}
+
+	int Unprepare() { return context->Unprepare(); }
+	asIScriptContext* GetContext() const { return context; }
 };
 
 // コールバックを管理する

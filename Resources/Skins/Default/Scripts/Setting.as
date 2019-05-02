@@ -103,8 +103,8 @@ class SettingScene : CoroutineScene {
     availableCount = target.length();
     spGroup.SetText("← " + groups[index] + " →");
     for(int i = 0; i < 10; i++) {
-      spDescriptions[i].SetText((i < availableCount) ? target[i].GetDescription() : "");
-      spValues[i].SetText((i < availableCount) ? target[i].GetItemText() : "");
+      spDescriptions[i].SetText((i < availableCount && target[i] !is null) ? target[i].GetDescription() : "");
+      spValues[i].SetText((i < availableCount && target[i] !is null) ? target[i].GetItemText() : "");
     }
     if (availableCount == 0) spDescriptions[0].SetText("設定項目なし");
   }

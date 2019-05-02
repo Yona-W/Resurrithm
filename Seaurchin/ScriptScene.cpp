@@ -73,7 +73,7 @@ void ScriptScene::Initialize()
 	if (!initMethod) return;
 
 	initMethod->Prepare();
-	initMethod->Execute();
+	if (initMethod->Execute() != asEXECUTION_FINISHED) Disappear();
 	initMethod->Unprepare();
 }
 
@@ -129,10 +129,10 @@ void ScriptScene::Tick(const double delta)
 	if (!mainMethod) return;
 
 	mainMethod->Prepare();
-	mainMethod->SetArg(0, delta);
-	mainMethod->Execute();
-	mainMethod->Unprepare();
-
+	if (mainMethod->SetArgument([&delta](auto p) { p->SetArgDouble(0, delta); return true; })) {
+		if (mainMethod->Execute() != asEXECUTION_FINISHED) Disappear();
+		mainMethod->Unprepare();
+	}
 }
 
 void ScriptScene::OnEvent(const string & message)
@@ -141,9 +141,10 @@ void ScriptScene::OnEvent(const string & message)
 
 	auto msg = message;
 	eventMethod->Prepare();
-	eventMethod->SetArg(0, &msg);
-	eventMethod->Execute();
-	eventMethod->Unprepare();
+	if (eventMethod->SetArgument([&msg](auto p) { p->SetArgAddress(0, static_cast<void*>(&msg)); return true; })) {
+		if (eventMethod->Execute() != asEXECUTION_FINISHED) Disappear();
+		eventMethod->Unprepare();
+	}
 }
 
 void ScriptScene::Draw()
@@ -195,20 +196,44 @@ void ScriptScene::TickCoroutine(const double delta)
 		}
 
 		const auto result = c->Execute();
-		if (result == asEXECUTION_FINISHED) {
-			delete c;
-			i = coroutines.erase(i);
-		}
-		else if (result == asEXECUTION_EXCEPTION) {
-			auto log = spdlog::get("main");
+
+		/*
+		asEXECUTION_FINISHED      = 0, // The context has successfully completed the execution.
+		asEXECUTION_SUSPENDED     = 1, // The execution is suspended and can be resumed.
+		asEXECUTION_ABORTED       = 2, // The execution was aborted by the application.
+		asEXECUTION_EXCEPTION     = 3, // The execution was terminated by an unhandled script exception.
+		asEXECUTION_PREPARED      = 4, // The context has been prepared for a new execution.
+		asEXECUTION_UNINITIALIZED = 5, // The context is not initialized.
+		asEXECUTION_ACTIVE        = 6, // The context is currently executing a function call.
+		asEXECUTION_ERROR         = 7  // The context has encountered an error and must be reinitialized.
+		*/
+
+		switch (result) {
+		case asEXECUTION_FINISHED: // 正常終了
+		case asEXECUTION_SUSPENDED: // 中断
+			break;
+		case asEXECUTION_ABORTED: // Abort Coroutineでは現状起こりえない
+			spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
+			break;
+		case asEXECUTION_EXCEPTION:
+		{
 			int col;
 			const char* at;
 			const auto row = c->GetContext()->GetExceptionLineNumber(&col, &at);
-			log->error(u8"{0} ({1:d}行{2:d}列): {3}", at, row, col, c->GetContext()->GetExceptionString());
-			abort();
+			spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, c->GetContext()->GetExceptionString());
+			break;
+		}
+		default:
+			spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
+			break;
+		}
+
+		if (result == asEXECUTION_SUSPENDED) {
+			++i;
 		}
 		else {
-			++i;
+			delete c;
+			i = coroutines.erase(i);
 		}
 	}
 }
@@ -266,14 +291,11 @@ void ScriptCoroutineScene::Tick(const double delta)
 	if (wait.Tick(delta)) return;
 
 	if (!mainMethod) {
-		finished = true;
+		Disappear();
 		return;
 	}
 
-	const auto result = mainMethod->Execute();
-	if (result != asEXECUTION_SUSPENDED) {
-		finished = true;
-	}
+	if (mainMethod->ExecuteAsSuspendable() != asEXECUTION_SUSPENDED) Disappear();
 }
 
 void RegisterScriptScene(ExecutionManager * exm)

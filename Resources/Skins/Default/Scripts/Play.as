@@ -105,7 +105,8 @@ class Play : CoroutineScene {
         { "width", 2 },
         { "height", 4224 }
       };
-      int divcnt = parseInt(GetSettingItem("Graphic", "DivisionLine").GetItemText());
+      SettingItem@ stItem = GetSettingItem("Graphic", "DivisionLine");
+      int divcnt = (stItem !is null)? parseInt(stItem.GetItemText()) : 8;
       for(int i=0; i<=divcnt; ++i) {
         Shape@ line = Shape();
         line.Apply(dict);
