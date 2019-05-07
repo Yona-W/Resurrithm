@@ -140,6 +140,21 @@ asIScriptObject* AngelScript::ExecuteScript(const path& root, const path& file, 
 	return obj;
 }
 
+MethodObject* MethodObject::Create(asIScriptObject* obj, const char* decl)
+{
+	if (!obj || !decl) return nullptr;
+
+	auto engine = obj->GetEngine();
+	auto func = obj->GetObjectType()->GetMethodByDecl(decl);
+	if (!func) return nullptr;
+
+	obj->AddRef();
+	func->AddRef();
+	const auto ptr = new MethodObject(engine, obj, func);
+
+	obj->Release();
+	return ptr;
+}
 
 MethodObject::MethodObject(asIScriptEngine* engine, asIScriptObject* object, asIScriptFunction* method)
 	: context(engine->CreateContext())
@@ -154,18 +169,98 @@ MethodObject::~MethodObject()
 	function->Release();
 }
 
-CallbackObject::CallbackObject(asIScriptFunction* callback)
-	: exists(true)
+int MethodObject::Prepare()
+{
+	const auto r1 = context->Prepare(function);
+	if (r1 != asSUCCESS) return r1;
+	return context->SetObject(object);
+}
+
+bool MethodObject::SetArgument(std::function<int(asIScriptContext*)> f)
+{
+	/* TODO: ログ */
+	return f(context);
+}
+
+int MethodObject::Execute()
+{
+	const auto result = context->Execute();
+
+	switch (result) {
+	case asEXECUTION_FINISHED: // 正常終了
+		break;
+	case asEXECUTION_SUSPENDED: // 中断
+		spdlog::get("main")->error(u8"期待しない動作 : 関数実行が終了しませんでした。");
+		break;
+	case asEXECUTION_ABORTED: // Abort 現状起こりえない
+		spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
+		break;
+	case asEXECUTION_EXCEPTION:
+	{
+		int col;
+		const char* at;
+		const auto row = context->GetExceptionLineNumber(&col, &at);
+		spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, context->GetExceptionString());
+		break;
+	}
+	default:
+		spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
+		break;
+	}
+
+	return result;
+}
+
+int MethodObject::ExecuteAsSuspendable()
+{
+	const auto result = context->Execute();
+
+	switch (result) {
+	case asEXECUTION_FINISHED: // 正常終了
+	case asEXECUTION_SUSPENDED: // 中断
+		break;
+	case asEXECUTION_ABORTED: // Abort 現状起こりえない
+		spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
+		break;
+	case asEXECUTION_EXCEPTION:
+	{
+		int col;
+		const char* at;
+		const auto row = context->GetExceptionLineNumber(&col, &at);
+		spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, context->GetExceptionString());
+		break;
+	}
+	default:
+		spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
+		break;
+	}
+
+	return result;
+}
+
+
+
+CallbackObject* CallbackObject::Create(asIScriptFunction* callback)
+{
+	if (!callback || callback->GetFuncType() != asFUNC_DELEGATE) return nullptr;
+
+	callback->AddRef();
+	const auto ptr = new CallbackObject(callback->GetEngine(), callback);
+
+	callback->Release();
+	return ptr;
+}
+
+CallbackObject::CallbackObject(asIScriptEngine* engine, asIScriptFunction* callback)
+	: context(engine->CreateContext())
+	, object(static_cast<asIScriptObject*>(callback->GetDelegateObject()))
+	, function(callback->GetDelegateFunction())
+	, type(callback->GetDelegateObjectType())
+	, exists(true)
 	, refcount(1)
 {
-	const auto ctx = asGetActiveContext();
-	auto engine = ctx->GetEngine();
-	context = engine->CreateContext();
-	function = callback->GetDelegateFunction();
 	function->AddRef();
-	object = static_cast<asIScriptObject*>(callback->GetDelegateObject());
 	object->AddRef();
-	type = callback->GetDelegateObjectType();
 	type->AddRef();
 
 	callback->Release();
@@ -187,4 +282,49 @@ void CallbackObject::Dispose()
 	type->Release();
 
 	exists = false;
+}
+
+int CallbackObject::Prepare()
+{
+	BOOST_ASSERT(IsExists());
+	const auto r1 = context->Prepare(function);
+	if (r1 != asSUCCESS) return r1;
+	return context->SetObject(object);
+}
+
+bool CallbackObject::SetArgument(std::function<int(asIScriptContext*)> f)
+{
+	/* TODO: ログ */
+	return f(context);
+}
+
+int CallbackObject::Execute()
+{
+	BOOST_ASSERT(IsExists());
+
+	const auto result = context->Execute();
+
+	switch (result) {
+	case asEXECUTION_FINISHED: // 正常終了
+		break;
+	case asEXECUTION_SUSPENDED: // 中断
+		spdlog::get("main")->error(u8"期待しない動作 : 関数実行が終了しませんでした。");
+		break;
+	case asEXECUTION_ABORTED: // Abort 現状起こりえない
+		spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
+		break;
+	case asEXECUTION_EXCEPTION:
+	{
+		int col;
+		const char* at;
+		const auto row = context->GetExceptionLineNumber(&col, &at);
+		spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, context->GetExceptionString());
+		break;
+	}
+	default:
+		spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
+		break;
+	}
+
+	return result;
 }

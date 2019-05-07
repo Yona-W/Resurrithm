@@ -20,29 +20,35 @@ SkillIndicators::~SkillIndicators()
 
 void SkillIndicators::SetCallback(asIScriptFunction * func)
 {
-	if (!func || func->GetFuncType() != asFUNC_DELEGATE) return;
-
 	asIScriptContext * ctx = asGetActiveContext();
-	if (!ctx) return;
+	if (!ctx) {
+		if (func) func->Release();
+		return;
+	}
 
 	void* p = ctx->GetUserData(SU_UDTYPE_SCENE);
 	ScriptScene * sceneObj = static_cast<ScriptScene*>(p);
 
 	if (!sceneObj) {
 		ScriptSceneWarnOutOf("SkillIndicators::SetCallback", "Scene Class", ctx);
+		if (func) func->Release();
 		return;
 	}
 
 	if (callback) callback->Release();
 
+	if (!func) return;
+
 	func->AddRef();
-	callback = new CallbackObject(func);
+	callback = CallbackObject::Create(func);
+
+	func->Release();
+	if (!callback) return;
+
 	callback->SetUserData(sceneObj, SU_UDTYPE_SCENE);
 
 	callback->AddRef();
 	sceneObj->RegisterDisposalCallback(callback);
-
-	func->Release();
 }
 
 int SkillIndicators::AddSkillIndicator(const string & icon)
@@ -64,9 +70,17 @@ void SkillIndicators::TriggerSkillIndicator(const int index) const
 	}
 
 	callback->Prepare();
-	callback->SetArg(0, index);
-	callback->Execute();
-	callback->Unprepare();
+	if (callback->SetArgument([&index](auto p) {
+		p->SetArgDWord(0, index);
+		return true;
+		})) {
+		if (callback->Execute() != asEXECUTION_FINISHED) {
+			callback->Dispose();
+			callback->Release();
+			callback = nullptr;
+		}
+		callback->Unprepare();
+	}
 }
 
 uint32_t SkillIndicators::GetSkillIndicatorCount() const

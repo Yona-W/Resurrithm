@@ -151,11 +151,19 @@ void CharacterInstance::CallJudgeCallback(const AbilityJudgeType judge, const Ju
 	auto infoClone = info;
 
 	judgeCallback->Prepare();
-	judgeCallback->SetArg(0, SU_TO_INT32(judge));
-	judgeCallback->SetArgObject(1, &infoClone);
-	judgeCallback->SetArgObject(2, &message);
-	judgeCallback->Execute();
-	judgeCallback->Unprepare();
+	if (judgeCallback->SetArgument([&judge, &infoClone, &message](auto p) {
+		p->SetArgDWord(0, SU_TO_INT32(judge));
+		p->SetArgObject(1, &infoClone);
+		p->SetArgObject(2, &message);
+		return true;
+		})) {
+		if (judgeCallback->Execute() != asEXECUTION_FINISHED) {
+			judgeCallback->Dispose();
+			judgeCallback->Release();
+			judgeCallback = nullptr;
+		}
+		judgeCallback->Unprepare();
+	}
 }
 
 void CharacterInstance::OnStart()
@@ -218,17 +226,20 @@ void CharacterInstance::OnMiss(const JudgeInformation & info, const string & ext
 
 void CharacterInstance::SetCallback(asIScriptFunction * func, ScriptScene * sceneObj)
 {
-	if (!func || func->GetFuncType() != asFUNC_DELEGATE) return;
 	if (judgeCallback) judgeCallback->Release();
 
+	if (!func) return;
+
 	func->AddRef();
-	judgeCallback = new CallbackObject(func);
+	judgeCallback = CallbackObject::Create(func);
+
+	func->Release();
+	if (!judgeCallback) return;
+
 	judgeCallback->SetUserData(sceneObj, SU_UDTYPE_SCENE);
 
 	judgeCallback->AddRef();
 	sceneObj->RegisterDisposalCallback(judgeCallback);
-
-	func->Release();
 }
 
 CharacterParameter* CharacterInstance::GetCharacterParameter() const

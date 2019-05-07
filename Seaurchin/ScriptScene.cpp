@@ -40,35 +40,17 @@ void ScriptScene::Initialize()
 	const auto sceneType = sceneObject->GetObjectType();
 	auto engine = sceneObject->GetEngine();
 
-	{
-		auto func = sceneType->GetMethodByDecl("void Initialize()");
-		if (func) {
-			sceneObject->AddRef();
-			func->AddRef();
-			initMethod = new MethodObject(engine, sceneObject, func);
-			initMethod->SetUserData(this, SU_UDTYPE_SCENE);
-		}
-	}
+	sceneObject->AddRef();
+	initMethod = MethodObject::Create(sceneObject, "void Initialize()");
+	if (initMethod) initMethod->SetUserData(this, SU_UDTYPE_SCENE);
 
-	{
-		auto func = sceneType->GetMethodByDecl(this->GetMainMethodDecl());
-		if (func) {
-			sceneObject->AddRef();
-			func->AddRef();
-			mainMethod = new MethodObject(engine, sceneObject, func);
-			mainMethod->SetUserData(this, SU_UDTYPE_SCENE);
-		}
-	}
+	sceneObject->AddRef();
+	mainMethod = MethodObject::Create(sceneObject, this->GetMainMethodDecl());
+	if (mainMethod) mainMethod->SetUserData(this, SU_UDTYPE_SCENE);
 
-	{
-		auto func = sceneType->GetMethodByDecl("void OnEvent(const string &in)");
-		if (func) {
-			sceneObject->AddRef();
-			func->AddRef();
-			eventMethod = new MethodObject(engine, sceneObject, func);
-			eventMethod->SetUserData(this, SU_UDTYPE_SCENE);
-		}
-	}
+	sceneObject->AddRef();
+	eventMethod = MethodObject::Create(sceneObject, "void OnEvent(const string &in)");
+	if (eventMethod) eventMethod->SetUserData(this, SU_UDTYPE_SCENE);
 
 	if (!initMethod) return;
 
