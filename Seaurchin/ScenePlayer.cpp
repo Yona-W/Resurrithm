@@ -1,4 +1,5 @@
-﻿#include "ScenePlayer.h"
+﻿#include "AngelScriptManager.h"
+#include "ScenePlayer.h"
 #include "ScriptSprite.h"
 #include "ScriptSpriteMover.h"
 #include "ExecutionManager.h"

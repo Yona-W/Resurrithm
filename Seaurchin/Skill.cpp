@@ -1,4 +1,5 @@
 ﻿#include "Skill.h"
+#include "Result.h"
 #include "SettingManager.h"
 #include "ExecutionManager.h"
 #include "ScriptSprite.h"
@@ -97,6 +98,123 @@ SImage* SkillIndicators::GetSkillIndicatorImage(const uint32_t index)
 	return result;
 }
 
+
+Ability::Ability(MethodObject* methodInitialize, MethodObject* methodOnStart, MethodObject* methodOnFinish, MethodObject* methodOnJudge)
+	: methodInitialize(methodInitialize)
+	, methodOnStart(methodOnStart)
+	, methodOnFinish(methodOnFinish)
+	, methodOnJudge(methodOnJudge)
+{}
+
+Ability::~Ability()
+{
+	if (methodInitialize) delete methodInitialize;
+	if (methodOnStart) delete methodOnStart;
+	if (methodOnFinish) delete methodOnFinish;
+	if (methodOnJudge) delete methodOnJudge;
+}
+
+Ability* Ability::Create(asIScriptObject* obj)
+{
+	if (!obj) return nullptr;
+
+	obj->AddRef();
+	const auto initialize = MethodObject::Create(obj, "void Initialize(dictionary@, " SU_IF_SKILL_INDICATORS "@)");
+	obj->AddRef();
+	const auto onStart = MethodObject::Create(obj, "void OnStart(" SU_IF_RESULT "@)");
+	obj->AddRef();
+	const auto onFinish = MethodObject::Create(obj, "void OnFinish(" SU_IF_RESULT "@)");
+	obj->AddRef();
+	const auto onJudge = MethodObject::Create(obj, "void OnJudge(" SU_IF_RESULT "@, " SU_IF_JUDGE_DATA ")");
+
+	if (!initialize && !onStart && !onFinish && !onJudge) {
+		obj->Release();
+		return nullptr;
+	}
+
+	const auto ptr = new Ability(initialize, onStart, onFinish, onJudge);
+
+	obj->Release();
+	return ptr;
+}
+
+bool Ability::Initialize(CScriptDictionary* args, SkillIndicators* indicators)
+{
+	if (!methodInitialize) return true;
+
+	methodInitialize->Prepare();
+	if (methodInitialize->SetArgument([args, indicators](auto p) {
+		p->SetArgAddress(0, args);
+		p->SetArgAddress(1, indicators);
+		return true;
+		})) {
+		if (methodInitialize->Execute() != asEXECUTION_FINISHED) {
+			delete methodInitialize;
+			methodInitialize = nullptr;
+		}
+		methodInitialize->Unprepare();
+		return true;
+	}
+
+	return false;
+}
+
+bool Ability::OnStart(Result* result)
+{
+	if (!methodOnStart) return true;
+
+	methodOnStart->Prepare();
+	if (methodOnStart->SetArgument([result](auto p) { p->SetArgAddress(0, result); return true; })) {
+		if (methodOnStart->Execute() != asEXECUTION_FINISHED) {
+			delete methodOnStart;
+			methodOnStart = nullptr;
+		}
+		methodOnStart->Unprepare();
+		return true;
+	}
+
+	return false;
+}
+
+bool Ability::OnFinish(Result* result)
+{
+	if (!methodOnFinish) return true;
+
+	methodOnFinish->Prepare();
+	if (methodOnFinish->SetArgument([result](auto p) { p->SetArgAddress(0, result); return true; })) {
+		if (methodOnFinish->Execute() != asEXECUTION_FINISHED) {
+			delete methodOnFinish;
+			methodOnFinish = nullptr;
+		}
+		methodOnFinish->Unprepare();
+		return true;
+	}
+
+	return false;
+}
+
+bool Ability::OnJudge(Result* result, JudgeInformation* judgeInfo)
+{
+	if (!methodOnJudge) return true;
+
+	methodOnJudge->Prepare();
+	if (methodOnJudge->SetArgument([result, judgeInfo](auto p) {
+		p->SetArgAddress(0, result);
+		p->SetArgObject(1, judgeInfo);
+		return true;
+		})) {
+		if (methodOnJudge->Execute() != asEXECUTION_FINISHED) {
+			delete methodOnJudge;
+			methodOnJudge = nullptr;
+		}
+		methodOnJudge->Unprepare();
+		return true;
+	}
+
+	return false;
+}
+
+
 void RegisterSkillTypes(asIScriptEngine * engine)
 {
 	engine->RegisterEnum(SU_IF_NOTETYPE);
@@ -117,6 +235,7 @@ void RegisterSkillTypes(asIScriptEngine * engine)
 	engine->RegisterEnumValue(SU_IF_JUDGETYPE, "Miss", int(AbilityJudgeType::Miss));
 
 	engine->RegisterObjectType(SU_IF_JUDGE_DATA, sizeof(JudgeInformation), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<JudgeInformation>());
+	engine->RegisterObjectProperty(SU_IF_JUDGE_DATA, SU_IF_JUDGETYPE " Judge", asOFFSET(JudgeInformation, JudgeType));
 	engine->RegisterObjectProperty(SU_IF_JUDGE_DATA, SU_IF_NOTETYPE " Note", asOFFSET(JudgeInformation, Note));
 	engine->RegisterObjectProperty(SU_IF_JUDGE_DATA, "double Left", asOFFSET(JudgeInformation, Left));
 	engine->RegisterObjectProperty(SU_IF_JUDGE_DATA, "double Right", asOFFSET(JudgeInformation, Right));
@@ -133,10 +252,7 @@ void RegisterSkillTypes(asIScriptEngine * engine)
 	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void Initialize(dictionary@, " SU_IF_SKILL_INDICATORS "@)");
 	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void OnStart(" SU_IF_RESULT "@)");
 	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void OnFinish(" SU_IF_RESULT "@)");
-	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void OnJusticeCritical(" SU_IF_RESULT "@, " SU_IF_JUDGE_DATA ")");
-	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void OnJustice(" SU_IF_RESULT "@, " SU_IF_JUDGE_DATA ")");
-	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void OnAttack(" SU_IF_RESULT "@, " SU_IF_JUDGE_DATA ")");
-	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void OnMiss(" SU_IF_RESULT "@, " SU_IF_JUDGE_DATA ")");
+	engine->RegisterInterfaceMethod(SU_IF_ABILITY, "void OnJudge(" SU_IF_RESULT "@, " SU_IF_JUDGE_DATA ")");
 
 	engine->RegisterObjectType(SU_IF_SKILL, 0, asOBJ_REF | asOBJ_NOCOUNT);
 	engine->RegisterObjectProperty(SU_IF_SKILL, "string Name", asOFFSET(SkillParameter, Name));

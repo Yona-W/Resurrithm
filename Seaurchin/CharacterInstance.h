@@ -1,32 +1,14 @@
 ﻿#pragma once
 
-#include "AngelScriptManager.h"
-#include "Character.h"
-#include "Skill.h"
-#include "Result.h"
-
-#define SU_CHAR_SMALL_WIDTH 280
-#define SU_CHAR_SMALL_HEIGHT 170
-#define SU_CHAR_FACE_SIZE 128
-
-#define SU_IF_CHARACTER_INSTANCE "CharacterInstance"
-#define SU_IF_JUDGE_CALLBACK "JudgeCallback"
-
-struct AbilityFunctions {
-	asIScriptFunction* OnStart = nullptr;
-	asIScriptFunction* OnFinish = nullptr;
-	asIScriptFunction* OnJusticeCritical = nullptr;
-	asIScriptFunction* OnJustice = nullptr;
-	asIScriptFunction* OnAttack = nullptr;
-	asIScriptFunction* OnMiss = nullptr;
-};
-
-struct JudgeInformation {
-	AbilityNoteType Note;
-	double Left;
-	double Right;
-};
-
+class AngelScript;
+class CharacterParameter;
+class SkillParameter;
+class CharacterImageSet;
+class SkillIndicators;
+class Result;
+class Ability;
+class CallbackObject;
+class JudgeInformation;
 class ScriptScene;
 
 class CharacterInstance final {
@@ -40,18 +22,13 @@ private:
 	std::shared_ptr<SkillIndicators> indicators;
 	std::shared_ptr<Result> targetResult;
 
-	std::vector<asIScriptObject*> abilities;
-	std::vector<asITypeInfo*> abilityTypes;
-	std::vector<AbilityFunctions> abilityEvents;
-	asIScriptContext* context;
+	std::vector<Ability*> abilities;
 	mutable CallbackObject* judgeCallback;
 
 	void LoadAbilities();
 	void CreateImageSet();
 
-	void CallEventFunction(asIScriptObject* obj, asIScriptFunction* func) const;
-	void CallEventFunction(asIScriptObject* obj, asIScriptFunction* func, const JudgeInformation& info) const;
-	void CallJudgeCallback(AbilityJudgeType judge, const JudgeInformation& info, const std::string& extra) const;
+	void CallJudgeCallback(const JudgeInformation& info, const std::string& extra) const;
 
 public:
 	void AddRef() { reference++; }
@@ -64,10 +41,7 @@ public:
 
 	void OnStart();
 	void OnFinish();
-	void OnJusticeCritical(const JudgeInformation & info, const std::string & extra);
-	void OnJustice(const JudgeInformation & info, const std::string & extra);
-	void OnAttack(const JudgeInformation & info, const std::string & extra);
-	void OnMiss(const JudgeInformation & info, const std::string & extra);
+	void OnJudge(const JudgeInformation & info, const std::string & extra);
 	void SetCallback(asIScriptFunction * func, ScriptScene * sceneObj);
 
 	CharacterParameter* GetCharacterParameter() const;

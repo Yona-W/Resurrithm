@@ -148,7 +148,7 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 		if (!note->OnTheFlyData.test(size_t(NoteAttribute::Finished))) {
 			player->EnqueueJudgeSound(JudgeSoundType::Tap);
 			player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
-			IncrementCombo({ AbilityNoteType::Hold, note->StartLane, note->StartLane + note->Length }, "");
+			IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Hold, note->StartLane, note->StartLane + note->Length }, "");
 			note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 		}
 
@@ -160,13 +160,13 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 			if (extra->Type.test(size_t(SusNoteType::End))) isInHold = false;
 			if (extra->OnTheFlyData.test(size_t(NoteAttribute::Finished))) continue;
 			if (extra->Type[size_t(SusNoteType::Injection)]) {
-				IncrementCombo({ AbilityNoteType::Hold, note->StartLane, note->StartLane + note->Length }, "");
+				IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Hold, note->StartLane, note->StartLane + note->Length }, "");
 				extra->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 				return;
 			}
 			player->EnqueueJudgeSound(JudgeSoundType::HoldStep);
 			player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
-			IncrementCombo({ AbilityNoteType::Hold, note->StartLane, note->StartLane + note->Length }, "");
+			IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Hold, note->StartLane, note->StartLane + note->Length }, "");
 			extra->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 			return;
 		}
@@ -177,7 +177,7 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 			player->EnqueueJudgeSound(JudgeSoundType::Tap);
 			player->SpawnSlideLoopEffect(note);
 
-			IncrementCombo({ AbilityNoteType::Slide, note->StartLane, note->StartLane + note->Length }, "");
+			IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Slide, note->StartLane, note->StartLane + note->Length }, "");
 			note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 		}
 
@@ -191,13 +191,13 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 			if (extra->Type.test(size_t(SusNoteType::Invisible))) continue;
 			if (extra->OnTheFlyData.test(size_t(NoteAttribute::Finished))) continue;
 			if (extra->Type.test(size_t(SusNoteType::Injection))) {
-				IncrementCombo({ AbilityNoteType::Slide, extra->StartLane, extra->StartLane + extra->Length }, "");
+				IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Slide, extra->StartLane, extra->StartLane + extra->Length }, "");
 				extra->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 				return;
 			}
 			player->EnqueueJudgeSound(JudgeSoundType::SlideStep);
 			player->SpawnJudgeEffect(extra, JudgeType::SlideTap);
-			IncrementCombo({ AbilityNoteType::Slide, extra->StartLane, extra->StartLane + extra->Length }, "");
+			IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Slide, extra->StartLane, extra->StartLane + extra->Length }, "");
 			extra->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 			return;
 		}
@@ -215,13 +215,13 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 			if (extra->Type.test(size_t(SusNoteType::Invisible))) continue;
 			if (extra->OnTheFlyData.test(size_t(NoteAttribute::Finished))) continue;
 			if (extra->Type[size_t(SusNoteType::Injection)]) {
-				IncrementCombo({ AbilityNoteType::AirAction, extra->StartLane, extra->StartLane + extra->Length }, "");
+				IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::AirAction, extra->StartLane, extra->StartLane + extra->Length }, "");
 				extra->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 				return;
 			}
 			player->EnqueueJudgeSound(JudgeSoundType::AirAction);
 			player->SpawnJudgeEffect(extra, JudgeType::Action);
-			IncrementCombo({ AbilityNoteType::AirAction, extra->StartLane, extra->StartLane + extra->Length }, "");
+			IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::AirAction, extra->StartLane, extra->StartLane + extra->Length }, "");
 			extra->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 		}
 	}
@@ -234,20 +234,20 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 		}
 		player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
 		player->SpawnJudgeEffect(note, JudgeType::ShortEx);
-		IncrementCombo({ AbilityNoteType::Air, note->StartLane, note->StartLane + note->Length }, "");
+		IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Air, note->StartLane, note->StartLane + note->Length }, "");
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 	}
 	else if (note->Type.test(size_t(SusNoteType::Tap))) {
 		player->EnqueueJudgeSound(JudgeSoundType::Tap);
 		player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
-		IncrementCombo({ AbilityNoteType::Tap, note->StartLane, note->StartLane + note->Length }, "");
+		IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Tap, note->StartLane, note->StartLane + note->Length }, "");
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 	}
 	else if (note->Type.test(size_t(SusNoteType::ExTap))) {
 		player->EnqueueJudgeSound(JudgeSoundType::ExTap);
 		player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
 		player->SpawnJudgeEffect(note, JudgeType::ShortEx);
-		IncrementCombo({ AbilityNoteType::ExTap, note->StartLane, note->StartLane + note->Length }, "");
+		IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::ExTap, note->StartLane, note->StartLane + note->Length }, "");
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 	}
 	else if (note->Type.test(size_t(SusNoteType::AwesomeExTap))) {
@@ -255,7 +255,7 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 		player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
 		player->SpawnJudgeEffect(note, JudgeType::ShortEx);
 		IncrementCombo(
-			{ AbilityNoteType::AwesomeExTap, note->StartLane, note->StartLane + note->Length },
+			{ AbilityJudgeType::JusticeCritical, AbilityNoteType::AwesomeExTap, note->StartLane, note->StartLane + note->Length },
 			note->Type[size_t(SusNoteType::Down)] ? "AwesomeExTapDown" : "AwesomeExTapUp"
 		);
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
@@ -263,13 +263,13 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 	else if (note->Type.test(size_t(SusNoteType::Flick))) {
 		player->EnqueueJudgeSound(JudgeSoundType::Flick);
 		player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
-		IncrementCombo({ AbilityNoteType::Flick, note->StartLane, note->StartLane + note->Length }, "");
+		IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::Flick, note->StartLane, note->StartLane + note->Length }, "");
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 	}
 	else if (note->Type.test(size_t(SusNoteType::HellTap))) {
 		player->EnqueueJudgeSound(JudgeSoundType::Tap);
 		player->SpawnJudgeEffect(note, JudgeType::ShortNormal);
-		IncrementCombo({ AbilityNoteType::HellTap, note->StartLane, note->StartLane + note->Length }, "");
+		IncrementCombo({ AbilityJudgeType::JusticeCritical, AbilityNoteType::HellTap, note->StartLane, note->StartLane + note->Length }, "");
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 	}
 }
@@ -277,5 +277,5 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 void AutoPlayerProcessor::IncrementCombo(const JudgeInformation & info, const string & extra) const
 {
 	player->currentResult->PerformJusticeCritical();
-	player->currentCharacterInstance->OnJusticeCritical(info, extra);
+	player->currentCharacterInstance->OnJudge(info, extra);
 }

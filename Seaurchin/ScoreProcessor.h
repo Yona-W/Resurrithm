@@ -3,8 +3,8 @@
 #include "SusAnalyzer.h"
 #include "Controller.h"
 #include "ScriptResource.h"
-#include "Skill.h"
 #include "CharacterInstance.h"
+#include "Skill.h"
 
 enum class NoteAttribute {
 	Invisible = 0,

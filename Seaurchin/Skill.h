@@ -8,6 +8,13 @@
 #define SU_IF_JUDGETYPE "JudgeType"
 #define SU_IF_JUDGE_DATA "JudgeData"
 
+#define SU_IF_CHARACTER_INSTANCE "CharacterInstance"
+#define SU_IF_JUDGE_CALLBACK "JudgeCallback"
+
+#define SU_CHAR_SMALL_WIDTH 280
+#define SU_CHAR_SMALL_HEIGHT 170
+#define SU_CHAR_FACE_SIZE 128
+
 class SImage;
 class CallbackObject;
 
@@ -52,6 +59,22 @@ public:
 	int32_t MaxLevel;
 };
 
+class SkillIndicators final {
+private:
+	std::vector<SImage*> indicatorIcons;
+	mutable CallbackObject* callback;
+
+public:
+	SkillIndicators();
+	~SkillIndicators();
+
+	uint32_t GetSkillIndicatorCount() const;
+	SImage* GetSkillIndicatorImage(uint32_t index);
+	void SetCallback(asIScriptFunction* func);
+	int AddSkillIndicator(const std::string& icon);
+	void TriggerSkillIndicator(int index) const;
+};
+
 enum class AbilityNoteType {
 	Tap = 1,
 	ExTap,
@@ -71,20 +94,36 @@ enum class AbilityJudgeType {
 	Miss,
 };
 
-class SkillIndicators final {
+struct JudgeInformation {
+	AbilityJudgeType JudgeType;
+	AbilityNoteType Note;
+	double Left;
+	double Right;
+};
+
+
+class MethodObject;
+class Result;
+
+class Ability {
 private:
-	std::vector<SImage*> indicatorIcons;
-	mutable CallbackObject* callback;
+	MethodObject* methodInitialize;
+	MethodObject* methodOnStart;
+	MethodObject* methodOnFinish;
+	MethodObject* methodOnJudge;
+
+private:
+	Ability(MethodObject*, MethodObject*, MethodObject*, MethodObject*);
+public:
+	~Ability();
 
 public:
-	SkillIndicators();
-	~SkillIndicators();
+	static Ability* Create(asIScriptObject*);
 
-	uint32_t GetSkillIndicatorCount() const;
-	SImage* GetSkillIndicatorImage(uint32_t index);
-	void SetCallback(asIScriptFunction* func);
-	int AddSkillIndicator(const std::string& icon);
-	void TriggerSkillIndicator(int index) const;
+	bool Initialize(CScriptDictionary* args, SkillIndicators* indicators);
+	bool OnStart(Result* result);
+	bool OnFinish(Result* result);
+	bool OnJudge(Result* result, JudgeInformation* judgeInfo);
 };
 
 void RegisterSkillTypes(asIScriptEngine* engine);

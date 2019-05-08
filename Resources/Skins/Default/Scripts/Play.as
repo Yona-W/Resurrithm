@@ -334,11 +334,10 @@ class Play : CoroutineScene {
   }
 
   // 判定発生ごとに呼ばれるコールバック
-  // judgeにはJC/J/A/Mの情報が入ります
   Image@ imgJC, imgJ, imgA, imgM;
-  void OnJudge(JudgeType judge, JudgeData data, const string &in ex) {
+  void OnJudge(JudgeData data, const string &in ex) {
   	Sprite@ sp;
-  	switch (judge) {
+  	switch (data.Judge) {
   	  case JudgeType::JusticeCritical:
   	    @sp = Sprite(imgJC);
   	    break;

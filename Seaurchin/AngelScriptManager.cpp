@@ -82,63 +82,140 @@ asIScriptModule* AngelScript::GetModule(const path& root, const path& file, bool
 	return builder.GetModule();
 }
 
-asITypeInfo* AngelScript::GetEntryPointAsTypeInfo(asIScriptModule* module)
-{
-	if (!module) return nullptr;
-
-	const int cnt = module->GetObjectTypeCount();
-
-	for (auto i = 0; i < cnt; i++) {
-		const auto cti = module->GetObjectTypeByIndex(i);
-		asITypeInfo* type;
-
-		if (cti->GetUserData(SU_UDTYPE_ENTRYPOINT)) return cti;
-
-		if (strcmp(builder.GetMetadataStringForType(cti->GetTypeId()), "EntryPoint") == 0) {
-			cti->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
-			return cti;
-		}
-	}
-
-	return nullptr;
-}
-
-asIScriptFunction* AngelScript::GetEntryPointAsFunction(asIScriptModule* module)
-{
-	if (!module) return nullptr;
-
-	const auto cnt = module->GetFunctionCount();
-
-	for (asUINT i = 0; i < cnt; i++) {
-		const auto func = module->GetFunctionByIndex(i);
-
-		if (func->GetUserData(SU_UDTYPE_ENTRYPOINT)) return func;
-
-		if (strcmp(builder.GetMetadataStringForFunc(func), "EntryPoint") == 0) {
-			func->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
-			return func;
-		}
-	}
-
-	return nullptr;
-}
-
-asIScriptObject* AngelScript::ExecuteScript(const path& root, const path& file, bool forceReload)
+asIScriptObject* AngelScript::ExecuteScriptAsObject(const path& root, const path& file, bool forceReload)
 {
 	const auto mod = GetModule(root, file, forceReload);
-	asITypeInfo* type = GetEntryPointAsTypeInfo(mod);
-	if (!type) {
-		spdlog::get("main")->critical(u8"スクリプト \"{0}\" にEntryPointがありません。", ConvertUnicodeToUTF8(file));
-		return nullptr;
+	if (!mod) return nullptr;
+
+	asITypeInfo* type = nullptr;
+	const auto cnt = mod->GetObjectTypeCount();
+	for (auto i = 0; i < cnt; i++) {
+		const auto cti = mod->GetObjectTypeByIndex(i);
+
+		if (cti->GetUserData(SU_UDTYPE_ENTRYPOINT)) {
+			type = cti;
+			break;
+		}
+		else if (strcmp(builder.GetMetadataStringForType(cti->GetTypeId()), "EntryPoint") == 0) {
+			cti->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
+			type = cti;
+			break;
+		}
+
+		cti->Release();
 	}
 
-	type->AddRef();
-	auto obj = InstantiateObject(type);
+	asIScriptObject* obj = nullptr;
+	if (!type) {
+		spdlog::get("main")->critical(u8"スクリプト \"{0}\" にEntryPointがありません。", ConvertUnicodeToUTF8(file));
+	}
+	else {
+		type->AddRef();
+		obj = InstantiateObject(type);
+	}
 
-	type->Release();
+	if (type) type->Release();
 	mod->Discard();
 	return obj;
 }
+
+asIScriptFunction* AngelScript::ExecuteScriptAsFunction(const path& root, const path& file, bool forceReload)
+{
+	const auto mod = GetModule(root, file, forceReload);
+	if (!mod) return nullptr;
+
+	asIScriptFunction* func = nullptr;
+	const auto cnt = mod->GetFunctionCount();
+	for (asUINT i = 0; i < cnt; i++) {
+		const auto f = mod->GetFunctionByIndex(i);
+
+		if (f->GetUserData(SU_UDTYPE_ENTRYPOINT)) {
+			func = f;
+			break;
+		}
+		else if (strcmp(builder.GetMetadataStringForFunc(f), "EntryPoint") == 0) {
+			f->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
+			func = f;
+			break;
+		}
+	}
+
+	if (!func) {
+		spdlog::get("main")->critical(u8"スクリプト \"{0}\" にEntryPointがありません。", ConvertUnicodeToUTF8(file));
+	}
+	else {
+		func->AddRef();
+	}
+
+	mod->Discard();
+	return func;
+}
+
+
+FunctionObject* FunctionObject::Create(asIScriptFunction* func)
+{
+	if (!func) return nullptr;
+
+	auto engine = func->GetEngine();
+
+	func->AddRef();
+	const auto ptr = new FunctionObject(engine, func);
+
+	func->Release();
+	return ptr;
+}
+
+FunctionObject::FunctionObject(asIScriptEngine * engine, asIScriptFunction * func)
+	: context(engine->CreateContext())
+	, function(func)
+{}
+
+FunctionObject::~FunctionObject()
+{
+	context->Release();
+	function->Release();
+}
+
+int FunctionObject::Prepare()
+{
+	return context->Prepare(function);
+}
+
+bool FunctionObject::SetArgument(std::function<int(asIScriptContext*)> f)
+{
+	/* TODO: ログ */
+	return f(context);
+}
+
+int FunctionObject::Execute()
+{
+	const auto result = context->Execute();
+
+	switch (result) {
+	case asEXECUTION_FINISHED: // 正常終了
+		break;
+	case asEXECUTION_SUSPENDED: // 中断
+		spdlog::get("main")->error(u8"期待しない動作 : 関数実行が終了しませんでした。");
+		break;
+	case asEXECUTION_ABORTED: // Abort 現状起こりえない
+		spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
+		break;
+	case asEXECUTION_EXCEPTION:
+	{
+		int col;
+		const char* at;
+		const auto row = context->GetExceptionLineNumber(&col, &at);
+		spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, context->GetExceptionString());
+		break;
+	}
+	default:
+		spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
+		break;
+	}
+
+	return result;
+}
+
 
 MethodObject* MethodObject::Create(asIScriptObject* obj, const char* decl)
 {

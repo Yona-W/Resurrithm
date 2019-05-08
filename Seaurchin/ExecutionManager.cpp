@@ -265,7 +265,7 @@ bool ExecutionManager::ExecuteScene(asIScriptObject * sceneObject)
 bool ExecutionManager::ExecuteSystemMenu()
 {
 	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR;
-	const auto obj = scriptInterface->ExecuteScript(root, SU_SYSTEM_MENU_FILE, true);
+	const auto obj = scriptInterface->ExecuteScriptAsObject(root, SU_SYSTEM_MENU_FILE, true);
 	if (!obj) return false;
 
 	obj->AddRef();

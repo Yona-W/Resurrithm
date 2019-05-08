@@ -21,23 +21,22 @@ bool SkinHolder::Initialize()
 	auto log = spdlog::get("main");
 
 	const bool forceReload = true;
-	const auto mod = scriptInterface->GetModule(skinRoot, SU_SKIN_MAIN_FILE, forceReload);
-	if (!mod) return false;
+	const auto func = scriptInterface->ExecuteScriptAsFunction(skinRoot, SU_SKIN_MAIN_FILE, forceReload);
+	if (!func) return false;
 
-	asIScriptFunction* ep = scriptInterface->GetEntryPointAsFunction(mod);
-	if (!ep) {
-		log->critical(u8"スキンにEntryPointがありません");
-		mod->Discard();
-		return false;
+	func->AddRef();
+	const auto funcObj = FunctionObject::Create(func);
+	if (!funcObj) return false;
+
+	funcObj->Prepare();
+	if (funcObj->SetArgument([this](auto p) { p->SetArgObject(0, this); return true; })) {
+		if (funcObj->Execute() != asEXECUTION_FINISHED) {
+		}
+		funcObj->Unprepare();
 	}
+	delete funcObj;
 
-	auto ctx = scriptInterface->GetEngine()->CreateContext();
-	ctx->Prepare(ep);
-	ctx->SetArgObject(0, this);
-	ctx->Execute();
-	ctx->Release();
-	mod->Discard();
-
+	func->Release();
 	return true;
 }
 
@@ -58,7 +57,7 @@ asIScriptObject * SkinHolder::ExecuteSkinScript(const path& file, const bool for
 {
 	auto log = spdlog::get("main");
 
-	const auto obj = scriptInterface->ExecuteScript(skinRoot, SU_SCRIPT_DIR / file, forceReload);
+	const auto obj = scriptInterface->ExecuteScriptAsObject(skinRoot, SU_SCRIPT_DIR / file, forceReload);
 	if (!obj) return nullptr;
 
 	obj->SetUserData(this, SU_UDTYPE_SKIN);
