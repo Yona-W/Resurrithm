@@ -8,9 +8,20 @@
 using namespace std;
 using namespace std::filesystem;
 
-SkinHolder::SkinHolder(const wstring& name, const shared_ptr<AngelScript>& script)
+SkinHolder* SkinHolder::Create(const std::shared_ptr<AngelScript>& script, const std::wstring& name)
+{
+	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / name;
+	if (!exists(root)) return nullptr;
+
+	const auto ptr = new SkinHolder(script, root);
+	ptr->Initialize();
+
+	return ptr;
+}
+
+SkinHolder::SkinHolder(const shared_ptr<AngelScript>& script, const path& root)
 	: scriptInterface(script)
-	, skinRoot(SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / name)
+	, skinRoot(root)
 {}
 
 SkinHolder::~SkinHolder()
@@ -64,52 +75,110 @@ asIScriptObject * SkinHolder::ExecuteSkinScript(const path& file, const bool for
 	return obj;
 }
 
-void SkinHolder::LoadSkinImage(const string & key, const string & filename)
+bool SkinHolder::LoadSkinImage(const string & key, const string & filename)
 {
-	if (images[key]) images[key]->Release();
-	images[key] = SImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8((skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename)).wstring()), false);
+	const auto it = images.find(key);
+	if (it != images.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+	const auto ptr = SImage::CreateLoadedImageFromFile(skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename), false);
+	if (ptr) images[key] = ptr;
+	return !!ptr;
 }
 
-void SkinHolder::LoadSkinImageFromMem(const string & key, void* buffer, const size_t size)
+bool SkinHolder::LoadSkinImageFromMem(const string & key, void* buffer, const size_t size)
 {
-	if (images[key]) images[key]->Release();
-	images[key] = SImage::CreateLoadedImageFromMemory(buffer, size);
+	const auto it = images.find(key);
+	if (it != images.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+	const auto ptr = SImage::CreateLoadedImageFromMemory(buffer, size);
+	if (ptr) images[key] = ptr;
+	return !!ptr;
 }
 
-void SkinHolder::LoadSkinFont(const string & key, const string & filename)
+bool SkinHolder::LoadSkinFont(const string & key, const string & filename)
 {
-	if (fonts[key]) fonts[key]->Release();
-	fonts[key] = SFont::CreateLoadedFontFromFile(ConvertUnicodeToUTF8((skinRoot / SU_FONT_DIR / ConvertUTF8ToUnicode(filename)).wstring()));
+	const auto it = fonts.find(key);
+	if (it != fonts.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+	const auto ptr = SFont::CreateLoadedFontFromFile(skinRoot / SU_FONT_DIR / ConvertUTF8ToUnicode(filename));
+	if (ptr) fonts[key] = ptr;
+	return !!ptr;
 }
 
-void SkinHolder::LoadSkinFontFromMem(const string & key, void* buffer, const size_t size)
+bool SkinHolder::LoadSkinFontFromMem(const string & key, void* buffer, const size_t size)
 {
-	//if (fonts[key]) fonts[key]->Release();
-	//images[key] = SFont::CreateLoadedFontFromMemory(buffer, size);
+	const auto it = fonts.find(key);
+	if (it != fonts.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+//	const auto ptr = SFont::CreateLoadedFontFromMemory(buffer, size);
+	const auto ptr = nullptr;
+	if (ptr) fonts[key] = ptr;
+	return !!ptr;
 }
 
-void SkinHolder::LoadSkinSound(const std::string & key, const std::string & filename)
+bool SkinHolder::LoadSkinSound(const std::string & key, const std::string & filename)
 {
-	if (sounds[key]) sounds[key]->Release();
-	sounds[key] = SSound::CreateSoundFromFile(ConvertUnicodeToUTF8((skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename)).wstring()), 1);
+	const auto it = sounds.find(key);
+	if (it != sounds.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+	const auto ptr = SSound::CreateSoundFromFile(skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename), 1);
+	if (ptr) sounds[key] = ptr;
+	return !!ptr;
 }
 
-void SkinHolder::LoadSkinSoundFromMem(const string & key, const void* buffer, const size_t size)
+bool SkinHolder::LoadSkinSoundFromMem(const string & key, const void* buffer, const size_t size)
 {
-	//if (sounds[key]) sounds[key]->Release();
-	//images[key] = SSound::CreateLoadedSoundFromMemory(buffer, size, 1);
+	const auto it = sounds.find(key);
+	if (it != sounds.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+//	const auto ptr = SSound::CreateSoundFromMemory(buffer, size);
+	const auto ptr = nullptr;
+	if (ptr) sounds[key] = ptr;
+	return !!ptr;
 }
 
-void SkinHolder::LoadSkinAnime(const std::string & key, const std::string & filename, const int x, const int y, const int w, const int h, const int c, const double time)
+bool SkinHolder::LoadSkinAnime(const std::string & key, const std::string & filename, const int x, const int y, const int w, const int h, const int c, const double time)
 {
-	if (animatedImages[key]) animatedImages[key]->Release();
-	animatedImages[key] = SAnimatedImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8((skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename)).wstring()), x, y, w, h, c, time);
+	const auto it = animatedImages.find(key);
+	if (it != animatedImages.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+	const auto ptr = SAnimatedImage::CreateLoadedImageFromFile(skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename), x, y, w, h, c, time);
+	if (ptr) animatedImages[key] = ptr;
+	return !!ptr;
 }
 
-void SkinHolder::LoadSkinAnimeFromMem(const string & key, void* buffer, const size_t size, const int x, const int y, const int w, const int h, const int c, const double time)
+bool SkinHolder::LoadSkinAnimeFromMem(const string & key, void* buffer, const size_t size, const int x, const int y, const int w, const int h, const int c, const double time)
 {
-	if (animatedImages[key]) animatedImages[key]->Release();
-	images[key] = SAnimatedImage::CreateLoadedImageFromMemory(buffer, size, x, y, w, h, c, time);
+	const auto it = animatedImages.find(key);
+	if (it != animatedImages.end() && it->second) {
+		it->second->Release();
+		it->second = nullptr;
+	}
+
+	const auto ptr = SAnimatedImage::CreateLoadedImageFromMemory(buffer, size, x, y, w, h, c, time);
+	if (ptr) animatedImages[key] = ptr;
+	return !!ptr;
 }
 
 SImage* SkinHolder::GetSkinImage(const string & key)
@@ -146,7 +215,7 @@ SAnimatedImage* SkinHolder::GetSkinAnime(const std::string & key)
 
 void SkinHolder::RegisterType(asIScriptEngine* engine)
 {
-#ifdef  _WIN64
+#ifdef _WIN64
 	engine->RegisterTypedef(SU_IF_SIZE, "uint64");
 	engine->RegisterTypedef(SU_IF_VOID_PTR, "uint64");
 #else
@@ -155,14 +224,14 @@ void SkinHolder::RegisterType(asIScriptEngine* engine)
 #endif
 
 	engine->RegisterObjectType(SU_IF_SKIN, 0, asOBJ_REF | asOBJ_NOCOUNT);
-	engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadImage(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinImage), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadImageFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinImageFromMem), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadFont(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinFont), asCALL_THISCALL);
-	//engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadFontFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinFontFromMem), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadSound(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinSound), asCALL_THISCALL);
-	//engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadSoundFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinSoundFromMem), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadAnime(const string &in, const string &in, int, int, int, int, int, double)", asMETHOD(SkinHolder, LoadSkinAnime), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SKIN, "void LoadAnimeFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ", const string &in, int, int, int, int, int, double)", asMETHOD(SkinHolder, LoadSkinAnimeFromMem), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadImage(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinImage), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadImageFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinImageFromMem), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadFont(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinFont), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadFontFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinFontFromMem), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadSound(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinSound), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadSoundFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinSoundFromMem), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadAnime(const string &in, const string &in, int, int, int, int, int, double)", asMETHOD(SkinHolder, LoadSkinAnime), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadAnimeFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ", const string &in, int, int, int, int, int, double)", asMETHOD(SkinHolder, LoadSkinAnimeFromMem), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SKIN, SU_IF_IMAGE "@ GetImage(const string &in)", asMETHOD(SkinHolder, GetSkinImage), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SKIN, SU_IF_FONT "@ GetFont(const string &in)", asMETHOD(SkinHolder, GetSkinFont), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SKIN, SU_IF_SOUND "@ GetSound(const string &in)", asMETHOD(SkinHolder, GetSkinSound), asCALL_THISCALL);

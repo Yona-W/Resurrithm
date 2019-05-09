@@ -43,7 +43,7 @@ public:
 	int GetHeight();
 
 	static SImage* CreateBlankImage();
-	static SImage* CreateLoadedImageFromFile(const std::string& file, bool async);
+	static SImage* CreateLoadedImageFromFile(const std::filesystem::path& file, bool async);
 	static SImage* CreateLoadedImageFromMemory(void* buffer, size_t size);
 };
 
@@ -87,7 +87,7 @@ public:
 	int GetFrameCount() const { return frameCount; }
 	int GetImageHandleAt(const double time) { return images[int(time / secondsPerFrame) % frameCount]; }
 
-	static SAnimatedImage* CreateLoadedImageFromFile(const std::string& file, int xc, int yc, int w, int h, int count, double time);
+	static SAnimatedImage* CreateLoadedImageFromFile(const std::filesystem::path& file, int xc, int yc, int w, int h, int count, double time);
 	static SAnimatedImage* CreateLoadedImageFromMemory(void* buffer, size_t size, int xc, int yc, int w, int h, int count, double time);
 };
 
@@ -107,7 +107,7 @@ public:
 	std::tuple<double, double, int> RenderRich(SRenderTarget* rt, const std::string& utf8Str, const ColorTint& defcol);
 
 	static SFont* CreateBlankFont();
-	static SFont* CreateLoadedFontFromFile(const std::string& file);
+	static SFont* CreateLoadedFontFromFile(const std::filesystem::path& file);
 };
 
 class SSound : public SResource {
@@ -125,7 +125,7 @@ public:
 	void SetVolume(double vol) const;
 
 	static SSound* CreateSound();
-	static SSound* CreateSoundFromFile(const std::string& file, int simul);
+	static SSound* CreateSoundFromFile(const std::filesystem::path& file, int simul);
 };
 
 class SSoundMixer : public SResource {

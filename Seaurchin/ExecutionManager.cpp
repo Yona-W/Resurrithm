@@ -213,23 +213,24 @@ bool ExecutionManager::ExecuteSkin()
 {
 	auto log = spdlog::get("main");
 
-	const auto sn = settingManager->GetSettingInstanceUnsafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
-	if (find(skinNames.begin(), skinNames.end(), ConvertUTF8ToUnicode(sn)) == skinNames.end()) {
+	const auto sn = ConvertUTF8ToUnicode(settingManager->GetSettingInstanceUnsafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default"));
+	if (find(skinNames.begin(), skinNames.end(), sn) == skinNames.end()) {
 		log->error(u8"スキン \"{0}\"が見つかりませんでした", sn);
 		return false;
 	}
-	const auto skincfg = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / ConvertUTF8ToUnicode(sn) / SU_SETTING_DEFINITION_FILE;
+	const auto skincfg = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / sn / SU_SETTING_DEFINITION_FILE;
 	if (exists(skincfg)) {
 		log->info(u8"スキンの設定定義ファイルが有効です");
 		settingManager->LoadItemsFromToml(skincfg);
 		settingManager->RetrieveAllValues();
 	}
 
-	skin = make_unique<SkinHolder>(ConvertUTF8ToUnicode(sn), scriptInterface);
-	if (!skin->Initialize()) {
+	const auto ptr = SkinHolder::Create(scriptInterface, sn);
+	if (!ptr) {
 		log->critical(u8"スキン読み込みに失敗しました。");
 		return false;
 	}
+	skin = make_unique<SkinHolder>(ptr);
 
 	log->info(u8"スキン読み込み完了");
 	return ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
@@ -237,6 +238,11 @@ bool ExecutionManager::ExecuteSkin()
 
 bool ExecutionManager::ExecuteSkin(const string& file)
 {
+	if (!skin) {
+		spdlog::get("main")->error(u8"スキンが起動していません");
+		return false;
+	}
+
 	auto obj = skin->ExecuteSkinScript(ConvertUTF8ToUnicode(file));
 	if (!obj) {
 		spdlog::get("main")->error(u8"スクリプトをコンパイルできませんでした");

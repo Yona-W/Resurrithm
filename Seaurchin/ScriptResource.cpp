@@ -3,6 +3,7 @@
 #include "AngelScriptManager.h"
 
 using namespace std;
+using namespace filesystem;
 
 SResource::SResource()
 = default;
@@ -59,10 +60,10 @@ SImage* SImage::CreateBlankImage()
 	return result;
 }
 
-SImage* SImage::CreateLoadedImageFromFile(const string & file, const bool async)
+SImage* SImage::CreateLoadedImageFromFile(const path & file, const bool async)
 {
 	if (async) SetUseASyncLoadFlag(TRUE);
-	auto result = new SImage(LoadGraph(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(file).c_str())));
+	auto result = new SImage(LoadGraph(reinterpret_cast<const char*>(file.c_str())));
 	if (async) SetUseASyncLoadFlag(FALSE);
 	result->AddRef();
 
@@ -134,13 +135,13 @@ SAnimatedImage::~SAnimatedImage()
 	for (auto& img : images) DeleteGraph(img);
 }
 
-SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const std::string & file, const int xc, const int yc, const int w, const int h, const int count, const double time)
+SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, const int xc, const int yc, const int w, const int h, const int count, const double time)
 {
 	auto result = new SAnimatedImage(w, h, count, time);
 	result->AddRef();
 
 	result->images.resize(count);
-	LoadDivGraph(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(file).c_str()), count, xc, yc, w, h, result->images.data());
+	LoadDivGraph(reinterpret_cast<const char*>(file.c_str()), count, xc, yc, w, h, result->images.data());
 
 	BOOST_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -369,11 +370,11 @@ SFont* SFont::CreateBlankFont()
 	return result;
 }
 
-SFont* SFont::CreateLoadedFontFromFile(const string & file)
+SFont* SFont::CreateLoadedFontFromFile(const path & file)
 {
 	auto result = new SFont();
 	result->AddRef();
-	ifstream font(ConvertUTF8ToUnicode(file), ios::in | ios::binary);
+	ifstream font(file, ios::in | ios::binary);
 
 	Sif2Header header;
 	font.read(reinterpret_cast<char*>(&header), sizeof(Sif2Header));
@@ -473,9 +474,9 @@ SSound* SSound::CreateSound()
 	return result;
 }
 
-SSound* SSound::CreateSoundFromFile(const std::string & file, const int simul)
+SSound* SSound::CreateSoundFromFile(const path& file, const int simul)
 {
-	const auto hs = SoundSample::CreateFromFile(ConvertUTF8ToUnicode(file), simul);
+	const auto hs = SoundSample::CreateFromFile(file, simul);
 	auto result = new SSound(hs);
 	result->AddRef();
 

@@ -21,7 +21,10 @@ private:
 	std::unordered_map<std::string, SAnimatedImage*> animatedImages;
 
 public:
-	SkinHolder(const std::wstring& name, const std::shared_ptr<AngelScript>& script);
+	static SkinHolder* Create(const std::shared_ptr<AngelScript>& script, const std::wstring& name);
+
+public:
+	SkinHolder(const std::shared_ptr<AngelScript>& script, const std::filesystem::path& root);
 	~SkinHolder();
 
 	bool Initialize();
@@ -29,14 +32,14 @@ public:
 
 	asIScriptObject* ExecuteSkinScript(const std::filesystem::path& file, bool forceReload = false);
 
-	void LoadSkinImage(const std::string& key, const std::string& filename);
-	void LoadSkinImageFromMem(const std::string& key, void* buffer, size_t size);
-	void LoadSkinFont(const std::string& key, const std::string& filename);
-	void LoadSkinFontFromMem(const std::string& key, void* buffer, size_t size);
-	void LoadSkinSound(const std::string& key, const std::string& filename);
-	void LoadSkinSoundFromMem(const std::string& key, const void* buffer, size_t size);
-	void LoadSkinAnime(const std::string& key, const std::string& filename, int x, int y, int w, int h, int c, double time);
-	void LoadSkinAnimeFromMem(const std::string& key, void* buffer, size_t size, int x, int y, int w, int h, int c, double time);
+	bool LoadSkinImage(const std::string& key, const std::string& filename);
+	bool LoadSkinImageFromMem(const std::string& key, void* buffer, size_t size);
+	bool LoadSkinFont(const std::string& key, const std::string& filename);
+	bool LoadSkinFontFromMem(const std::string& key, void* buffer, size_t size);
+	bool LoadSkinSound(const std::string& key, const std::string& filename);
+	bool LoadSkinSoundFromMem(const std::string& key, const void* buffer, size_t size);
+	bool LoadSkinAnime(const std::string& key, const std::string& filename, int x, int y, int w, int h, int c, double time);
+	bool LoadSkinAnimeFromMem(const std::string& key, void* buffer, size_t size, int x, int y, int w, int h, int c, double time);
 	SImage* GetSkinImage(const std::string& key);
 	SFont* GetSkinFont(const std::string& key);
 	SSound* GetSkinSound(const std::string& key);
