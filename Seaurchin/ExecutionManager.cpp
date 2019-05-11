@@ -193,7 +193,7 @@ void ExecutionManager::EnumerateSkins()
 		for (const auto& fdata : directory_iterator(sepath)) {
 			if (!is_directory(fdata)) continue;
 			if (!CheckSkinStructure(fdata.path())) continue;
-			skinNames.push_back(fdata.path().filename().wstring());
+			skinNames.push_back(fdata.path().filename());
 		}
 	}
 	log->info(u8"スキン総数: {0:d}", skinNames.size());
@@ -213,9 +213,10 @@ bool ExecutionManager::ExecuteSkin()
 {
 	auto log = spdlog::get("main");
 
-	const auto sn = ConvertUTF8ToUnicode(settingManager->GetSettingInstanceUnsafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default"));
+	const auto skinName = settingManager->GetSettingInstanceUnsafe()->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
+	const auto sn = ConvertUTF8ToUnicode(skinName);
 	if (find(skinNames.begin(), skinNames.end(), sn) == skinNames.end()) {
-		log->error(u8"スキン \"{0}\"が見つかりませんでした", sn);
+		log->error(u8"スキン \"{0}\"が見つかりませんでした", skinName);
 		return false;
 	}
 	const auto skincfg = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / sn / SU_SETTING_DEFINITION_FILE;
@@ -230,7 +231,7 @@ bool ExecutionManager::ExecuteSkin()
 		log->critical(u8"スキン読み込みに失敗しました。");
 		return false;
 	}
-	skin = make_unique<SkinHolder>(ptr);
+	skin.reset(ptr);
 
 	log->info(u8"スキン読み込み完了");
 	return ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
@@ -319,6 +320,7 @@ void ExecutionManager::Tick(const double delta)
 void ExecutionManager::Draw()
 {
 	ClearDrawScreen();
+	SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
 	for (const auto& s : scenes) s->Draw();
 	ScreenFlip();
 }

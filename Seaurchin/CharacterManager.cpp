@@ -24,11 +24,11 @@ namespace {
 		auto log = spdlog::get("main");
 		auto result = make_shared<CharacterParameter>();
 
-		ifstream ifs(file.wstring(), ios::in);
+		ifstream ifs(file, ios::in);
 		auto pr = toml::parse(ifs);
 		ifs.close();
 		if (!pr.valid()) {
-			log->error(u8"キャラクター {0} は不正なファイルです", ConvertUnicodeToUTF8(file.wstring()));
+			log->error(u8"キャラクター {0} は不正なファイルです", ConvertUnicodeToUTF8(file));
 			log->error(pr.errorReason);
 			return nullptr;
 		}
@@ -37,7 +37,7 @@ namespace {
 		try {
 			result->Name = root.get<string>("Name");
 			const auto imgpath = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR / ConvertUTF8ToUnicode(root.get<string>("Image"));
-			result->ImagePath = ConvertUnicodeToUTF8(imgpath.wstring());
+			result->ImagePath = ConvertUnicodeToUTF8(imgpath);
 
 			const auto ws = root.find("Metric.WholeScale");
 			result->Metric.WholeScale = (ws && ws->is<double>()) ? ws->as<double>() : 1.0;
@@ -83,7 +83,7 @@ namespace {
 			}
 		}
 		catch (exception ex) {
-			log->error(u8"キャラクター {0} の読み込みに失敗しました", ConvertUnicodeToUTF8(file.wstring()));
+			log->error(u8"キャラクター {0} の読み込みに失敗しました", ConvertUnicodeToUTF8(file));
 			log->error(ex.what());
 			return nullptr;
 		}

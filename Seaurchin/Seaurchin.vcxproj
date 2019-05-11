@@ -75,7 +75,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\library\dxlib\include;..\library\angelscript\angelscript\lib;..\library\freetype\objs\Win32\Debug Static;..\library\bass24\c;..\library\bass24_mix\c;..\library\bass24_fx\c;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>shlwapi.lib;imm32.lib;bass.lib;bass_fx.lib;bassmix.lib;angelscriptd.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmtd;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
@@ -99,7 +99,7 @@
       <DisableSpecificWarnings>4464;5045;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <WarningVersion>
       </WarningVersion>
-      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -110,10 +110,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\library\dxlib\include;..\library\angelscript\angelscript\lib;..\library\freetype\objs\Win32\Release Static;..\library\bass24\c;..\library\bass24_mix\c;..\library\bass24_fx\c;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>shlwapi.lib;imm32.lib;bass.lib;bass_fx.lib;bassmix.lib;angelscript.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>libcmt;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <TreatLinkerWarningAsErrors>
       </TreatLinkerWarningAsErrors>
-      <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
+      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)Resources" "$(TargetDir)Data" /I /E /D /Y</Command>
@@ -135,7 +135,6 @@
     <ClCompile Include="Easing.cpp" />
     <ClCompile Include="ExecutionManager.cpp" />
     <ClCompile Include="ExecutionManager.Interface.cpp" />
-    <ClCompile Include="Font.cpp" />
     <ClCompile Include="Interfaces.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Misc.cpp" />
@@ -194,7 +193,6 @@
     <ClInclude Include="Debug.h" />
     <ClInclude Include="Easing.h" />
     <ClInclude Include="ExecutionManager.h" />
-    <ClInclude Include="Font.h" />
     <ClInclude Include="Interfaces.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Misc.h" />

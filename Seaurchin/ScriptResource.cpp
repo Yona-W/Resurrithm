@@ -11,16 +11,6 @@ SResource::SResource()
 SResource::~SResource()
 = default;
 
-void SResource::AddRef()
-{
-	reference++;
-}
-
-void SResource::Release()
-{
-	if (--reference == 0) delete this;
-}
-
 // SImage ----------------------
 
 void SImage::ObtainSize()
@@ -63,7 +53,18 @@ SImage* SImage::CreateBlankImage()
 SImage* SImage::CreateLoadedImageFromFile(const path & file, const bool async)
 {
 	if (async) SetUseASyncLoadFlag(TRUE);
-	auto result = new SImage(LoadGraph(reinterpret_cast<const char*>(file.c_str())));
+	auto result = new SImage(LoadGraph(ConvertUnicodeToUTF8(file).c_str()));
+	if (async) SetUseASyncLoadFlag(FALSE);
+	result->AddRef();
+
+	BOOST_ASSERT(result->GetRefCount() == 1);
+	return result;
+}
+
+SImage* SImage::CreateLoadedImageFromFileName(const string& file, const bool async)
+{
+	if (async) SetUseASyncLoadFlag(TRUE);
+	auto result = new SImage(LoadGraph(file.c_str()));
 	if (async) SetUseASyncLoadFlag(FALSE);
 	result->AddRef();
 
@@ -141,7 +142,7 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, con
 	result->AddRef();
 
 	result->images.resize(count);
-	LoadDivGraph(reinterpret_cast<const char*>(file.c_str()), count, xc, yc, w, h, result->images.data());
+	LoadDivGraph(ConvertUnicodeToUTF8(file).c_str(), count, xc, yc, w, h, result->images.data());
 
 	BOOST_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -163,93 +164,62 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromMemory(void* buffer, const 
 // SFont --------------------------------------
 
 SFont::SFont()
-= default;
+	: size(0)
+	, thick(0)
+	, fontType(0)
+{}
 
 SFont::~SFont()
 {
-	for (auto& i : glyphs) delete i.second;
-	for (auto& i : Images) i->Release();
+	if (handle) DeleteFontToHandle(handle);
+	handle = 0;
 }
 
-tuple<double, double, int> SFont::RenderRaw(SRenderTarget * rt, const string & utf8Str)
+tuple<int, int> SFont::RenderRaw(SRenderTarget * rt, const string & utf8Str)
 {
-	uint32_t cx = 0, cy = 0;
-	uint32_t mx = 0;
-	auto line = 1;
+	const TCHAR* str = utf8Str.c_str();
 	if (rt) {
 		BEGIN_DRAW_TRANSACTION(rt->GetHandle());
 		ClearDrawScreen();
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 		SetDrawBright(255, 255, 255);
-	}
-	const auto* ccp = reinterpret_cast<const uint8_t*>(utf8Str.c_str());
-	while (*ccp) {
-		uint32_t gi = 0;
-		if (*ccp >= 0xF0) {
-			gi = (*ccp & 0x07) << 18 | (*(ccp + 1) & 0x3F) << 12 | (*(ccp + 2) & 0x3F) << 6 | (*(ccp + 3) & 0x3F);
-			ccp += 4;
-		}
-		else if (*ccp >= 0xE0) {
-			gi = (*ccp & 0x0F) << 12 | (*(ccp + 1) & 0x3F) << 6 | (*(ccp + 2) & 0x3F);
-			ccp += 3;
-		}
-		else if (*ccp >= 0xC2) {
-			gi = (*ccp & 0x1F) << 6 | (*(ccp + 1) & 0x3F);
-			ccp += 2;
-		}
-		else {
-			gi = *ccp & 0x7F;
-			ccp++;
-		}
-		if (gi == 0x0A) {
-			line++;
-			mx = max(mx, cx);
-			cx = 0;
-			cy += size;
-			continue;
-		}
-		const auto sg = glyphs[gi];
-		if (!sg) continue;
-		if (rt) DrawRectGraph(
-			cx + sg->BearX, cy + sg->BearY,
-			sg->GlyphX, sg->GlyphY,
-			sg->GlyphWidth, sg->GlyphHeight,
-			Images[sg->ImageNumber]->GetHandle(),
-			TRUE, FALSE);
-		cx += sg->WholeAdvance;
-	}
-	if (rt) {
+		DrawStringToHandle(0, 0, str, GetColor(255, 255, 255), handle);
 		FINISH_DRAW_TRANSACTION;
 	}
-	mx = max(mx, cx);
-	double my = line * size;
-	return make_tuple(mx, my, line);
+
+	int sx = 0, sy = 0, lc = 0;
+	GetDrawStringSizeToHandle(&sx, &sy, &lc, str, strlen(str), handle);
+	return make_tuple(sx, sy);
 }
 
-tuple<double, double, int> SFont::RenderRich(SRenderTarget * rt, const string & utf8Str, const ColorTint & defcol)
+tuple<int, int> SFont::RenderRich(SRenderTarget * rt, const string & utf8Str)
 {
 	using namespace crc32_constexpr;
 
-	const std::regex cmd("^\\$\\{([\\w]+?)\\}");
-	const std::regex cmdhex("^\\$\\{#([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})\\}");
+	const std::regex cmd("\\$\\{([\\w]+?)\\}");
+	const std::regex cmdhex("\\$\\{#([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})\\}");
 	uint32_t cx = 0, cy = 0;
 	uint32_t mx = 0;
 	auto visible = true;
 	auto line = 1;
 
-	auto cr = defcol.R, cg = defcol.G, cb = defcol.B;
+	ColorTint defcol = { 25, 255, 255, 255 };
+	uint8_t cr = 255, cg = 255, cb = 255;
 	float cw = 1;
 
 	if (rt) {
 		BEGIN_DRAW_TRANSACTION(rt->GetHandle());
 		ClearDrawScreen();
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-		SetDrawBright(cr, cg, cb);
-		SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
+		SetDrawBright(255, 255, 255);
+		DrawStringToHandle(0, 0, utf8Str.c_str(), GetColor(255, 255, 255), handle);
+		FINISH_DRAW_TRANSACTION;
 	}
-	auto ccp = utf8Str.begin();
+	auto ccp = utf8Str.begin(); // 走査対象の先頭
+	auto head = utf8Str.begin(), tail = utf8Str.end(); // 描画対象の先頭、終端
 	std::smatch match;
 	while (ccp != utf8Str.end()) {
+		break;
 		if (std::regex_search(ccp, utf8Str.end(), match, cmd)) {
 			auto tcmd = match[1].str();
 			switch (Crc32Rec(0xffffffff, tcmd.c_str())) {
@@ -300,103 +270,86 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget * rt, const string & 
 				break;
 			default: break;
 			}
-			ccp += match[0].length();
-			continue;
-		}
-		if (std::regex_search(ccp, utf8Str.end(), match, cmdhex)) {
+			head = ccp;
+			tail = ccp + match.position();
+			ccp += match.position() + match[0].length();
+		} else if (std::regex_search(ccp, utf8Str.end(), match, cmdhex)) {
 			cr = std::stoi(match[1].str(), nullptr, 16);
 			cg = std::stoi(match[2].str(), nullptr, 16);
 			cb = std::stoi(match[3].str(), nullptr, 16);
-			ccp += match[0].length();
-			continue;
+			head = ccp;
+			tail = ccp + match.position();
+			ccp += match.position() + match.size();
 		}
 
-		uint32_t gi = 0;
-		if (uint8_t(*ccp) >= 0xF0) {
-			gi = (uint8_t(*ccp) & 0x07) << 18 | (uint8_t(*(ccp + 1)) & 0x3F) << 12 | (uint8_t(*(ccp + 2)) & 0x3F) << 6 | (uint8_t(*(ccp + 3)) & 0x3F);
-			ccp += 4;
+		auto begin = head;
+		auto end = tail;
+		auto cur = begin;
+		while (cur != end) {
+			if (*cur != '\n') {
+				if (++cur != end) continue;
+			}
+
+			auto str = string(begin, cur);
+			auto cstr = str.c_str();
+			auto lstr = str.size();
+			if (rt) {
+//				SetDrawBright(cr, cg, cb);
+				DrawStringToHandle(cx, cy, cstr, GetColor(cr, cg, cb), handle);
+			}
+
+			int sx = 0, sy = 0, lc = 0;
+			GetDrawStringSizeToHandle(&sx, &sy, &lc, cstr, lstr, handle);
+			BOOST_ASSERT(lc == 1);
+
+			if (cur == end) break;
+			if (*cur == '\n') ++line;
+			++cur;
+			begin = cur;
 		}
-		else if (uint8_t(*ccp) >= 0xE0) {
-			gi = (uint8_t(*ccp) & 0x0F) << 12 | (uint8_t(*(ccp + 1)) & 0x3F) << 6 | (uint8_t(*(ccp + 2)) & 0x3F);
-			ccp += 3;
-		}
-		else if (uint8_t(*ccp) >= 0xC2) {
-			gi = (uint8_t(*ccp) & 0x1F) << 6 | (uint8_t(*(ccp + 1)) & 0x3F);
-			ccp += 2;
-		}
-		else {
-			gi = uint8_t(*ccp) & 0x7F;
-			++ccp;
-		}
-		if (!visible) continue;
-		if (gi == 0x0A) {
-			line++;
-			mx = max(mx, cx);
-			cx = 0;
-			cy += size;
-			continue;
-		}
-		const auto sg = glyphs[gi];
-		if (!sg) continue;
-		if (rt) {
-			SetDrawBright(cr, cg, cb);
-			DrawRectRotaGraph3F(
-				SU_TO_FLOAT(cx + sg->BearX) - (cw - 1.0f) * 0.5f * sg->GlyphWidth, SU_TO_FLOAT(cy + sg->BearY),
-				sg->GlyphX, sg->GlyphY,
-				sg->GlyphWidth, sg->GlyphHeight,
-				0, 0,
-				cw, 1, 0,
-				Images[sg->ImageNumber]->GetHandle(),
-				TRUE, FALSE);
-		}
-		cx += sg->WholeAdvance;
+
+		head = ccp;
+		tail = utf8Str.end();
 	}
-	if (rt) {
-		SetDrawMode(DX_DRAWMODE_NEAREST);
+	if (rt && false) {
 		FINISH_DRAW_TRANSACTION;
 	}
-	mx = max(mx, cx);
-	double my = line * size;
-	return make_tuple(mx, my, line);
+
+	int sx = 0, sy = 0, lc = 0;
+	GetDrawStringSizeToHandle(&sx, &sy, &lc, utf8Str.c_str(), strlen(utf8Str.c_str()), handle);
+	return make_tuple(sx, sy);
 }
 
-
-SFont* SFont::CreateBlankFont()
+SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, int fontType)
 {
 	auto result = new SFont();
 	result->AddRef();
+
+	int handle = CreateFontToHandle(name.c_str(), size, thick, fontType);
+	result->handle = handle;
+	result->size = size;
+	result->thick = thick;
+	result->fontType = fontType;
 
 	BOOST_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
-SFont* SFont::CreateLoadedFontFromFile(const path & file)
+SFont* SFont::CreateLoadedFontFromMem(const void *mem, size_t memsize, int edge, int size, int thick, int fontType)
 {
 	auto result = new SFont();
 	result->AddRef();
-	ifstream font(file, ios::in | ios::binary);
 
-	Sif2Header header;
-	font.read(reinterpret_cast<char*>(&header), sizeof(Sif2Header));
-	result->size = SU_TO_INT32(header.FontSize);
-
-	for (auto i = 0u; i < header.Glyphs; i++) {
-		const auto info = new Sif2Glyph();
-		font.read(reinterpret_cast<char*>(info), sizeof(Sif2Glyph));
-		result->glyphs[info->Codepoint] = info;
-	}
-	uint32_t size;
-	for (auto i = 0; i < header.Images; i++) {
-		font.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
-		const auto pngdata = new uint8_t[size];
-		font.read(reinterpret_cast<char*>(pngdata), size);
-		result->Images.push_back(SImage::CreateLoadedImageFromMemory(pngdata, size));
-		delete[] pngdata;
-	}
+	int handle = LoadFontDataFromMemToHandle(mem, memsize, edge);
+	result->handle = handle;
+	result->size = size;
+	result->thick = thick;
+	result->fontType = fontType;
 
 	BOOST_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
+
 
 // SSoundMixer ------------------------------
 
@@ -527,19 +480,26 @@ void RegisterScriptResource(ExecutionManager * exm)
 	auto engine = exm->GetScriptInterfaceUnsafe()->GetEngine();
 
 	engine->RegisterObjectType(SU_IF_IMAGE, 0, asOBJ_REF);
-	engine->RegisterObjectBehaviour(SU_IF_IMAGE, asBEHAVE_FACTORY, SU_IF_IMAGE "@ f()", asFUNCTION(SImage::CreateBlankImage), asCALL_CDECL);
-	engine->RegisterObjectBehaviour(SU_IF_IMAGE, asBEHAVE_FACTORY, SU_IF_IMAGE "@ f(const string &in, bool = false)", asFUNCTION(SImage::CreateLoadedImageFromFile), asCALL_CDECL);
+	engine->RegisterObjectBehaviour(SU_IF_IMAGE, asBEHAVE_FACTORY, SU_IF_IMAGE "@ f(const string &in, bool = false)", asFUNCTION(SImage::CreateLoadedImageFromFileName), asCALL_CDECL);
 	engine->RegisterObjectBehaviour(SU_IF_IMAGE, asBEHAVE_ADDREF, "void f()", asMETHOD(SImage, AddRef), asCALL_THISCALL);
 	engine->RegisterObjectBehaviour(SU_IF_IMAGE, asBEHAVE_RELEASE, "void f()", asMETHOD(SImage, Release), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_IMAGE, "int get_Width()", asMETHOD(SImage, GetWidth), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_IMAGE, "int get_Height()", asMETHOD(SImage, GetHeight), asCALL_THISCALL);
 	//engine->RegisterObjectMethod(SU_IF_IMAGE, SU_IF_IMAGE "& opAssign(" SU_IF_IMAGE "&)", asFUNCTION(asAssign<SImage>), asCALL_CDECL_OBJFIRST);
 
+	engine->RegisterEnum(SU_IF_FONT_TYPE);
+	engine->RegisterEnumValue(SU_IF_FONT_TYPE, "Normal", DX_FONTTYPE_NORMAL);
+	engine->RegisterEnumValue(SU_IF_FONT_TYPE, "Edge", DX_FONTTYPE_EDGE);
+	engine->RegisterEnumValue(SU_IF_FONT_TYPE, "AntiAliasing", DX_FONTTYPE_ANTIALIASING);
+	engine->RegisterEnumValue(SU_IF_FONT_TYPE, "AntiAliasingEdge", DX_FONTTYPE_ANTIALIASING_EDGE);
+
 	engine->RegisterObjectType(SU_IF_FONT, 0, asOBJ_REF);
-	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_FACTORY, SU_IF_FONT "@ f()", asFUNCTION(SFont::CreateBlankFont), asCALL_CDECL);
+	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_FACTORY, SU_IF_FONT "@ f(const string &in, int, int = 1, " SU_IF_FONT_TYPE " = 0)", asFUNCTION(SFont::CreateLoadedFontFromFont), asCALL_CDECL);
 	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_ADDREF, "void f()", asMETHOD(SFont, AddRef), asCALL_THISCALL);
 	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_RELEASE, "void f()", asMETHOD(SFont, Release), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_FONT, "int get_Size()", asMETHOD(SFont, GetSize), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_FONT, "int get_Thick()", asMETHOD(SFont, GetThick), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_FONT, SU_IF_FONT_TYPE " get_Type()", asMETHOD(SFont, GetFontType), asCALL_THISCALL);
 
 	engine->RegisterObjectType(SU_IF_SOUND, 0, asOBJ_REF);
 	engine->RegisterObjectBehaviour(SU_IF_SOUND, asBEHAVE_ADDREF, "void f()", asMETHOD(SSound, AddRef), asCALL_THISCALL);

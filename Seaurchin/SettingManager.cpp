@@ -27,18 +27,18 @@ void SettingManager::LoadItemsFromToml(const path& file)
 
 	auto log = spdlog::get("main");
 
-	std::ifstream ifs(file.wstring(), ios::in);
+	std::ifstream ifs(file, ios::in);
 	auto pr = toml::parse(ifs);
 	ifs.close();
 	if (!pr.valid()) {
-		log->error(u8"設定定義 {0} は不正なファイルです", ConvertUnicodeToUTF8(file.wstring()));
+		log->error(u8"設定定義 {0} は不正なファイルです", ConvertUnicodeToUTF8(file));
 		log->error(pr.errorReason);
 		return;
 	}
 
 	const auto items = pr.value.find("SettingItems");
 	if (!items || !items->is<toml::Array>()) {
-		log->warn(u8"設定定義 {0} に設定項目がありません", ConvertUnicodeToUTF8(file.wstring()));
+		log->warn(u8"設定定義 {0} に設定項目がありません", ConvertUnicodeToUTF8(file));
 		return;
 	}
 	for (const auto& item : items->as<vector<toml::Value>>()) {

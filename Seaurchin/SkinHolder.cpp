@@ -8,7 +8,7 @@
 using namespace std;
 using namespace std::filesystem;
 
-SkinHolder* SkinHolder::Create(const std::shared_ptr<AngelScript>& script, const std::wstring& name)
+SkinHolder* SkinHolder::Create(const shared_ptr<AngelScript>& script, const wstring& name)
 {
 	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / name;
 	if (!exists(root)) return nullptr;
@@ -101,7 +101,7 @@ bool SkinHolder::LoadSkinImageFromMem(const string & key, void* buffer, const si
 	return !!ptr;
 }
 
-bool SkinHolder::LoadSkinFont(const string & key, const string & filename)
+bool SkinHolder::LoadSkinFont(const string & key, const string & filename, int size, int thick, int fontType)
 {
 	const auto it = fonts.find(key);
 	if (it != fonts.end() && it->second) {
@@ -109,7 +109,7 @@ bool SkinHolder::LoadSkinFont(const string & key, const string & filename)
 		it->second = nullptr;
 	}
 
-	const auto ptr = SFont::CreateLoadedFontFromFile(skinRoot / SU_FONT_DIR / ConvertUTF8ToUnicode(filename));
+	const auto ptr = SFont::CreateLoadedFontFromFont(filename, size, thick, fontType);
 	if (ptr) fonts[key] = ptr;
 	return !!ptr;
 }
@@ -226,7 +226,7 @@ void SkinHolder::RegisterType(asIScriptEngine* engine)
 	engine->RegisterObjectType(SU_IF_SKIN, 0, asOBJ_REF | asOBJ_NOCOUNT);
 	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadImage(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinImage), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadImageFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinImageFromMem), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadFont(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinFont), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadFont(const string &in, const string &in, int, int = 1, " SU_IF_FONT_TYPE " = " SU_IF_FONT_TYPE "::Normal)", asMETHOD(SkinHolder, LoadSkinFont), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadFontFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinFontFromMem), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadSound(const string &in, const string &in)", asMETHOD(SkinHolder, LoadSkinSound), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SKIN, "bool LoadSoundFromMem(const string &in, " SU_IF_VOID_PTR ", " SU_IF_SIZE ")", asMETHOD(SkinHolder, LoadSkinSoundFromMem), asCALL_THISCALL);

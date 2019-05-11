@@ -48,7 +48,7 @@ bool SettingTree::Load()
 		Save();
 	}
 
-	std::ifstream ifs(path.wstring(), ios::in);
+	std::ifstream ifs(path, ios::in);
 	auto pr = toml::parse(ifs);
 	ifs.close();
 
@@ -84,7 +84,7 @@ void SettingTree::Save() const
 	const auto path = rootDir / fileName;
 
 	log->info(u8"設定ファイルに書き込みます");
-	std::ofstream ofs(path.wstring(), ios::out);
+	std::ofstream ofs(path, ios::out);
 	setting.write(&ofs);
 	ofs.close();
 	log->info(u8"設定ファイルを保存しました");

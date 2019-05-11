@@ -28,9 +28,6 @@
     <Filter Include="インターフェース">
       <UniqueIdentifier>{8b6e28ee-af99-44cd-9454-890bb3e76d5d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="インターフェース\C++">
-      <UniqueIdentifier>{ff5d2191-e386-4a40-adaa-a6e3b9b32cb1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="インターフェース\AngelScript">
       <UniqueIdentifier>{1220e150-8ad3-43eb-b58f-b1d804884224}</UniqueIdentifier>
     </Filter>
@@ -51,6 +48,9 @@
     </Filter>
     <Filter Include="インターフェース\Manager">
       <UniqueIdentifier>{4c06cc56-383d-46dc-b13b-d79f3a5cd6ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="インターフェース\C++">
+      <UniqueIdentifier>{ff5d2191-e386-4a40-adaa-a6e3b9b32cb1}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -113,9 +113,6 @@
     </ClCompile>
     <ClCompile Include="AutoPlayerProcessor.cpp">
       <Filter>プレーヤー</Filter>
-    </ClCompile>
-    <ClCompile Include="Font.cpp">
-      <Filter>インターフェース\C++</Filter>
     </ClCompile>
     <ClCompile Include="ExecutionManager.Interface.cpp">
       <Filter>ソース ファイル</Filter>
@@ -210,9 +207,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Scene.h">
-      <Filter>インターフェース\C++</Filter>
-    </ClInclude>
-    <ClInclude Include="Font.h">
       <Filter>インターフェース\C++</Filter>
     </ClInclude>
     <ClInclude Include="Interfaces.h">

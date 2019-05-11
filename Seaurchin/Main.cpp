@@ -47,9 +47,9 @@ void PreInitialize(HINSTANCE hInstance)
 	const auto vs = setting->ReadValue<bool>("Graphic", "WaitVSync", false);
 	const auto fs = setting->ReadValue<bool>("Graphic", "Fullscreen", false);
 
-	SetUseCharCodeFormat(DX_CHARCODEFORMAT_UTF16LE);
+	SetUseCharCodeFormat(DX_CHARCODEFORMAT_UTF8);
 	ChangeWindowMode(fs ? FALSE : TRUE);
-	SetMainWindowText(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(SU_APP_NAME " " SU_APP_VERSION).c_str()));
+	SetMainWindowText(SU_APP_NAME u8" " SU_APP_VERSION);
 	SetAlwaysRunFlag(TRUE);
 	SetWaitVSyncFlag(vs ? TRUE : FALSE);
 	SetWindowIconID(IDI_ICON1);

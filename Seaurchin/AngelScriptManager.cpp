@@ -55,7 +55,7 @@ asIScriptObject* AngelScript::InstantiateObject(asITypeInfo* type) const
 
 asIScriptModule* AngelScript::GetModule(const path& root, const path& file, bool forceReload)
 {
-	const auto modulename = ConvertUnicodeToUTF8(file.wstring()).c_str();
+	const auto modulename = ConvertUnicodeToUTF8(file).c_str();
 
 	if (!forceReload) {
 		const auto mod = engine->GetModule(modulename);
@@ -89,7 +89,7 @@ asIScriptObject* AngelScript::ExecuteScriptAsObject(const path& root, const path
 
 	asITypeInfo* type = nullptr;
 	const auto cnt = mod->GetObjectTypeCount();
-	for (auto i = 0; i < cnt; i++) {
+	for (auto i = 0u; i < cnt; i++) {
 		const auto cti = mod->GetObjectTypeByIndex(i);
 
 		if (cti->GetUserData(SU_UDTYPE_ENTRYPOINT)) {

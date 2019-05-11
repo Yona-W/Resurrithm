@@ -26,18 +26,18 @@ namespace {
 		auto result = make_shared<SkillParameter>();
 		const auto iconRoot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
 
-		ifstream ifs(file.wstring(), ios::in);
+		ifstream ifs(file, ios::in);
 		auto pr = toml::parse(ifs);
 		ifs.close();
 		if (!pr.valid()) {
-			log->error(u8"スキル {0} は不正なファイルです : {1}", ConvertUnicodeToUTF8(file.wstring()), pr.errorReason);
+			log->error(u8"スキル {0} は不正なファイルです : {1}", ConvertUnicodeToUTF8(file), pr.errorReason);
 			return nullptr;
 		}
 		auto& root = pr.value;
 
 		try {
 			result->Name = root.get<string>("Name");
-			result->IconPath = ConvertUnicodeToUTF8((iconRoot / ConvertUTF8ToUnicode(root.get<string>("Icon"))).wstring());
+			result->IconPath = ConvertUnicodeToUTF8(iconRoot / ConvertUTF8ToUnicode(root.get<string>("Icon")));
 			result->Details.clear();
 			result->CurrentLevel = 0;
 			result->MaxLevel = 0;
@@ -77,7 +77,7 @@ namespace {
 			}
 		}
 		catch (exception & ex) {
-			log->error(u8"スキル {0} の読み込みに失敗しました: {1}", ConvertUnicodeToUTF8(file.wstring()), ex.what());
+			log->error(u8"スキル {0} の読み込みに失敗しました: {1}", ConvertUnicodeToUTF8(file), ex.what());
 			return nullptr;
 		}
 

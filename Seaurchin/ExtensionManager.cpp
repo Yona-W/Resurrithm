@@ -31,11 +31,7 @@ void ExtensionManager::LoadExtensions()
 	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_EXTENSION_DIR;
 	for (const auto& fdata : directory_iterator(root)) {
 		if (is_directory(fdata)) continue;
-		const auto filename = fdata.path().string();
-		const std::string ext(".dll");
-		const size_t len1 = filename.size();
-		const size_t len2 = ext.size();
-		if (!(len1 >= len2 && filename.compare(len1 - len2, len2, ext) == 0)) continue;
+		if (fdata.path().extension() != ".dll") continue;
 		LoadDll(fdata.path());
 	}
 

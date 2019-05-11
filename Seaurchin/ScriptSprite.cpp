@@ -811,18 +811,18 @@ void STextSprite::Refresh()
 	delete target;
 	delete scrollBuffer;
 	if (!Font) {
-		size = std::make_tuple<double, double, int>(0.0, 0.0, 0);
+		size = std::make_tuple<int, int>(0, 0);
 		return;
 	}
 
-	size = isRich ? Font->RenderRich(nullptr, Text, Color) : Font->RenderRaw(nullptr, Text);
+	size = isRich ? Font->RenderRich(nullptr, Text) : Font->RenderRaw(nullptr, Text);
 	if (isScrolling) {
-		scrollBuffer = new SRenderTarget(scrollWidth, int(get<1>(size)));
+		scrollBuffer = new SRenderTarget(scrollWidth, get<1>(size));
 	}
 
-	target = new SRenderTarget(int(get<0>(size)), int(get<1>(size)));
+	target = new SRenderTarget(get<0>(size), get<1>(size));
 	if (isRich) {
-		Font->RenderRich(target, Text, Color);
+		Font->RenderRich(target, Text);
 	}
 	else {
 		Font->RenderRaw(target, Text);
@@ -832,13 +832,7 @@ void STextSprite::Refresh()
 void STextSprite::DrawNormal(const Transform2D & tf, const ColorTint & ct)
 {
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
-	SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
-	if (isRich) {
-		SetDrawBright(255, 255, 255);
-	}
-	else {
-		SetDrawBright(ct.R, ct.G, ct.B);
-	}
+	SetDrawBright(ct.R, ct.G, ct.B);
 	const auto tox = SU_TO_FLOAT(get<0>(size) / 2 * int(horizontalAlignment));
 	const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
 	DrawRotaGraph3F(
@@ -852,15 +846,15 @@ void STextSprite::DrawScroll(const Transform2D & tf, const ColorTint & ct)
 {
 	const auto pds = GetDrawScreen();
 	SetDrawScreen(scrollBuffer->GetHandle());
-	SetDrawBright(255, 255, 255);
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
+	SetDrawBright(255, 255, 255);
 	ClearDrawScreen();
 	if (scrollSpeed >= 0) {
 		auto reach = -scrollPosition + int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
 		while (reach < scrollWidth) {
 			DrawRectGraphF(
 				SU_TO_FLOAT(reach), 0,
-				0, 0, SU_TO_INT32(get<0>(size)), SU_TO_INT32(get<1>(size)),
+				0, 0, get<0>(size), get<1>(size),
 				target->GetHandle(), TRUE, FALSE);
 			reach += get<0>(size) + scrollMargin;
 		}
@@ -870,7 +864,7 @@ void STextSprite::DrawScroll(const Transform2D & tf, const ColorTint & ct)
 		while (reach > 0) {
 			DrawRectGraphF(
 				SU_TO_FLOAT(reach), 0,
-				0, 0, SU_TO_INT32(get<0>(size)), SU_TO_INT32(get<1>(size)),
+				0, 0, get<0>(size), get<1>(size),
 				target->GetHandle(), TRUE, FALSE);
 			reach -= get<0>(size) + scrollMargin;
 		}
@@ -884,7 +878,6 @@ void STextSprite::DrawScroll(const Transform2D & tf, const ColorTint & ct)
 		SetDrawBright(ct.R, ct.G, ct.B);
 	}
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
-	SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
 	const auto tox = SU_TO_FLOAT(scrollWidth / 2 * int(horizontalAlignment));
 	const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
 	DrawRotaGraph3F(
@@ -979,7 +972,7 @@ void STextSprite::Draw(const Transform2D & parent, const ColorTint & color)
 STextSprite::STextSprite()
 	: target(nullptr)
 	, scrollBuffer(nullptr)
-	, size(0.0, 0.0, 0)
+	, size(0, 0)
 	, horizontalAlignment(STextAlign::Left)
 	, verticalAlignment(STextAlign::Top)
 	, isScrolling(false)

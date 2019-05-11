@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-#include "Font.h"
 #include "SoundManager.h"
 #include "Setting.h"
 #include "ScriptSpriteMisc.h"
 
 #define SU_IF_IMAGE "Image"
 #define SU_IF_FONT "Font"
+#define SU_IF_FONT_TYPE "FontType"
 #define SU_IF_RENDER "RenderTarget"
 #define SU_IF_SOUNDMIXER "SoundMixer"
 #define SU_IF_SOUND "Sound"
@@ -18,11 +18,12 @@ class SResource {
 protected:
 	int reference = 0;
 	int handle = 0;
+
 public:
 	SResource();
 	virtual ~SResource();
-	void AddRef();
-	void Release();
+	void AddRef() { ++reference; }
+	void Release() { if (--reference == 0) delete this; }
 
 	int GetHandle() const { return handle; }
 	int GetRefCount() const { return reference; }
@@ -44,6 +45,7 @@ public:
 
 	static SImage* CreateBlankImage();
 	static SImage* CreateLoadedImageFromFile(const std::filesystem::path& file, bool async);
+	static SImage* CreateLoadedImageFromFileName(const std::string& file, bool async);
 	static SImage* CreateLoadedImageFromMemory(void* buffer, size_t size);
 };
 
@@ -94,20 +96,23 @@ public:
 //フォント
 class SFont : public SResource {
 protected:
-	int size = 0;
-	std::unordered_map<uint32_t, Sif2Glyph*> glyphs;
+	int size;
+	int thick;
+	int fontType;
 
 public:
-	std::vector<SImage*> Images;
 	SFont();
 	~SFont() override;
 
 	int GetSize() const { return size; }
-	std::tuple<double, double, int> RenderRaw(SRenderTarget* rt, const std::string& utf8Str);
-	std::tuple<double, double, int> RenderRich(SRenderTarget* rt, const std::string& utf8Str, const ColorTint& defcol);
+	int GetThick() const { return thick; }
+	int GetFontType() const { return fontType; }
 
-	static SFont* CreateBlankFont();
-	static SFont* CreateLoadedFontFromFile(const std::filesystem::path& file);
+	std::tuple<int, int> RenderRaw(SRenderTarget* rt, const std::string& utf8Str);
+	std::tuple<int, int> RenderRich(SRenderTarget* rt, const std::string& utf8Str);
+
+	static SFont* CreateLoadedFontFromFont(const std::string& name, int size, int thick, int fontType);
+	static SFont* CreateLoadedFontFromMem(const void* mem, size_t memsize, int edge, int size, int thick, int fontType);
 };
 
 class SSound : public SResource {

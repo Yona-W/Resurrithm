@@ -15,7 +15,7 @@ typedef lock_guard<mutex> LockGuard;
 CategoryInfo::CategoryInfo(const path& cpath)
 {
 	categoryPath = cpath;
-	name = ConvertUnicodeToUTF8(categoryPath.filename().wstring());
+	name = ConvertUnicodeToUTF8(categoryPath.filename());
 }
 
 CategoryInfo::~CategoryInfo()
@@ -68,7 +68,7 @@ void MusicsManager::CreateMusicCache()
 				if (is_directory(file)) continue;
 				if (file.path().extension() != ".sus") continue;     //これ大文字どうすんの
 				analyzer->Reset();
-				analyzer->LoadFromFile(file.path().wstring(), true);
+				analyzer->LoadFromFile(file.path(), true);
 				auto music = find_if(category->Musics.begin(), category->Musics.end(), [&](const std::shared_ptr<MusicMetaInfo> info) {
 					return info->SongId == analyzer->SharedMetaData.USongId;
 					});
@@ -236,7 +236,7 @@ std::string MusicsManager::GetPrimaryString(const int32_t relativeIndex) const
 	case MusicSelectionState::Music:
 		return GetMusicName(relativeIndex);
 	default:
-		return "Unavailable!";
+		return u8"Unavailable!";
 	}
 }
 
@@ -249,7 +249,7 @@ std::string MusicsManager::GetPrimaryString(const int32_t relativeIndex) const
 string MusicsManager::GetCategoryName(const int32_t relativeIndex) const
 {
 	const auto category = GetCategoryAt(relativeIndex);
-	return category ? category->GetName() : "Unavailable!";
+	return category ? category->GetName() : u8"Unavailable!";
 }
 
 /*!
@@ -261,7 +261,7 @@ string MusicsManager::GetCategoryName(const int32_t relativeIndex) const
 string MusicsManager::GetMusicName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
-	return music ? music->Name : "Unavailable!";
+	return music ? music->Name : u8"Unavailable!";
 }
 
 /*!
@@ -273,7 +273,7 @@ string MusicsManager::GetMusicName(const int32_t relativeIndex) const
 string MusicsManager::GetArtistName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
-	return music ? music->Artist : "Unavailable!";
+	return music ? music->Artist : u8"Unavailable!";
 }
 
 /*!
@@ -285,10 +285,10 @@ string MusicsManager::GetArtistName(const int32_t relativeIndex) const
 string MusicsManager::GetMusicJacketFileName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
-	if (!music || music->JacketPath.empty()) return "";
+	if (!music || music->JacketPath.empty()) return u8"";
 
 	const auto result = SettingManager::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / music->JacketPath;
-	return ConvertUnicodeToUTF8(result.wstring());
+	return ConvertUnicodeToUTF8(result);
 }
 
 /*!
@@ -303,7 +303,7 @@ string MusicsManager::GetBackgroundFileName(const int32_t relativeIndex) const
 	if (!variant || variant->BackgroundPath.empty()) return "";
 
 	const auto result = SettingManager::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / variant->Path.parent_path() / variant->BackgroundPath;
-	return ConvertUnicodeToUTF8(result.wstring());
+	return ConvertUnicodeToUTF8(result);
 }
 
 /*!
@@ -351,7 +351,7 @@ double MusicsManager::GetBpm(const int32_t relativeIndex) const
 std::string MusicsManager::GetExtraLevel(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
-	return variant ? variant->DifficultyName : "";
+	return variant ? variant->DifficultyName : u8"";
 }
 
 /*!
@@ -363,7 +363,7 @@ std::string MusicsManager::GetExtraLevel(const int32_t relativeIndex) const
 std::string MusicsManager::GetDesignerName(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
-	return variant ? variant->Designer : "";
+	return variant ? variant->Designer : u8"";
 }
 
 /*!

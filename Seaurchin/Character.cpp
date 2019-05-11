@@ -75,8 +75,7 @@ CharacterImageSet* CharacterImageSet::CreateImageSet(const shared_ptr<CharacterP
 
 void CharacterImageSet::LoadAllImage()
 {
-	auto root = ConvertUTF8ToUnicode(parameter->ImagePath);
-	const auto hBase = LoadGraph(reinterpret_cast<const char*>(root.c_str()));
+	const auto hBase = LoadGraph(parameter->ImagePath.c_str());
 	const auto hSmall = MakeScreen(SU_CHAR_SMALL_WIDTH, SU_CHAR_SMALL_WIDTH, 1);
 	const auto hFace = MakeScreen(SU_CHAR_FACE_SIZE, SU_CHAR_FACE_SIZE, 1);
 	BEGIN_DRAW_TRANSACTION(hSmall);

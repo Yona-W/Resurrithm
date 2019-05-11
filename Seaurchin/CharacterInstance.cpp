@@ -86,7 +86,7 @@ void CharacterInstance::LoadAbilities()
 		}
 
 		ptr->Initialize(args, indicators.get());
-		log->info(u8"アビリティー " + ConvertUnicodeToUTF8(scrpath.c_str()));
+		log->info(u8"アビリティー " + ConvertUnicodeToUTF8(scrpath));
 	}
 }
 

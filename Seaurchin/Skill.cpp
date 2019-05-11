@@ -56,7 +56,7 @@ int SkillIndicators::AddSkillIndicator(const string & icon)
 {
 	using namespace std::filesystem;
 	auto path = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR / ConvertUTF8ToUnicode(icon);
-	const auto image = SImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8(path.wstring()), true);
+	const auto image = SImage::CreateLoadedImageFromFile(path, true);
 	indicatorIcons.push_back(image);
 	return indicatorIcons.size() - 1;
 }

@@ -181,12 +181,12 @@ void ScenePlayer::LoadWorker()
 
 
 	// 動画・音声の読み込み
-	auto file = std::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
-	bgmStream = SoundStream::CreateFromFile(file.wstring());
+	auto file = scorefile.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
+	bgmStream = SoundStream::CreateFromFile(file);
 	state = PlayingState::ReadyToStart;
 
 	if (!analyzer->SharedMetaData.UMovieFileName.empty()) {
-		movieFileName = (std::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName)).wstring();
+		movieFileName = scorefile.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName);
 	}
 
 	// 前カウントの計算
@@ -464,7 +464,7 @@ void ScenePlayer::GetReady()
 
 	// これはUIスレッドでやる必要あり マジかよ
 	if (!movieFileName.empty()) {
-		movieBackground = LoadGraph(reinterpret_cast<const char*>(movieFileName.c_str()));
+		movieBackground = LoadGraph(ConvertUnicodeToUTF8(movieFileName).c_str());
 		const auto offset = analyzer->SharedMetaData.MovieOffset;
 		if (offset < 0) {
 			// 先にシークして0.0から再生開始
@@ -583,9 +583,9 @@ void ScenePlayer::Reload()
 	SoundManager::StopGlobal(bgmStream);
 	delete bgmStream;
 
-	SetMainWindowText(reinterpret_cast<const char*>(L"リロード中…"));
+	SetMainWindowText(u8"リロード中…");
 	LoadWorker();
-	SetMainWindowText(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(SU_APP_NAME " " SU_APP_VERSION).c_str()));
+	SetMainWindowText(SU_APP_NAME u8" " SU_APP_VERSION);
 
 	const auto bgmMeantToBePlayedAt = prevBgmPos - (analyzer->SharedMetaData.WaveOffset - prevOffset);
 	bgmStream->SetPlayingPosition(bgmMeantToBePlayedAt);

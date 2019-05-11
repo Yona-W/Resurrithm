@@ -34,7 +34,7 @@ public:
 
 	bool LoadSkinImage(const std::string& key, const std::string& filename);
 	bool LoadSkinImageFromMem(const std::string& key, void* buffer, size_t size);
-	bool LoadSkinFont(const std::string& key, const std::string& filename);
+	bool LoadSkinFont(const std::string& key, const std::string& filename, int font, int thick, int fontType);
 	bool LoadSkinFontFromMem(const std::string& key, void* buffer, size_t size);
 	bool LoadSkinSound(const std::string& key, const std::string& filename);
 	bool LoadSkinSoundFromMem(const std::string& key, const void* buffer, size_t size);

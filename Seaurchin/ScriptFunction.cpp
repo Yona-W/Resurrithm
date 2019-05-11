@@ -1,7 +1,6 @@
 ﻿#include "ScriptFunction.h"
 
 #include "SettingManager.h"
-#include "Font.h"
 
 using namespace std;
 using namespace std::filesystem;
@@ -49,27 +48,13 @@ SImage* LoadSystemImage(const string& file)
 
 SFont* LoadSystemFont(const std::string& file)
 {
-	auto p = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_FONT_DIR / (ConvertUTF8ToUnicode(file) + L".sif");
-	return SFont::CreateLoadedFontFromFile(ConvertUnicodeToUTF8(p.wstring()));
+	return nullptr;
 }
 
 SSound * LoadSystemSound(const std::string & file)
 {
 	auto p = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SOUND_DIR / ConvertUTF8ToUnicode(file);
 	return SSound::CreateSoundFromFile(ConvertUnicodeToUTF8(p.wstring()), 4);
-}
-
-void CreateImageFont(const string & fileName, const string & saveName, const int size)
-{
-	Sif2CreatorOption option;
-	option.FontPath = fileName;
-	option.Size = SU_TO_FLOAT(size);
-	option.ImageSize = 1024;
-	option.TextSource = "";
-	const auto op = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_FONT_DIR / (ConvertUTF8ToUnicode(saveName) + L".sif");
-
-	Sif2Creator creator;
-	creator.CreateSif2(option, op);
 }
 
 void EnumerateInstalledFonts()

@@ -188,7 +188,7 @@ class STextSprite : public SSprite {
 protected:
 	SRenderTarget* target;
 	SRenderTarget* scrollBuffer;
-	std::tuple<double, double, int> size;
+	std::tuple<int, int> size;
 	STextAlign horizontalAlignment;
 	STextAlign verticalAlignment;
 	bool isScrolling;
