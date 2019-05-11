@@ -1,33 +1,35 @@
 # Seaurchin
 某スライドして手を跳ね上げる音ゲーシミュレーター
 
+このプロジェクトは [kb10uy](https://github.com/kb10uy)氏が開発されていた音ゲーシミュレーター「Seaurchin」に
+[Amenoshita-429](https://github.com/Amenoshita-429)が独自に改良、修正、拡張を加えたものになります。
+現段階ではこのプロジェクトにおける開発は**Seaurchinの正式な後継バージョンの開発ではありません**のでご注意ください。
+
+このAmenoshita-429版Seaurchinはkb10uy版Seaurchinとは一部仕様が異なる可能性があります。
+また、予告なく仕様、挙動が変更される可能性が大いにあります。予めご了承ください。
+
+Amenoshita-429版Seaurchinはkb10uy版Seaurchinに対し若干の軽量化と動作の安定を図るために比較的大規模な変更を行っています。
+そのためkb10uy版で正常に動作していた機能がAmenoshita-429版ではむしろ正常に機能しない可能性があります。
+
 ## ダウンロード
-[Releases](https://github.com/kb10uy/Seaurchin/releases)
+当面の間は[こちら](https://github.com/kb10uy/Seaurchin/releases)からkb10uy版Seaurchinがダウンロードが可能だと思われます。
+
+Amenoshita-429版Seaurchinは将来的に[こちら](https://github.com/Amenoshita-429/Seaurchin/releases)からダウンロードが可能になる可能性があります。
 
 ## ドキュメント
-* [公式Wiki](https://seaurchin.kb10uy.org) - メインストリームドキュメント
-* [非公式Wiki](https://www65.atwiki.jp/seaurchin-fan/) - 創作譜面などはこちらに
+* [公式Wiki](https://seaurchin.kb10uy.org) - kb10uy氏により提供されているメインストリームドキュメント。Amenoshita-429版Seaurchinはこのドキュメントに**準拠しない可能性があります**。
+* [非公式Wiki](https://www65.atwiki.jp/seaurchin-fan/) - 有志により運営されている非公式Wiki。創作譜面などの情報はこちらにお願いします。
 
 ## 使用ライブラリとか
 * [DXライブラリ](http://dxlib.o.oo7.jp/)
 * [AngelScript](http://www.angelcode.com/angelscript/)
-* [Boost](https://www.boost.org/)
 * [FreeType](https://www.freetype.org/)
 * [libpng](http://www.libpng.org/pub/png/libpng.html)
-* [Wacom feel™ Multi-Touch SDK](http://wdnet.jp/library/feelmulti-touch)
 * [spdlog](https://github.com/gabime/spdlog)
 * [tinytoml](https://github.com/mayah/tinytoml)
 * [glm](https://glm.g-truc.net/0.9.9/index.html)
 
 ## Special Thanks (敬称略)
-* Amenoshita429
-    - [Twitter @Amenoshita429](https://twitter.com/amenoshita_429)
-    - [GitHub](https://github.com/amenoshita-429)
-    - **Amenoshitaスキンの開発**
-    - **スキンメモリリークの解消(0.50.0)**
-    - **不可視中継点問題の解決(0.44.0)**
-    - **スキン機能の拡充、検証、実用**
-    - **様々な(クリティカルな)バグ報告**
 * paralleltree
     - [Twitter @paralleltree](https://twitter.com/paralleltree)
     - [GitHub](https://github.com/paralleltree)
