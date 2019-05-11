@@ -196,128 +196,138 @@ tuple<int, int> SFont::RenderRich(SRenderTarget * rt, const string & utf8Str)
 {
 	using namespace crc32_constexpr;
 
-	const std::regex cmd("\\$\\{([\\w]+?)\\}");
-	const std::regex cmdhex("\\$\\{#([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})\\}");
-	uint32_t cx = 0, cy = 0;
-	uint32_t mx = 0;
-	auto visible = true;
-	auto line = 1;
+	const std::regex cmd(R"(\$\{(?:([\w]+)|#([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2})([0-9A-Fa-f]{2,2}))\})");
+	int cx = 0, cy = 0;
+	int mx = 0, my = 0;
 
-	ColorTint defcol = { 25, 255, 255, 255 };
+	ColorTint defcol = { 255, 255, 255, 255 };
 	uint8_t cr = 255, cg = 255, cb = 255;
 	float cw = 1;
+	bool visible = true;
 
 	if (rt) {
 		BEGIN_DRAW_TRANSACTION(rt->GetHandle());
 		ClearDrawScreen();
 		SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 		SetDrawBright(255, 255, 255);
-		DrawStringToHandle(0, 0, utf8Str.c_str(), GetColor(255, 255, 255), handle);
-		FINISH_DRAW_TRANSACTION;
 	}
+
 	auto ccp = utf8Str.begin(); // 走査対象の先頭
-	auto head = utf8Str.begin(), tail = utf8Str.end(); // 描画対象の先頭、終端
 	std::smatch match;
 	while (ccp != utf8Str.end()) {
-		break;
-		if (std::regex_search(ccp, utf8Str.end(), match, cmd)) {
-			auto tcmd = match[1].str();
-			switch (Crc32Rec(0xffffffff, tcmd.c_str())) {
-			case "reset"_crc32:
-				cr = defcol.R;
-				cg = defcol.G;
-				cb = defcol.B;
-				cw = 1;
-				visible = true;
-				break;
-			case "red"_crc32:
-				cr = 255;
-				cg = cb = 0;
-				break;
-			case "green"_crc32:
-				cg = 255;
-				cr = cb = 0;
-				break;
-			case "blue"_crc32:
-				cb = 255;
-				cr = cg = 0;
-				break;
-			case "magenta"_crc32:
-				cr = cb = 255;
-				cg = 0;
-				break;
-			case "cyan"_crc32:
-				cg = cb = 255;
-				cr = 0;
-				break;
-			case "yellow"_crc32:
-				cr = cg = 255;
-				cb = 0;
-				break;
-			case "defcolor"_crc32:
-				cr = defcol.R;
-				cg = defcol.G;
-				cb = defcol.B;
-				break;
-			case "bold"_crc32:
-				cw = 1.2f;
-				break;
-			case "normal"_crc32:
-				cw = 1.0f;
-				break;
-			case "hide"_crc32:
-				visible = false;
-				break;
-			default: break;
+		const bool ret = std::regex_search(ccp, utf8Str.end(), match, cmd);
+
+		const auto head = ccp;												// 描画対象の先頭
+		const auto tail = (ret) ? ccp + match.position() : utf8Str.end();	// 描画対象の終端
+
+		if (visible && head != tail) {
+			auto begin = head;
+			const auto end = tail;
+
+			auto cur = begin;
+			while (cur != end) {
+				if (*cur != '\n') {
+					if (++cur != end) continue;
+				}
+
+				if (begin != cur) {
+					auto str = string(begin, cur);
+					auto cstr = str.c_str();
+					auto lstr = strlen(cstr);
+					if (rt) {
+						DrawExtendStringToHandle(cx, my, cw, 1.0, cstr, GetColor(cr, cg, cb), handle);
+					}
+
+					int sx = 0, sy = 0;
+					GetDrawExtendStringSizeToHandle(&sx, &sy, nullptr, cw, 1.0, cstr, lstr, handle);
+					cx += sx;
+					cy = max(cy, sy);
+				}
+
+				if (cur == end) break;
+				if (*cur == '\n') {
+					mx = max(mx, cx);
+					my += cy;
+					cx = 0;
+					cy = 0;
+				}
+				++cur;
+				begin = cur;
 			}
-			head = ccp;
-			tail = ccp + match.position();
+		}
+
+		if (ret) {
+			if (match[1].matched) {
+				switch (Crc32Rec(0xffffffff, match[1].str().c_str())) {
+				case "reset"_crc32:
+					cr = defcol.R;
+					cg = defcol.G;
+					cb = defcol.B;
+					cw = 1;
+					visible = true;
+					break;
+				case "red"_crc32:
+					cr = 255;
+					cg = cb = 0;
+					break;
+				case "green"_crc32:
+					cg = 255;
+					cr = cb = 0;
+					break;
+				case "blue"_crc32:
+					cb = 255;
+					cr = cg = 0;
+					break;
+				case "magenta"_crc32:
+					cr = cb = 255;
+					cg = 0;
+					break;
+				case "cyan"_crc32:
+					cg = cb = 255;
+					cr = 0;
+					break;
+				case "yellow"_crc32:
+					cr = cg = 255;
+					cb = 0;
+					break;
+				case "defcolor"_crc32:
+					cr = defcol.R;
+					cg = defcol.G;
+					cb = defcol.B;
+					break;
+				case "bold"_crc32:
+					cw = 1.2f;
+					break;
+				case "normal"_crc32:
+					cw = 1.0f;
+					break;
+				case "visible"_crc32:
+					visible = true;
+					break;
+				case "hidden"_crc32:
+					visible = false;
+					break;
+				default: break;
+				}
+			}
+			else {
+				cr = std::stoi(match[2].str(), nullptr, 16);
+				cg = std::stoi(match[3].str(), nullptr, 16);
+				cb = std::stoi(match[4].str(), nullptr, 16);
+			}
 			ccp += match.position() + match[0].length();
-		} else if (std::regex_search(ccp, utf8Str.end(), match, cmdhex)) {
-			cr = std::stoi(match[1].str(), nullptr, 16);
-			cg = std::stoi(match[2].str(), nullptr, 16);
-			cb = std::stoi(match[3].str(), nullptr, 16);
-			head = ccp;
-			tail = ccp + match.position();
-			ccp += match.position() + match.size();
 		}
-
-		auto begin = head;
-		auto end = tail;
-		auto cur = begin;
-		while (cur != end) {
-			if (*cur != '\n') {
-				if (++cur != end) continue;
-			}
-
-			auto str = string(begin, cur);
-			auto cstr = str.c_str();
-			auto lstr = str.size();
-			if (rt) {
-//				SetDrawBright(cr, cg, cb);
-				DrawStringToHandle(cx, cy, cstr, GetColor(cr, cg, cb), handle);
-			}
-
-			int sx = 0, sy = 0, lc = 0;
-			GetDrawStringSizeToHandle(&sx, &sy, &lc, cstr, lstr, handle);
-			BOOST_ASSERT(lc == 1);
-
-			if (cur == end) break;
-			if (*cur == '\n') ++line;
-			++cur;
-			begin = cur;
+		else {
+			ccp = tail;
 		}
-
-		head = ccp;
-		tail = utf8Str.end();
 	}
-	if (rt && false) {
+	mx = max(mx, cx);
+	my += cy;	// TODO: これ終端改行文字の場合どうしよう、仕様で良いか?
+	if (rt) {
 		FINISH_DRAW_TRANSACTION;
 	}
 
-	int sx = 0, sy = 0, lc = 0;
-	GetDrawStringSizeToHandle(&sx, &sy, &lc, utf8Str.c_str(), strlen(utf8Str.c_str()), handle);
-	return make_tuple(sx, sy);
+	return make_tuple(mx, my);
 }
 
 SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, int fontType)

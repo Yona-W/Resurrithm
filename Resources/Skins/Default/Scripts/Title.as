@@ -116,14 +116,11 @@ class Title : CoroutineScene {
     spLogo.AddMove("alpha:{begin:0, end:1, time:0.5}");
     AddSprite(spLogo);
 
-    @spTitle = ClipSprite(640, 128);
-    TextSprite @buffer = TextSprite(font64, "Ground Slider Simulator");
-    buffer.Apply("r:0, g:0, b:0");
+    TextSprite @buffer = TextSprite(font64, "${#000000}Ground Slider Simulator\n${hidden}dummy${visible}${blue}S${#40C0ff}e${#40ffC0}a${green}u${yellow}r${#ff8010}c${red}h${#C000ff}i${#000000}${bold}n");
+    buffer.SetRich(true);
+    @spTitle = ClipSprite(buffer.Width, buffer.Height);
     spTitle.Transfer(buffer);
-    buffer.SetText("Seaurchin");
-    buffer.Apply("y:64");
-    spTitle.Transfer(buffer);
-    spTitle.Apply("origY:64, x:640, y:360, z:1");
+    spTitle.Apply("origY:" + (buffer.Height/2) + ", x:640, y:360, z:1");
     spTitle.SetRange(0, 0, 0, 1);
     AddSprite(spTitle);
 
