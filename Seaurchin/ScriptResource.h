@@ -8,8 +8,8 @@
 #define SU_IF_FONT "Font"
 #define SU_IF_FONT_TYPE "FontType"
 #define SU_IF_RENDER "RenderTarget"
-#define SU_IF_SOUNDMIXER "SoundMixer"
 #define SU_IF_SOUND "Sound"
+#define SU_IF_SOUND_STATE "SoundState"
 #define SU_IF_ANIMEIMAGE "AnimatedImage"
 #define SU_IF_SETTING_ITEM "SettingItem"
 
@@ -116,36 +116,32 @@ public:
 };
 
 class SSound : public SResource {
-	friend class SSoundMixer;
+public:
+	enum class State {
+		Stop,
+		Play,
+		Pause
+	};
 
-protected:
-	SoundSample* sample;
+private:
+	State state;
+	bool isLoop;
 
 public:
-	SSound(SoundSample* smp);
+	SSound();
 	~SSound() override;
 
-	SoundSample* GetSample() const { return sample; }
-	void SetLoop(bool looping) const;
-	void SetVolume(double vol) const;
+	void SetLoop(bool looping) { isLoop = looping; }
+	void SetVolume(double vol) { if (vol < 0.0) vol = 0.0; SetVolumeSoundMem(SU_TO_INT32(std::max(vol * 100, 10000.0)), handle); }
+	void SetPosition(double ms);
+	void Play();
+	void Play(double ms) { SetPosition(ms); Play(); }
+	void Pause() { StopSoundMem(handle); state = State::Pause; }
+	void Stop() { StopSoundMem(handle); state = State::Stop; SetPosition(0.0); }
+	State GetState();
+	double GetPosition() const { return GetSoundCurrentTime(handle) / 1000.0; }
 
-	static SSound* CreateSound();
-	static SSound* CreateSoundFromFile(const std::filesystem::path& file, int simul);
-};
-
-class SSoundMixer : public SResource {
-protected:
-	SoundMixerStream* mixer;
-
-public:
-	SSoundMixer(SoundMixerStream* mixer);
-	~SSoundMixer() override;
-
-	void Update() const;
-	void Play(SSound* sound) const;
-	void Stop(SSound* sound) const;
-
-	static SSoundMixer* CreateMixer(SoundManager* manager);
+	static SSound* CreateSoundFromFile(const std::filesystem::path& file, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 };
 
 class SSettingItem : public SResource {

@@ -71,7 +71,6 @@ namespace
 
 ScenePlayer::ScenePlayer(ExecutionManager * exm)
 	: manager(exm)
-	, soundManager(manager->GetSoundManagerUnsafe())
 	, judgeSoundQueue()
 	, analyzer(make_unique<SusAnalyzer>(192))
 	, processor(CreateScoreProcessor(exm, this)) // 若干危険ですけどね……
@@ -122,9 +121,9 @@ void ScenePlayer::Finalize()
 {
 	isTerminating = true;
 	if (loadWorkerThread.joinable()) loadWorkerThread.join();
-	SoundManager::StopGlobal(soundHoldLoop->GetSample());
-	SoundManager::StopGlobal(soundSlideLoop->GetSample());
-	SoundManager::StopGlobal(soundAirLoop->GetSample());
+	soundHoldLoop->Stop();
+	soundSlideLoop->Stop();
+	soundAirLoop->Stop();
 	for (auto& res : resources) if (res.second) res.second->Release();
 	if (spriteLane) spriteLane->Release();
 	for (auto& i : sprites) i->Release();
@@ -133,9 +132,11 @@ void ScenePlayer::Finalize()
 	spritesPending.clear();
 	for (auto& i : slideEffects) i.second->Release();
 	slideEffects.clear();
-	SoundManager::StopGlobal(bgmStream);
+	if (soundBGM) {
+		soundBGM->Stop();
+		soundBGM->Release();
+	}
 	delete processor;
-	delete bgmStream;
 
 	DeleteGraph(hGroundBuffer);
 	if (movieBackground) DeleteGraph(movieBackground);
@@ -182,7 +183,10 @@ void ScenePlayer::LoadWorker()
 
 	// 動画・音声の読み込み
 	auto file = scorefile.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
-	bgmStream = SoundStream::CreateFromFile(file);
+	soundBGM = SSound::CreateSoundFromFile(file, DX_SOUNDDATATYPE_FILE);
+	if (!soundBGM) {
+		// TODO: ログとか
+	}
 	state = PlayingState::ReadyToStart;
 
 	if (!analyzer->SharedMetaData.UMovieFileName.empty()) {
@@ -320,7 +324,7 @@ void ScenePlayer::ProcessSound()
 	switch (state) {
 	case PlayingState::ReadyCounting:
 		if (actualOffset < 0 && currentTime >= actualOffset) {
-			SoundManager::PlayGlobal(bgmStream);
+			if (soundBGM) soundBGM->Play();
 			state = PlayingState::BgmPreceding;
 		}
 		else if (currentTime >= 0) {
@@ -328,7 +332,7 @@ void ScenePlayer::ProcessSound()
 		}
 		else if (nextMetronomeTime < 0 && currentTime >= nextMetronomeTime) {
 			// TODO: NextMetronomeにもLatency適用？
-			if (metronomeAvailable) SoundManager::PlayGlobal(soundMetronome->GetSample());
+			if (metronomeAvailable) soundMetronome->Play();
 			nextMetronomeTime += 60 / analyzer->GetBpmAt(0, 0);
 		}
 		break;
@@ -337,12 +341,12 @@ void ScenePlayer::ProcessSound()
 		break;
 	case PlayingState::OnlyScoreOngoing:
 		if (currentTime >= actualOffset) {
-			SoundManager::PlayGlobal(bgmStream);
+			if (soundBGM) soundBGM->Play();
 			state = PlayingState::BothOngoing;
 		}
 		break;
 	case PlayingState::BothOngoing:
-		if (bgmStream->GetStatus() == BASS_ACTIVE_STOPPED) {
+		if (soundBGM && soundBGM->GetState() == SSound::State::Stop) {
 			if (currentTime >= scoreDuration) {
 				hasEnded = true;
 				manager->Fire("Player:Completed");
@@ -360,7 +364,7 @@ void ScenePlayer::ProcessSound()
 		}
 		break;
 	case PlayingState::BgmLasting:
-		if (bgmStream->GetStatus() == BASS_ACTIVE_STOPPED) {
+		if (soundBGM && soundBGM->GetState() == SSound::State::Stop) {
 			manager->Fire("Player:Completed");
 			state = PlayingState::Completed;
 		}
@@ -393,46 +397,46 @@ void ScenePlayer::ProcessSoundQueue()
 		type = judgeSoundQueue.Pop();
 		switch (type) {
 		case JudgeSoundType::Tap:
-			if (soundTap) SoundManager::PlayGlobal(soundTap->GetSample());
+			if (soundTap) soundTap->Play();
 			break;
 		case JudgeSoundType::ExTap:
-			if (soundExTap) SoundManager::PlayGlobal(soundExTap->GetSample());
+			if (soundExTap) soundExTap->Play();
 			break;
 		case JudgeSoundType::Flick:
-			if (soundFlick) SoundManager::PlayGlobal(soundFlick->GetSample());
+			if (soundFlick) soundFlick->Play();
 			break;
 		case JudgeSoundType::Air:
-			if (soundAir) SoundManager::PlayGlobal(soundAir->GetSample());
+			if (soundAir) soundAir->Play();
 			break;
 		case JudgeSoundType::AirDown:
-			if (soundAirDown) SoundManager::PlayGlobal(soundAirDown->GetSample());
+			if (soundAirDown) soundAirDown->Play();
 			break;
 		case JudgeSoundType::AirAction:
-			if (soundAirAction) SoundManager::PlayGlobal(soundAirAction->GetSample());
+			if (soundAirAction) soundAirAction->Play();
 			break;
 		case JudgeSoundType::Holding:
-			if (soundHoldLoop) SoundManager::PlayGlobal(soundHoldLoop->GetSample());
+			if (soundHoldLoop) soundHoldLoop->Play();
 			break;
 		case JudgeSoundType::HoldStep:
-			if (soundHoldStep) SoundManager::PlayGlobal(soundHoldStep->GetSample());
+			if (soundHoldStep) soundHoldStep->Play();
 			break;
 		case JudgeSoundType::HoldingStop:
-			if (soundHoldLoop) SoundManager::StopGlobal(soundHoldLoop->GetSample());
+			if (soundHoldLoop) soundHoldLoop->Stop();
 			break;
 		case JudgeSoundType::Sliding:
-			if (soundSlideLoop) SoundManager::PlayGlobal(soundSlideLoop->GetSample());
+			if (soundSlideLoop) soundSlideLoop->Play();
 			break;
 		case JudgeSoundType::SlideStep:
-			if (soundSlideStep) SoundManager::PlayGlobal(soundSlideStep->GetSample());
+			if (soundSlideStep) soundSlideStep->Play();
 			break;
 		case JudgeSoundType::SlidingStop:
-			if (soundSlideLoop) SoundManager::StopGlobal(soundSlideLoop->GetSample());
+			if (soundSlideLoop) soundSlideLoop->Stop();
 			break;
 		case JudgeSoundType::AirHolding:
-			if (soundAirLoop) SoundManager::PlayGlobal(soundAirLoop->GetSample());
+			if (soundAirLoop) soundAirLoop->Play();
 			break;
 		case JudgeSoundType::AirHoldingStop:
-			if (soundAirLoop) SoundManager::StopGlobal(soundAirLoop->GetSample());
+			if (soundAirLoop) soundAirLoop->Stop();
 			break;
 		default: break;
 		}
@@ -525,12 +529,12 @@ void ScenePlayer::MovePositionBySecond(const double sec)
 	if (state < PlayingState::BothOngoing && state != PlayingState::Paused) return;
 	if (hasEnded) return;
 	const auto gap = analyzer->SharedMetaData.WaveOffset - soundBufferingLatency;
-	const auto oldBgmPos = bgmStream->GetPlayingPosition();
+	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() * 1000.0 : 0.0;
 	const auto oldTime = currentTime;
 	const auto newTime = oldTime + sec;
 	auto newBgmPos = oldBgmPos + (newTime - oldTime);
 	newBgmPos = max(0.0, newBgmPos);
-	bgmStream->SetPlayingPosition(newBgmPos);
+	if (soundBGM) soundBGM->SetPosition(newBgmPos);
 	currentTime = newBgmPos + gap;
 	processor->MovePosition(currentTime - oldTime);
 	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
@@ -541,14 +545,14 @@ void ScenePlayer::MovePositionByMeasure(const int meas)
 	if (state < PlayingState::BothOngoing && state != PlayingState::Paused) return;
 	if (hasEnded) return;
 	const auto gap = analyzer->SharedMetaData.WaveOffset - soundBufferingLatency;
-	const auto oldBgmPos = bgmStream->GetPlayingPosition();
+	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() * 1000.0 : 0.0;
 	const auto oldTime = currentTime;
 	const int oldMeas = get<0>(analyzer->GetRelativeTime(currentTime));
 	auto newTime = analyzer->GetAbsoluteTime(max(0, oldMeas + meas), 0);
 	if (fabs(newTime - oldTime) <= 0.005) newTime = analyzer->GetAbsoluteTime(max(0, oldMeas + meas + (meas > 0 ? 1 : -1)), 0);
 	auto newBgmPos = oldBgmPos + (newTime - oldTime);
 	newBgmPos = max(0.0, newBgmPos);
-	bgmStream->SetPlayingPosition(newBgmPos);
+	if (soundBGM) soundBGM->SetPosition(newBgmPos);
 	currentTime = newBgmPos + gap;
 	processor->MovePosition(currentTime - oldTime);
 	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
@@ -559,7 +563,7 @@ void ScenePlayer::Pause()
 	if (state <= PlayingState::Paused || hasEnded) return;
 	lastState = state;
 	state = PlayingState::Paused;
-	bgmStream->Pause();
+	if (soundBGM) soundBGM->Pause();
 	PauseMovieToGraph(movieBackground);
 }
 
@@ -567,7 +571,7 @@ void ScenePlayer::Resume()
 {
 	if (state != PlayingState::Paused) return;
 	state = lastState;
-	bgmStream->Resume();
+	if (soundBGM) soundBGM->Play();
 	PlayMovieToGraph(movieBackground);
 }
 
@@ -579,16 +583,16 @@ void ScenePlayer::Reload()
 	// LoadWorker()で破壊される情報をとっておく
 	const auto prevCurrentTime = currentTime;
 	const auto prevOffset = analyzer->SharedMetaData.WaveOffset;
-	const auto prevBgmPos = bgmStream->GetPlayingPosition();
-	SoundManager::StopGlobal(bgmStream);
-	delete bgmStream;
+	const auto prevBgmPos = (soundBGM) ? soundBGM->GetPosition() : 0.0;
+	if (soundBGM) soundBGM->Stop();
+	if (soundBGM) soundBGM->Release();
 
 	SetMainWindowText(u8"リロード中…");
 	LoadWorker();
 	SetMainWindowText(SU_APP_NAME u8" " SU_APP_VERSION);
 
 	const auto bgmMeantToBePlayedAt = prevBgmPos - (analyzer->SharedMetaData.WaveOffset - prevOffset);
-	bgmStream->SetPlayingPosition(bgmMeantToBePlayedAt);
+	if (soundBGM) soundBGM->SetPosition(bgmMeantToBePlayedAt);
 	currentTime = prevCurrentTime;
 	state = PlayingState::Paused;
 }

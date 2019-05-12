@@ -136,7 +136,7 @@ bool SkinHolder::LoadSkinSound(const std::string & key, const std::string & file
 		it->second = nullptr;
 	}
 
-	const auto ptr = SSound::CreateSoundFromFile(skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename), 1);
+	const auto ptr = SSound::CreateSoundFromFile(skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename));
 	if (ptr) sounds[key] = ptr;
 	return !!ptr;
 }

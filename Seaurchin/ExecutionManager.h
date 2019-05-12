@@ -12,7 +12,6 @@ class ControlState;
 class Scene;
 class SkinHolder;
 struct DrawableResult;
-class SSoundMixer;
 class ScriptScene;
 class ScenePlayer;
 class SSettingItem;
@@ -41,7 +40,6 @@ private:
 	HIMC hImc;
 	HANDLE hCommunicationPipe;
 	DWORD immConversion, immSentence;
-	SSoundMixer* mixerBgm, * mixerSe;
 
 public:
 	explicit ExecutionManager(SettingTree* setting);
@@ -78,7 +76,6 @@ public:
 	void Fire(const std::string& message);
 	void WriteLog(const std::string& message) const;
 	ScenePlayer* CreatePlayer();
-	SSoundMixer* GetDefaultMixer(const std::string& name) const;
 	SSettingItem* GetSettingItem(const std::string& group, const std::string& key) const;
 	void GetStoredResult(DrawableResult* result) const;
 

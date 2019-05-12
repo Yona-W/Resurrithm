@@ -40,7 +40,6 @@ const static toml::Array defaultAirStringKeys = {
 ExecutionManager::ExecutionManager(SettingTree* setting)
 	: settingManager(new SettingManager(setting))
 	, scriptInterface(new AngelScript())
-	, sound(new SoundManager())
 	, musics(new MusicsManager())
 	, characters(new CharacterManager())
 	, skills(new SkillManager())
@@ -52,8 +51,6 @@ ExecutionManager::ExecutionManager(SettingTree* setting)
 	, hCommunicationPipe(nullptr)
 	, immConversion(0)
 	, immSentence(0)
-	, mixerBgm(nullptr)
-	, mixerSe(nullptr)
 {}
 
 ExecutionManager::~ExecutionManager()
@@ -68,11 +65,6 @@ ExecutionManager::~ExecutionManager()
 	settingManager->SaveAllValues();
 	sharedControlState->Terminate();
 
-	BOOST_ASSERT(mixerBgm->GetRefCount() == 1);
-	BOOST_ASSERT(mixerSe->GetRefCount() == 1);
-
-	mixerBgm->Release();
-	mixerSe->Release();
 	if (hCommunicationPipe != INVALID_HANDLE_VALUE) {
 		DisconnectNamedPipe(hCommunicationPipe);
 		CloseHandle(hCommunicationPipe);
@@ -111,10 +103,6 @@ void ExecutionManager::Initialize()
 	// 拡張ライブラリ読み込み
 	extensions->LoadExtensions();
 	extensions->Initialize(scriptInterface->GetEngine());
-
-	// サウンド初期化
-	mixerBgm = SSoundMixer::CreateMixer(sound.get());
-	mixerSe = SSoundMixer::CreateMixer(sound.get());
 
 	// AngelScriptインターフェース登録
 	const auto engine = scriptInterface->GetEngine();
@@ -177,7 +165,6 @@ void ExecutionManager::RegisterGlobalManagementFunction()
 	engine->RegisterGlobalFunction("bool Execute(const string &in)", asMETHODPR(ExecutionManager, ExecuteSkin, (const string&), bool), asCALL_THISCALL_ASGLOBAL, this);
 	engine->RegisterGlobalFunction("bool ExecuteScene(" SU_IF_SCENE "@)", asMETHODPR(ExecutionManager, ExecuteScene, (asIScriptObject*), bool), asCALL_THISCALL_ASGLOBAL, this);
 	engine->RegisterGlobalFunction("bool ExecuteScene(" SU_IF_COSCENE "@)", asMETHODPR(ExecutionManager, ExecuteScene, (asIScriptObject*), bool), asCALL_THISCALL_ASGLOBAL, this);
-	engine->RegisterGlobalFunction(SU_IF_SOUNDMIXER "@ GetDefaultMixer(const string &in)", asMETHOD(ExecutionManager, GetDefaultMixer), asCALL_THISCALL_ASGLOBAL, this);
 	engine->RegisterObjectBehaviour(SU_IF_SCENE_PLAYER, asBEHAVE_FACTORY, SU_IF_SCENE_PLAYER "@ f()", asMETHOD(ExecutionManager, CreatePlayer), asCALL_THISCALL_ASGLOBAL, this);
 }
 
@@ -306,13 +293,6 @@ void ExecutionManager::Tick(const double delta)
 	}
 
 	//後処理
-	static double ps = 0;
-	ps += delta;
-	if (ps >= 1.0) {
-		ps = 0;
-		mixerBgm->Update();
-		mixerSe->Update();
-	}
 	scriptInterface->GetEngine()->GarbageCollect(asGC_ONE_STEP);
 }
 

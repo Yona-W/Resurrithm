@@ -361,87 +361,68 @@ SFont* SFont::CreateLoadedFontFromMem(const void *mem, size_t memsize, int edge,
 }
 
 
-// SSoundMixer ------------------------------
-
-SSoundMixer::SSoundMixer(SoundMixerStream * mixer)
-{
-	this->mixer = mixer;
-}
-
-SSoundMixer::~SSoundMixer()
-{
-	delete mixer;
-}
-
-void SSoundMixer::Update() const
-{
-	mixer->Update();
-}
-
-void SSoundMixer::Play(SSound * sound) const
-{
-	if (!sound) return;
-
-	mixer->Play(sound->sample);
-
-	sound->Release();
-}
-
-// ReSharper disable once CppMemberFunctionMayBeStatic
-void SSoundMixer::Stop(SSound * sound) const
-{
-	if (!sound) return;
-
-	SoundMixerStream::Stop(sound->sample);
-
-	sound->Release();
-}
-
-SSoundMixer* SSoundMixer::CreateMixer(SoundManager * manager)
-{
-	auto result = new SSoundMixer(SoundManager::CreateMixerStream());
-	result->AddRef();
-
-	BOOST_ASSERT(result->GetRefCount() == 1);
-	return result;
-}
-
-
 // SSound -----------------------------------
-SSound::SSound(SoundSample * smp)
+SSound::SSound()
+	: state(State::Stop)
+	, isLoop(false)
 {
-	sample = smp;
 }
 
 SSound::~SSound()
 {
-	delete sample;
+	Stop();
+	if (handle) DeleteSoundMem(handle);
 }
 
-void SSound::SetLoop(const bool looping) const
-{
-	sample->SetLoop(looping);
+void SSound::SetPosition(double ms) {
+	bool needPlay = GetState() == State::Play;
+	if (needPlay) Pause();
+	SetSoundCurrentTime(ms, handle);
+	if (needPlay) Play();
 }
 
-void SSound::SetVolume(const double vol) const
+void SSound::Play()
 {
-	sample->SetVolume(vol);
+	if (GetState() == State::Play && false) {
+		Stop();
+		SetSoundCurrentTime(0, handle);
+	}
+
+	PlaySoundMem(handle, (isLoop) ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK);
 }
 
-SSound* SSound::CreateSound()
+SSound::State SSound::GetState()
 {
-	auto result = new SSound(nullptr);
+	if (!CheckSoundMem(handle)) {
+		switch (state)
+		{
+		case State::Stop: break;
+		case State::Play: Stop(); break;
+		case State::Pause: break;
+		}
+	}
+	else {
+		switch (state)
+		{
+		case State::Stop: BOOST_ASSERT(false); state = State::Play; break;
+		case State::Play: break;
+		case State::Pause: BOOST_ASSERT(false); state = State::Play; break;
+		}
+	}
+	return state;
+}
+
+SSound* SSound::CreateSoundFromFile(const path& file, int loadType)
+{
+	auto result = new SSound();
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
-	return result;
-}
-
-SSound* SSound::CreateSoundFromFile(const path& file, const int simul)
-{
-	const auto hs = SoundSample::CreateFromFile(file, simul);
-	auto result = new SSound(hs);
-	result->AddRef();
+	SetCreateSoundDataType(loadType);
+	result->handle = LoadSoundMem(ConvertUnicodeToUTF8(file).c_str(), 16);
+	if (result->handle == -1) {
+		result->Release();
+		return nullptr;
+	}
 
 	BOOST_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -511,17 +492,22 @@ void RegisterScriptResource(ExecutionManager * exm)
 	engine->RegisterObjectMethod(SU_IF_FONT, "int get_Thick()", asMETHOD(SFont, GetThick), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_FONT, SU_IF_FONT_TYPE " get_Type()", asMETHOD(SFont, GetFontType), asCALL_THISCALL);
 
+	engine->RegisterEnum(SU_IF_SOUND_STATE);
+	engine->RegisterEnumValue(SU_IF_SOUND_STATE, "Stop", SU_TO_INT32(SSound::State::Stop));
+	engine->RegisterEnumValue(SU_IF_SOUND_STATE, "Play", SU_TO_INT32(SSound::State::Play));
+	engine->RegisterEnumValue(SU_IF_SOUND_STATE, "Pause", SU_TO_INT32(SSound::State::Pause));
+
 	engine->RegisterObjectType(SU_IF_SOUND, 0, asOBJ_REF);
 	engine->RegisterObjectBehaviour(SU_IF_SOUND, asBEHAVE_ADDREF, "void f()", asMETHOD(SSound, AddRef), asCALL_THISCALL);
 	engine->RegisterObjectBehaviour(SU_IF_SOUND, asBEHAVE_RELEASE, "void f()", asMETHOD(SSound, Release), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetLoop(bool)", asMETHOD(SSound, SetLoop), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetVolume(double)", asMETHOD(SSound, SetVolume), asCALL_THISCALL);
-
-	engine->RegisterObjectType(SU_IF_SOUNDMIXER, 0, asOBJ_REF);
-	engine->RegisterObjectBehaviour(SU_IF_SOUNDMIXER, asBEHAVE_ADDREF, "void f()", asMETHOD(SSoundMixer, AddRef), asCALL_THISCALL);
-	engine->RegisterObjectBehaviour(SU_IF_SOUNDMIXER, asBEHAVE_RELEASE, "void f()", asMETHOD(SSoundMixer, Release), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SOUNDMIXER, "void Play(" SU_IF_SOUND "@)", asMETHOD(SSoundMixer, Play), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SOUNDMIXER, "void Stop(" SU_IF_SOUND "@)", asMETHOD(SSoundMixer, Stop), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetPosition(double)", asMETHOD(SSound, SetPosition), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "void Play()", asMETHODPR(SSound, Play, (), void), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "void Play(double)", asMETHODPR(SSound, Play, (double), void), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "void Pause()", asMETHOD(SSound, Pause), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, SU_IF_SOUND_STATE " GetState()", asMETHOD(SSound, GetState), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "double GetPosition()", asMETHOD(SSound, GetPosition), asCALL_THISCALL);
 
 	engine->RegisterObjectType(SU_IF_ANIMEIMAGE, 0, asOBJ_REF);
 	engine->RegisterObjectBehaviour(SU_IF_ANIMEIMAGE, asBEHAVE_ADDREF, "void f()", asMETHOD(SAnimatedImage, AddRef), asCALL_THISCALL);

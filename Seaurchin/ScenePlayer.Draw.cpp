@@ -68,12 +68,9 @@ void ScenePlayer::LoadResources()
 	if (soundSlideLoop) soundSlideLoop->SetVolume(setting->ReadValue("Sound", "VolumeSlide", 1.0));
 	if (soundHoldStep) soundHoldStep->SetVolume(setting->ReadValue("Sound", "VolumeHold", 1.0));
 	if (soundSlideStep) soundSlideStep->SetVolume(setting->ReadValue("Sound", "VolumeSlide", 1.0));
-	if (soundMetronome) {
-		soundMetronome->SetVolume(setting->ReadValue("Sound", "VolumeTap", 1.0));
-	}
-	else {
-		soundMetronome = soundTap;
-	}
+
+	if (soundMetronome) soundMetronome->SetVolume(setting->ReadValue("Sound", "VolumeTap", 1.0));
+	else soundMetronome = soundTap;
 
 	vector<toml::Value> scv = { 0, 200, 255 };
 	vector<toml::Value> aajcv = { 128, 255, 160 };

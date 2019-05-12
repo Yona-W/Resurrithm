@@ -78,10 +78,6 @@
 #include <soloud.h>
 */
 
-#include <bass.h>
-#include <bassmix.h>
-#include <bass_fx.h>
-
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
 

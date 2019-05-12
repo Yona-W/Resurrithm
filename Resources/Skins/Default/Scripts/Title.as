@@ -51,7 +51,6 @@ class Title : CoroutineScene {
     @imgSeaurchin = skin.GetImage("LogoSeaurchin");
     @imgCursorMenu = skin.GetImage("CursorMenu");
     @smCursor = skin.GetSound("SoundCursor");
-    @mixSE = GetDefaultMixer("SE");
   }
 
   //ここからコルーチン
@@ -108,7 +107,6 @@ class Title : CoroutineScene {
   ClipSprite@ spTitle;
   array<Sprite@> menu(3);
   Sound@ smCursor;
-  SoundMixer@ mixSE;
   int mcur = 0;
   void TitleRipple() {
     @spLogo = Sprite(imgSeaurchin);
@@ -192,14 +190,14 @@ class Title : CoroutineScene {
     while(true) {
       if (IsKeyTriggered(Key::INPUT_UP)) {
         mcur = (mcur + 2) % 3;
-        mixSE.Play(smCursor);
+        smCursor.Play();
         spCursor.AddMove("x:{time:0.1, end:480}");
         dictionary dict = { { "time", 0.1 }, { "end", 400 + 64 * mcur }, { "func", "in_sine" } };
         spCursor.AddMove("y", dict);
       }
       if (IsKeyTriggered(Key::INPUT_DOWN)) {
         mcur = (mcur + 1) % 3;
-        mixSE.Play(smCursor);
+        smCursor.Play();
         spCursor.AddMove("x:{time:0.1, end:480}");
         dictionary dict = { { "time", 0.1 }, { "end", 400 + 64 * mcur } };
         spCursor.AddMove("y", dict);

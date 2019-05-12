@@ -90,7 +90,7 @@ Amenoshita-429版Seaurchinは将来的に[こちら](https://github.com/Amenoshi
 > THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 > (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 > OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-> 
+
 > ### Mersenne Twister
 > Copyright (C) 1997 - 2002, Makoto Matsumoto and Takuji Nishimura,
 > All rights reserved.
@@ -133,27 +133,7 @@ Amenoshita-429版Seaurchinは将来的に[こちら](https://github.com/Amenoshi
 > Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
 > 
 > This notice may not be removed or altered from any source distribution.
-> 
-> ### Bass Audio Library
-> TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, BASS IS PROVIDED
-> "AS IS", WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
-> INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY
-> AND/OR FITNESS FOR A PARTICULAR PURPOSE. THE AUTHORS SHALL NOT BE HELD
-> LIABLE FOR ANY DAMAGE THAT MAY RESULT FROM THE USE OF BASS. YOU USE
-> BASS ENTIRELY AT YOUR OWN RISK.
-> 
-> Usage of BASS indicates that you agree to the above conditions.
-> 
-> All trademarks and other registered names contained in the BASS
-> package are the property of their respective owners.
-> 
-> MP3 technology is patented, and Thomson license the use of their and
-> Fraunhofer's patents. The inclusion of an MP3 decoder (eg. BASS) in a
-> commercial product requires an MP3 patent licence. Contact Thomson for
-> details:
-> 
-> 	www.mp3licensing.com
-> 
+
 > ### tinytoml
 > Copyright (c) 2014, MAYAH
 > All rights reserved.
@@ -178,11 +158,11 @@ Amenoshita-429版Seaurchinは将来的に[こちら](https://github.com/Amenoshi
 > CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 > OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 > OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-> 
+
 > ### RxCpp
 > Reactive-Extensions/RxCpp is licensed under the
 > Apache License 2.0
-> 
+
 > ### GLM
 > ================================================================================
 > OpenGL Mathematics (GLM)
@@ -215,6 +195,7 @@ Amenoshita-429版Seaurchinは将来的に[こちら](https://github.com/Amenoshi
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 > THE SOFTWARE.
+
 > ### fmt
 > Copyright (c) 2012 - 2016, Victor Zverovich
 > 

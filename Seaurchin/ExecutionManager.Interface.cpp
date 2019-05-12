@@ -26,19 +26,6 @@ ScenePlayer* ExecutionManager::CreatePlayer()
 	return player;
 }
 
-SSoundMixer* ExecutionManager::GetDefaultMixer(const string & name) const
-{
-	if (name == "BGM") {
-		mixerBgm->AddRef();
-		return mixerBgm;
-	}
-	if (name == "SE") {
-		mixerSe->AddRef();
-		return mixerSe;
-	}
-	return nullptr;
-}
-
 SSettingItem* ExecutionManager::GetSettingItem(const string & group, const string & key) const
 {
 	const auto si = settingManager->GetSettingItem(group, key);

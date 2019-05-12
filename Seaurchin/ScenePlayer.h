@@ -5,7 +5,6 @@
 #include "ScriptResource.h"
 #include "SusAnalyzer.h"
 #include "ScoreProcessor.h"
-#include "SoundManager.h"
 #include "Result.h"
 #include "CharacterInstance.h"
 
@@ -134,7 +133,6 @@ class ScenePlayer : public SSprite {
 protected:
 	int hGroundBuffer{};
 	ExecutionManager* manager;
-	SoundManager* const soundManager; // soundManager のアドレスが不変、 soundManager の実体が持つ値は変わりうる
 	BoundedQueue<JudgeSoundType, 32> judgeSoundQueue;
 	std::thread judgeSoundThread;
 	std::mutex asyncMutex;
@@ -143,7 +141,8 @@ protected:
 	std::multiset<SSprite*, SSprite::Comparator> sprites;
 	std::vector<SSprite*> spritesPending;
 
-	SoundStream* bgmStream{};
+	SSound* soundBGM;
+
 	ScoreProcessor* const processor; // processor のアドレスが不変、 processor の実体が持つ値は変わりうる
 
 	// 状態管理変数
