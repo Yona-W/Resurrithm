@@ -604,18 +604,18 @@ MoverFunctionExpressionManager* MoverFunctionExpressionManager::inst;
 
 bool MoverFunctionExpressionManager::Initialize()
 {
-	BOOST_ASSERT(!inst);
+	SU_ASSERT(!inst);
 	if (!!inst) return false;
 
 	inst = new MoverFunctionExpressionManager();
-	BOOST_ASSERT(!!inst);
+	SU_ASSERT(!!inst);
 
 	return !!inst;
 }
 
 bool MoverFunctionExpressionManager::Finalize()
 {
-	BOOST_ASSERT(!!inst);
+	SU_ASSERT(!!inst);
 	if (!inst) return false;
 
 	delete inst;
@@ -625,7 +625,7 @@ bool MoverFunctionExpressionManager::Finalize()
 
 bool MoverFunctionExpressionManager::Register(const std::string & key, const std::string & expression)
 {
-	BOOST_ASSERT(!!inst);
+	SU_ASSERT(!!inst);
 	if (!inst) return false;
 
 	MoverFunctionExpressionSharedPtr pFunction;
@@ -657,7 +657,7 @@ bool MoverFunctionExpressionManager::Register(const std::string & key, const Mov
 
 bool MoverFunctionExpressionManager::IsRegistered(const std::string & key)
 {
-	BOOST_ASSERT(!!inst);
+	SU_ASSERT(!!inst);
 	if (!inst) return false;
 
 	MoverFunctionExpressionSharedPtr pFunction;

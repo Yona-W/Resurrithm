@@ -165,9 +165,6 @@
     <ClCompile Include="ScriptSpriteMover.cpp">
       <Filter>インターフェース\描画システム</Filter>
     </ClCompile>
-    <ClCompile Include="SoundManager.cpp">
-      <Filter>インターフェース\Manager</Filter>
-    </ClCompile>
     <ClCompile Include="ExtensionManager.cpp">
       <Filter>インターフェース\Manager</Filter>
     </ClCompile>
@@ -318,9 +315,6 @@
       <Filter>インターフェース\Manager</Filter>
     </ClInclude>
     <ClInclude Include="MusicsManager.h">
-      <Filter>インターフェース\Manager</Filter>
-    </ClInclude>
-    <ClInclude Include="SoundManager.h">
       <Filter>インターフェース\Manager</Filter>
     </ClInclude>
     <ClInclude Include="CharacterManager.h">

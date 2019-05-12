@@ -581,7 +581,7 @@ SSprite* SSprite::Clone()
 		clone->SetImage(Image);
 	}
 
-	BOOST_ASSERT(clone->GetRefCount() == 1);
+	SU_ASSERT(clone->GetRefCount() == 1);
 	return clone;
 }
 
@@ -590,7 +590,7 @@ SSprite* SSprite::Factory()
 	auto result = new SSprite();
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -605,7 +605,7 @@ SSprite* SSprite::Factory(SImage * img)
 	}
 
 	if (img) img->Release();
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -780,7 +780,7 @@ SShape* SShape::Clone()
 	clone->Width = Width;
 	clone->Height = Height;
 
-	BOOST_ASSERT(clone->GetRefCount() == 1);
+	SU_ASSERT(clone->GetRefCount() == 1);
 	return clone;
 }
 
@@ -789,7 +789,7 @@ SShape* SShape::Factory()
 	auto result = new SShape();
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -1002,7 +1002,7 @@ STextSprite* STextSprite::Clone()
 		clone->SetFont(Font);
 	}
 
-	BOOST_ASSERT(clone->GetRefCount() == 1);
+	SU_ASSERT(clone->GetRefCount() == 1);
 	return clone;
 }
 
@@ -1011,7 +1011,7 @@ STextSprite* STextSprite::Factory()
 	auto result = new STextSprite();
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -1027,7 +1027,7 @@ STextSprite* STextSprite::Factory(SFont * img, const string & str)
 	}
 
 	if (img) img->Release();
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -1200,7 +1200,7 @@ SSynthSprite* SSynthSprite::Clone()
 		clone->Transfer(this);
 	}
 
-	BOOST_ASSERT(clone->GetRefCount() == 1);
+	SU_ASSERT(clone->GetRefCount() == 1);
 	return clone;
 }
 
@@ -1211,7 +1211,7 @@ SSynthSprite* SSynthSprite::Factory(const int w, const int h)
 
 	result->Clear();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -1291,7 +1291,7 @@ SClippingSprite* SClippingSprite::Clone()
 	clone->u2 = u2;
 	clone->v2 = v2;
 
-	BOOST_ASSERT(clone->GetRefCount() == 1);
+	SU_ASSERT(clone->GetRefCount() == 1);
 	return clone;
 }
 
@@ -1302,7 +1302,7 @@ SClippingSprite* SClippingSprite::Factory(const int w, const int h)
 
 	result->Clear();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -1383,7 +1383,7 @@ SAnimeSprite* SAnimeSprite::Clone()
 	clone->loopCount = loopCount;
 	clone->speed = speed;
 
-	BOOST_ASSERT(clone->GetRefCount() == 1);
+	SU_ASSERT(clone->GetRefCount() == 1);
 	return clone;
 }
 
@@ -1394,7 +1394,7 @@ SAnimeSprite* SAnimeSprite::Factory(SAnimatedImage * image)
 	result->AddRef();
 
 	if (image) image->Release();
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -1456,7 +1456,7 @@ SContainer* SContainer::Clone()
 	clone->CopyParameterFrom(this);
 	for (const auto& s : children) if (s) clone->AddChild(s->Clone());
 
-	BOOST_ASSERT(clone->GetRefCount() == 1);
+	SU_ASSERT(clone->GetRefCount() == 1);
 	return clone;
 }
 
@@ -1465,7 +1465,7 @@ SContainer * SContainer::Factory()
 	auto result = new SContainer();
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 

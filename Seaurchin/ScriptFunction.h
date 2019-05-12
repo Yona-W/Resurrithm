@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "ScriptResource.h"
-#include "SoundManager.h"
 
 enum class WaitType {
 	Frame,

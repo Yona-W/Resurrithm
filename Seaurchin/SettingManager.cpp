@@ -9,7 +9,7 @@ path SettingManager::rootDirectory;
 SettingManager::SettingManager(SettingTree* setting)
 	: setting(setting)
 {
-	BOOST_ASSERT(setting);
+	SU_ASSERT(setting);
 
 	if (rootDirectory.empty()) rootDirectory = setting->GetRootDir();
 }

@@ -1,6 +1,5 @@
 ﻿#include "SkinHolder.h"
 #include "AngelScriptManager.h"
-#include "SoundManager.h"
 #include "ScriptResource.h"
 #include "SettingManager.h"
 
@@ -53,10 +52,10 @@ bool SkinHolder::Initialize()
 
 void SkinHolder::Terminate()
 {
-	for (const auto& it : images) BOOST_ASSERT(it.second->GetRefCount() == 1);
-	for (const auto& it : sounds) BOOST_ASSERT(it.second->GetRefCount() == 1);
-	for (const auto& it : fonts) BOOST_ASSERT(it.second->GetRefCount() == 1);
-	for (const auto& it : animatedImages) BOOST_ASSERT(it.second->GetRefCount() == 1);
+	for (const auto& it : images) SU_ASSERT(it.second->GetRefCount() == 1);
+	for (const auto& it : sounds) SU_ASSERT(it.second->GetRefCount() == 1);
+	for (const auto& it : fonts) SU_ASSERT(it.second->GetRefCount() == 1);
+	for (const auto& it : animatedImages) SU_ASSERT(it.second->GetRefCount() == 1);
 
 	for (const auto& it : images) it.second->Release();
 	for (const auto& it : sounds) it.second->Release();

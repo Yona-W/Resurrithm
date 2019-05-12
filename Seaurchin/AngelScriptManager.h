@@ -221,7 +221,7 @@ public:
 	//! @return typeに今まで登録されていたデータ。
 	void* SetUserData(void* data, asPWORD type)
 	{
-		BOOST_ASSERT(IsExists());
+		SU_ASSERT(IsExists());
 		return context->SetUserData(data, type);
 	}
 
@@ -244,7 +244,7 @@ public:
 	//! @return 実行結果。asSUCCESS以外ならたぶん失敗しています。
 	int Unprepare()
 	{
-		BOOST_ASSERT(IsExists());
+		SU_ASSERT(IsExists());
 		return context->Unprepare();
 	}
 };

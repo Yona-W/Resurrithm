@@ -46,7 +46,7 @@ SImage* SImage::CreateBlankImage()
 	auto result = new SImage(0);
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -57,7 +57,7 @@ SImage* SImage::CreateLoadedImageFromFile(const path & file, const bool async)
 	if (async) SetUseASyncLoadFlag(FALSE);
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -68,7 +68,7 @@ SImage* SImage::CreateLoadedImageFromFileName(const string& file, const bool asy
 	if (async) SetUseASyncLoadFlag(FALSE);
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -77,7 +77,7 @@ SImage* SImage::CreateLoadedImageFromMemory(void* buffer, const size_t size)
 	auto result = new SImage(CreateGraphFromMem(buffer, size));
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -96,7 +96,7 @@ SRenderTarget* SRenderTarget::CreateBlankTarget(const int w, const int h)
 	auto result = new SRenderTarget(w, h);
 	result->AddRef();
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -144,7 +144,7 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, con
 	result->images.resize(count);
 	LoadDivGraph(ConvertUnicodeToUTF8(file).c_str(), count, xc, yc, w, h, result->images.data());
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -156,7 +156,7 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromMemory(void* buffer, const 
 	result->images.resize(count);
 	CreateDivGraphFromMem(buffer, size, count, xc, yc, w, h, result->images.data());
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -341,7 +341,7 @@ SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, 
 	result->thick = thick;
 	result->fontType = fontType;
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -356,7 +356,7 @@ SFont* SFont::CreateLoadedFontFromMem(const void *mem, size_t memsize, int edge,
 	result->thick = thick;
 	result->fontType = fontType;
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 
@@ -404,9 +404,9 @@ SSound::State SSound::GetState()
 	else {
 		switch (state)
 		{
-		case State::Stop: BOOST_ASSERT(false); state = State::Play; break;
+		case State::Stop: SU_ASSERT(false); state = State::Play; break;
 		case State::Play: break;
-		case State::Pause: BOOST_ASSERT(false); state = State::Play; break;
+		case State::Pause: SU_ASSERT(false); state = State::Play; break;
 		}
 	}
 	return state;
@@ -424,7 +424,7 @@ SSound* SSound::CreateSoundFromFile(const path& file, int loadType)
 		return nullptr;
 	}
 
-	BOOST_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
 }
 

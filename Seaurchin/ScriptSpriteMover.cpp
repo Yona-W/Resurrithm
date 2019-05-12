@@ -373,7 +373,7 @@ void MoverObject::Clear()
 
 bool MoverObject::InitVariables()
 {
-	BOOST_ASSERT(target);
+	SU_ASSERT(target);
 	if (!pFunction) return false;
 
 	double value;
@@ -449,7 +449,7 @@ bool MoverObject::Apply(const string & key, const string & value)
 
 bool MoverObject::Tick(double delta)
 {
-	BOOST_ASSERT(target);
+	SU_ASSERT(target);
 
 	if (state == StateID::Suspend) {
 		if (wait <= 0) {
@@ -506,7 +506,7 @@ asUINT SSpriteMover::StrTypeId = 0;
 
 void SSpriteMover::Tick(const double delta)
 {
-	BOOST_ASSERT(target);
+	SU_ASSERT(target);
 
 	auto it = moves.begin();
 	while (it != moves.end()) {
@@ -566,7 +566,7 @@ bool SSpriteMover::AddMove(const std::string & dict)
 
 bool SSpriteMover::AddMove(const std::string & key, const CScriptDictionary * dict)
 {
-	BOOST_ASSERT(target);
+	SU_ASSERT(target);
 	MoverObject* pMover = new MoverObject();
 
 	pMover->RegisterTargetField(SSprite::GetFieldId(key));

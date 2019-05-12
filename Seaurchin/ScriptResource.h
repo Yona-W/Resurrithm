@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "SoundManager.h"
 #include "Setting.h"
 #include "ScriptSpriteMisc.h"
 

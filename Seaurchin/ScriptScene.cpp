@@ -422,7 +422,7 @@ Coroutine::Coroutine(const std::string & name, const asIScriptFunction * cofunc,
 	, Name(name)
 	, Wait(CoroutineWait{ WaitType::Time, 0 })
 {
-	BOOST_ASSERT(cofunc->GetFuncType() == asFUNC_DELEGATE);
+	SU_ASSERT(cofunc->GetFuncType() == asFUNC_DELEGATE);
 
 	function->AddRef();
 	object->AddRef();

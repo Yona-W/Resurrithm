@@ -363,7 +363,7 @@ void CallbackObject::Dispose()
 
 int CallbackObject::Prepare()
 {
-	BOOST_ASSERT(IsExists());
+	SU_ASSERT(IsExists());
 	const auto r1 = context->Prepare(function);
 	if (r1 != asSUCCESS) return r1;
 	return context->SetObject(object);
@@ -377,7 +377,7 @@ bool CallbackObject::SetArgument(std::function<int(asIScriptContext*)> f)
 
 int CallbackObject::Execute()
 {
-	BOOST_ASSERT(IsExists());
+	SU_ASSERT(IsExists());
 
 	const auto result = context->Execute();
 

@@ -13,7 +13,6 @@
 #include "SkinHolder.h"
 #include "MusicsManager.h"
 #include "ExtensionManager.h"
-#include "SoundManager.h"
 #include "CharacterManager.h"
 #include "SkillManager.h"
 #include "ScenePlayer.h"

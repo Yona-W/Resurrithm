@@ -1,9 +1,5 @@
 ﻿#pragma once
 
-#if defined(_MSC_VER) && _MSC_VER <= 1900
-#define BOOST_LOCKFREE_FORCE_BOOST_ATOMIC
-#endif
-
 #define _CRT_SECURE_NO_WARNINGS
 #define _USE_MATH_DEFINES
 #define _ENABLE_ATOMIC_ALIGNMENT_FIX
@@ -54,7 +50,12 @@
 #include <set>
 #include <bitset>
 
-#define BOOST_ASSERT(...)
+#define SU_STATIC_ASSERT(expression, ...) static_assert(expression, "expression : \"" #expression "\" is invalid.\r\n" # __VA_ARGS__)
+#ifdef _DEBUG
+#define SU_ASSERT(expression) assert(expression)
+#else
+#define SU_ASSERT(...)
+#endif
 
 //Libraries
 #include <DxLib.h>
@@ -66,17 +67,6 @@
 #include <scriptstdstring\scriptstdstring.h>
 #include <scriptdictionary\scriptdictionary.h>
 #include "wscriptbuilder.h"
-
-#include <ft2build.h>
-#include FT_FREETYPE_H
-
-#include <zlib.h>
-#include <png.h>
-
-/*
-#define WITH_XAUDIO2
-#include <soloud.h>
-*/
 
 #define FMT_HEADER_ONLY
 #include <fmt/format.h>
