@@ -55,10 +55,10 @@ asIScriptObject* AngelScript::InstantiateObject(asITypeInfo* type) const
 
 asIScriptModule* AngelScript::GetModule(const path& root, const path& file, bool forceReload)
 {
-	const auto modulename = ConvertUnicodeToUTF8(file).c_str();
+	const auto modulename = ConvertUnicodeToUTF8(file);
 
 	if (!forceReload) {
-		const auto mod = engine->GetModule(modulename);
+		const auto mod = engine->GetModule(modulename.c_str());
 		if (mod) return mod;
 	}
 
@@ -68,7 +68,7 @@ asIScriptModule* AngelScript::GetModule(const path& root, const path& file, bool
 		return nullptr;
 	}
 
-	builder.StartNewModule(engine, modulename);
+	builder.StartNewModule(engine, modulename.c_str());
 	if (builder.AddSectionFromFile(path.c_str()) < 0) {
 		spdlog::get("main")->error(u8"スクリプトファイル \"{0}\" の読み込みに失敗しました。", modulename);
 		return nullptr;
