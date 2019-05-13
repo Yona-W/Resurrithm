@@ -24,7 +24,7 @@ namespace {
 AngelScript::AngelScript()
 	: engine(asCreateScriptEngine())
 {
-	engine->SetMessageCallback(asFUNCTION(ScriptMessageCallback), this, asCALL_THISCALL);
+	engine->SetMessageCallback(asFUNCTION(ScriptMessageCallback), this, asCALL_CDECL);
 	RegisterScriptMath(engine);
 	RegisterScriptArray(engine, true);
 	RegisterStdString(engine);
