@@ -28,10 +28,8 @@ void RegisterPlayerScene(ExecutionManager* manager)
 	engine->RegisterObjectType(SU_IF_SCENE_PLAYER, 0, asOBJ_REF);
 	engine->RegisterObjectBehaviour(SU_IF_SCENE_PLAYER, asBEHAVE_ADDREF, "void f()", asMETHOD(ScenePlayer, AddRef), asCALL_THISCALL);
 	engine->RegisterObjectBehaviour(SU_IF_SCENE_PLAYER, asBEHAVE_RELEASE, "void f()", asMETHOD(ScenePlayer, Release), asCALL_THISCALL);
-	engine->RegisterObjectProperty(SU_IF_SCENE_PLAYER, "int Z", asOFFSET(ScenePlayer, ZIndex));
 	engine->RegisterObjectMethod(SU_IF_SPRITE, SU_IF_SCENE_PLAYER "@ opCast()", asFUNCTION((CastReferenceType<SSprite, ScenePlayer>)), asCALL_CDECL_OBJLAST);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, SU_IF_SPRITE "@ opImplCast()", asFUNCTION((CastReferenceType<ScenePlayer, SSprite>)), asCALL_CDECL_OBJLAST);
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Initialize()", asMETHOD(ScenePlayer, Initialize), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void AdjustCamera(double, double, double)", asMETHOD(ScenePlayer, AdjustCamera), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void GetMetrics(" SU_IF_SCENE_PLAYER_METRICS " &out)", asMETHOD(ScenePlayer, GetMetrics), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_IMAGE "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
@@ -39,6 +37,7 @@ void RegisterPlayerScene(ExecutionManager* manager)
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_SOUND "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_ANIMEIMAGE "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetLaneSprite(" SU_IF_SPRITE "@)", asMETHOD(ScenePlayer, SetLaneSprite), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Initialize()", asMETHOD(ScenePlayer, Initialize), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Load()", asMETHOD(ScenePlayer, Load), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "bool IsLoadCompleted()", asMETHOD(ScenePlayer, IsLoadCompleted), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void GetReady()", asMETHOD(ScenePlayer, GetReady), asCALL_THISCALL);
@@ -46,14 +45,15 @@ void RegisterPlayerScene(ExecutionManager* manager)
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Pause()", asMETHOD(ScenePlayer, Pause), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Resume()", asMETHOD(ScenePlayer, Resume), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Reload()", asMETHOD(ScenePlayer, Reload), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetFirstNoteTime()", asMETHOD(ScenePlayer, GetFirstNoteTime), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetCurrentTime()", asMETHOD(ScenePlayer, GetPlayingTime), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, SU_IF_CHARACTER_INSTANCE "@ GetCharacterInstance()", asMETHOD(ScenePlayer, GetCharacterInstance), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void GetCurrentResult(" SU_IF_DRESULT " &out)", asMETHOD(ScenePlayer, GetCurrentResult), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetLastNoteTime()", asMETHOD(ScenePlayer, GetLastNoteTime), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void MovePositionBySecond(double)", asMETHOD(ScenePlayer, MovePositionBySecond), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void MovePositionByMeasure(int)", asMETHOD(ScenePlayer, MovePositionByMeasure), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void GetCurrentResult(" SU_IF_DRESULT " &out)", asMETHOD(ScenePlayer, GetCurrentResult), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetJudgeCallback(" SU_IF_JUDGE_CALLBACK "@)", asMETHOD(ScenePlayer, SetJudgeCallback), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetFirstNoteTime()", asMETHOD(ScenePlayer, GetFirstNoteTime), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetLastNoteTime()", asMETHOD(ScenePlayer, GetLastNoteTime), asCALL_THISCALL);
+
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, SU_IF_CHARACTER_INSTANCE "@ GetCharacterInstance()", asMETHOD(ScenePlayer, GetCharacterInstance), asCALL_THISCALL);
 }
 
 namespace
@@ -78,15 +78,18 @@ ScenePlayer::ScenePlayer(ExecutionManager * exm)
 	, processor(CreateScoreProcessor(exm, this)) // 若干危険ですけどね……
 	, isLoadCompleted(false)
 	, currentResult(new Result())
-	, hispeedMultiplier(exm->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<double>("Play", "Hispeed", 6))
+	, hispeedMultiplier(exm->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<double>("Play", "Hispeed", 6.0))
 	, soundBufferingLatency(manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<int>("Sound", "BufferLatency", 30) / 1000.0)
 	, airRollSpeed(manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<double>("Play", "AirRollMultiplier", 1.5))
 {
-	judgeSoundThread = thread([this]() {
-		ProcessSoundQueue();
-		});
+	judgeSoundThread = thread([this]() { ProcessSoundQueue(); });
 
-	SetProcessorOptions(processor);
+	auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe();
+	const auto jas = setting->ReadValue<int>("Play", "JudgeAdjustSlider", 0) / 1000.0;
+	const auto jms = setting->ReadValue<double>("Play", "JudgeMultiplierSlider", 1);
+	const auto jaa = setting->ReadValue<int>("Play", "JudgeAdjustAirString", 200) / 1000.0;
+	const auto jma = setting->ReadValue<double>("Play", "JudgeMultiplierAirString", 4);
+	processor->SetJudgeAdjusts(jas, jms, jaa, jma);
 }
 
 ScenePlayer::~ScenePlayer()
@@ -101,16 +104,6 @@ void ScenePlayer::Initialize()
 	const auto cp = manager->GetCharacterManagerSafe()->GetCharacterParameterSafe(0);
 	const auto sp = manager->GetSkillManagerSafe()->GetSkillParameterSafe(0);
 	currentCharacterInstance = CharacterInstance::CreateInstance(cp, sp, manager->GetScriptInterfaceSafe(), currentResult);
-}
-
-void ScenePlayer::SetProcessorOptions(ScoreProcessor * processor) const
-{
-	auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe();
-	const auto jas = setting->ReadValue<int>("Play", "JudgeAdjustSlider", 0) / 1000.0;
-	const auto jms = setting->ReadValue<double>("Play", "JudgeMultiplierSlider", 1);
-	const auto jaa = setting->ReadValue<int>("Play", "JudgeAdjustAirString", 200) / 1000.0;
-	const auto jma = setting->ReadValue<double>("Play", "JudgeMultiplierAirString", 4);
-	processor->SetJudgeAdjusts(jas, jms, jaa, jma);
 }
 
 void ScenePlayer::EnqueueJudgeSound(const JudgeSoundType type)
@@ -634,11 +627,6 @@ void ScenePlayer::GetMetrics(ScenePlayerMetrics * metrics)
 	metrics->JudgeLineLeftY = left.y;
 	metrics->JudgeLineRightX = right.x;
 	metrics->JudgeLineRightY = right.y;
-}
-
-void ScenePlayer::StoreResult() const
-{
-	currentResult->GetCurrentResult(manager->lastResult.get());
 }
 
 double ScenePlayer::GetFirstNoteTime() const

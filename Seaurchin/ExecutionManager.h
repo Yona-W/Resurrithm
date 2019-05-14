@@ -23,15 +23,12 @@ class ExtensionManager;
 class ControlState;
 class Scene;
 class SkinHolder;
-struct DrawableResult;
 class ScriptScene;
 class ScenePlayer;
 class SSettingItem;
 
 
 class ExecutionManager final {
-	friend class ScenePlayer;
-
 private:
 	const std::unique_ptr<SettingManager> settingManager;
 	const std::shared_ptr<AngelScript> scriptInterface;
@@ -45,46 +42,41 @@ private:
 
 	std::vector<std::unique_ptr<Scene>> scenes;
 	std::vector<std::unique_ptr<Scene>> scenesPending;
-	std::vector<std::wstring> skinNames;
 	std::unique_ptr<SkinHolder> skin;
 	std::unordered_map<std::string, std::any> optionalData;
-	const std::shared_ptr<DrawableResult> lastResult;
 	HIMC hImc;
 	HANDLE hCommunicationPipe;
 	DWORD immConversion, immSentence;
+
+	std::vector<std::wstring> skinNames;
 
 public:
 	explicit ExecutionManager(SettingTree* setting);
 	~ExecutionManager();
 
 	void Initialize();
-
-	void EnumerateSkins();
 	void Tick(double delta);
 	void Draw();
+	void Fire(const std::string& message);
 
-	void AddScene(Scene* scene);
-	ScriptScene* CreateSceneFromScriptObject(asIScriptObject* obj) const;
-	int GetSceneCount() const { return scenes.size(); }
+	void EnumerateSkins();
 
 	SettingManager* GetSettingManagerUnsafe() const { return settingManager.get(); }
 	std::shared_ptr<MusicsManager> GetMusicsManagerSafe() const { return musics; }
 	MusicsManager* GetMusicsManagerUnsafe() const { return musics.get(); }
 	std::shared_ptr<ControlState> GetControlStateSafe() const { return sharedControlState; }
-	std::shared_ptr<AngelScript> GetScriptInterfaceSafe() const { return scriptInterface; }
 	ControlState* GetControlStateUnsafe() const { return sharedControlState.get(); }
+	std::shared_ptr<AngelScript> GetScriptInterfaceSafe() const { return scriptInterface; }
 	AngelScript* GetScriptInterfaceUnsafe() const { return scriptInterface.get(); }
 	SoundManager* GetSoundManagerUnsafe() const { return sound.get(); }
 	std::shared_ptr<CharacterManager> GetCharacterManagerSafe() const { return characters; }
-	std::shared_ptr<SkillManager> GetSkillManagerSafe() const { return skills; }
 	CharacterManager* GetCharacterManagerUnsafe() const { return characters.get(); }
+	std::shared_ptr<SkillManager> GetSkillManagerSafe() const { return skills; }
 	SkillManager* GetSkillManagerUnsafe() const { return skills.get(); }
 
-	bool CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* pResult) const;
 	bool ExecuteSkin();
 	bool ExecuteSkin(const std::string& file);
 	bool ExecuteScene(asIScriptObject* sceneObject);
-	void Fire(const std::string& message);
 
 	void WriteLog(const std::string& message) { WriteLog(ScriptLogSeverity::Info, message); }
 	void WriteLog(ScriptLogSeverity severity, const std::string& message);
@@ -92,7 +84,8 @@ public:
 
 	ScenePlayer* CreatePlayer();
 	SSettingItem* GetSettingItem(const std::string& group, const std::string& key) const;
-	void GetStoredResult(DrawableResult* result) const;
+
+	bool CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* pResult) const;
 
 	template<typename T>
 	void SetData(const std::string& name, const T& data);
@@ -103,7 +96,6 @@ public:
 	bool ExistsData(const std::string& name) { return optionalData.find(name) != optionalData.end(); }
 
 private:
-	bool CheckSkinStructure(const std::filesystem::path& name) const;
 	void RegisterGlobalManagementFunction();
 };
 

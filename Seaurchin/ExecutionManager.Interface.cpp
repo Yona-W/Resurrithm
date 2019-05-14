@@ -53,7 +53,3 @@ SSettingItem* ExecutionManager::GetSettingItem(const string & group, const strin
 	return result;
 }
 
-void ExecutionManager::GetStoredResult(DrawableResult * result) const
-{
-	*result = *lastResult;
-}

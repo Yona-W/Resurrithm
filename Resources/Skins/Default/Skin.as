@@ -76,5 +76,6 @@ void InitializeSkin(Skin@ skin) {
   skin.LoadSound("*Sound-SlideStep", "SlideStep.wav");
   skin.LoadSound("*Sound-Metronome", "Metronome.wav");
   skin.LoadSound("SoundCursor", "button01a.mp3");
-  
+
+  Execute("Title.as");
 }

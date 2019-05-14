@@ -5,6 +5,7 @@
 
 #include "AngelScriptManager.h"
 #include "Scene.h"
+#include "SceneDebug.h"
 #include "ScenePlayer.h"
 #include "ScriptResource.h"
 #include "ScriptScene.h"
@@ -23,6 +24,42 @@
 
 using namespace std::filesystem;
 using namespace std;
+
+namespace {
+	bool CheckSkinStructure(const path& root)
+	{
+		if (!exists(root / SU_SKIN_MAIN_FILE)) return false;
+		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_TITLE_FILE)) return false;
+		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_SELECT_FILE)) return false;
+		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_PLAY_FILE)) return false;
+		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_RESULT_FILE)) return false;
+		return true;
+	}
+
+	ScriptScene* CreateSceneFromScriptObject(AngelScript* scriptInterface, SkinHolder* skin, asIScriptObject* obj)
+	{
+		if (!obj) return nullptr;
+
+		const auto type = obj->GetObjectType();
+		ScriptScene* ret = nullptr;
+		if (scriptInterface->CheckImplementation(type, SU_IF_COSCENE)) {
+			ret = new ScriptCoroutineScene(obj);
+		}
+		else if (scriptInterface->CheckImplementation(type, SU_IF_SCENE)) {
+			ret = new ScriptScene(obj);
+		}
+		else {
+			spdlog::get("main")->error(u8"{0}クラスにScene系インターフェースが実装されていません", type->GetName());
+		}
+
+		if (ret) {
+			obj->SetUserData(skin, SU_UDTYPE_SKIN);
+		}
+
+		obj->Release();
+		return ret;
+	}
+}
 
 const static toml::Array defaultSliderKeys = {
 	toml::Array { KEY_INPUT_A }, toml::Array { KEY_INPUT_Z }, toml::Array { KEY_INPUT_S }, toml::Array { KEY_INPUT_X },
@@ -44,7 +81,6 @@ ExecutionManager::ExecutionManager(SettingTree* setting)
 	, extensions(new ExtensionManager())
 	, random(new mt19937(random_device()()))
 	, sharedControlState(new ControlState)
-	, lastResult(new DrawableResult())
 	, hImc(nullptr)
 	, hCommunicationPipe(nullptr)
 	, immConversion(0)
@@ -98,10 +134,6 @@ void ExecutionManager::Initialize()
 		log->warn(u8"エアストリングキー設定の配列が4要素未満のため、フォールバックを利用します");
 	}
 
-	// 拡張ライブラリ読み込み
-	extensions->LoadExtensions();
-	extensions->Initialize(scriptInterface->GetEngine());
-
 	// AngelScriptインターフェース登録
 	const auto engine = scriptInterface->GetEngine();
 	RegisterScriptResource(this);
@@ -112,6 +144,10 @@ void ExecutionManager::Initialize()
 	RegisterPlayerScene(this);
 	RegisterGlobalManagementFunction();
 	extensions->RegisterInterfaces();
+
+	// 拡張ライブラリ読み込み
+	extensions->LoadExtensions();
+	extensions->Initialize(scriptInterface->GetEngine());
 
 	// キャラ・スキル読み込み
 	characters->LoadAllCharacters();
@@ -131,6 +167,14 @@ void ExecutionManager::Initialize()
 	ImmGetConversionStatus(hImc, &ImmConversion, &ImmSentence);
 	ImmSetConversionStatus(hImc, IME_CMODE_NATIVE | IME_CMODE_FULLSHAPE, ImmSentence);
 	*/
+
+	{
+		Scene* s = new SceneDebug();
+		auto ptr = unique_ptr<Scene>(s);
+		scenesPending.push_back(move(ptr));
+		s->SetManager(this);
+		s->Initialize();
+	}
 }
 
 void ExecutionManager::RegisterGlobalManagementFunction()
@@ -315,16 +359,6 @@ void ExecutionManager::EnumerateSkins()
 	log->info(u8"スキン総数: {0:d}", skinNames.size());
 }
 
-bool ExecutionManager::CheckSkinStructure(const path & name) const
-{
-	if (!exists(name / SU_SKIN_MAIN_FILE)) return false;
-	if (!exists(name / SU_SCRIPT_DIR / SU_SKIN_TITLE_FILE)) return false;
-	if (!exists(name / SU_SCRIPT_DIR / SU_SKIN_SELECT_FILE)) return false;
-	if (!exists(name / SU_SCRIPT_DIR / SU_SKIN_PLAY_FILE)) return false;
-	if (!exists(name / SU_SCRIPT_DIR / SU_SKIN_RESULT_FILE)) return false;
-	return true;
-}
-
 bool ExecutionManager::ExecuteSkin()
 {
 	auto log = spdlog::get("main");
@@ -348,9 +382,15 @@ bool ExecutionManager::ExecuteSkin()
 		return false;
 	}
 	skin.reset(ptr);
+	if (!ptr->Initialize()) {
+		log->error(u8"スキンの開始に失敗しました。");
+		skin->Terminate();
+		skin.reset(nullptr);
+		return false;
+	}
 
 	log->info(u8"スキン読み込み完了");
-	return ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
+	return true;
 }
 
 bool ExecutionManager::ExecuteSkin(const string& file)
@@ -378,8 +418,13 @@ bool ExecutionManager::ExecuteScene(asIScriptObject * sceneObject)
 	if (!sceneObject) return false;
 
 	sceneObject->AddRef();
-	const auto s = CreateSceneFromScriptObject(sceneObject);
-	if (s) AddScene(s);
+	const auto s = CreateSceneFromScriptObject(scriptInterface.get(), skin.get(), sceneObject);
+	if (s) {
+		unique_ptr<Scene> ptr(s);
+		scenesPending.push_back(move(ptr));
+		s->SetManager(this);
+		s->Initialize();
+	}
 
 	sceneObject->Release();
 	return !!s;
@@ -420,39 +465,6 @@ void ExecutionManager::Draw()
 	ScreenFlip();
 }
 
-void ExecutionManager::AddScene(Scene* scene)
-{
-	if (!scene) return;
-
-	unique_ptr<Scene> ptr(scene);
-	scenesPending.push_back(move(ptr));
-	scene->SetManager(this);
-	scene->Initialize();
-}
-
-ScriptScene* ExecutionManager::CreateSceneFromScriptObject(asIScriptObject* obj) const
-{
-	if (!obj) return nullptr;
-
-	const auto type = obj->GetObjectType();
-	ScriptScene* ret = nullptr;
-	if (scriptInterface->CheckImplementation(type, SU_IF_COSCENE)) {
-		ret = new ScriptCoroutineScene(obj);
-	}
-	else if (scriptInterface->CheckImplementation(type, SU_IF_SCENE)) {
-		ret = new ScriptScene(obj);
-	}
-	else {
-		spdlog::get("main")->error(u8"{0}クラスにScene系インターフェースが実装されていません", type->GetName());
-	}
-
-	if (ret) {
-		obj->SetUserData(skin.get(), SU_UDTYPE_SKIN);
-	}
-
-	obj->Release();
-	return ret;
-}
 
 bool ExecutionManager::CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam, LRESULT* pResult) const
 {

@@ -223,7 +223,6 @@ protected:
 
 	void TickGraphics(double delta);
 	void AddSprite(SSprite * sprite);
-	void SetProcessorOptions(ScoreProcessor * processor) const;
 	void LoadResources();
 	void LoadWorker();
 	void RemoveSlideEffect();
@@ -275,7 +274,6 @@ public:
 	void Pause();
 	void Resume();
 	void Reload();
-	void StoreResult() const;
 	double GetFirstNoteTime() const;
 	double GetLastNoteTime() const;
 };

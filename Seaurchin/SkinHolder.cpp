@@ -12,10 +12,7 @@ SkinHolder* SkinHolder::Create(const shared_ptr<AngelScript>& script, const wstr
 	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / name;
 	if (!exists(root)) return nullptr;
 
-	const auto ptr = new SkinHolder(script, root);
-	ptr->Initialize();
-
-	return ptr;
+	return new SkinHolder(script, root);
 }
 
 SkinHolder::SkinHolder(const shared_ptr<AngelScript>& script, const path& root)
@@ -38,16 +35,19 @@ bool SkinHolder::Initialize()
 	const auto funcObj = FunctionObject::Create(func);
 	if (!funcObj) return false;
 
+	bool result = true;
+
 	funcObj->Prepare();
 	if (funcObj->SetArgument([this](auto p) { p->SetArgObject(0, this); return true; })) {
 		if (funcObj->Execute() != asEXECUTION_FINISHED) {
+			result = false;
 		}
 		funcObj->Unprepare();
 	}
 	delete funcObj;
 
 	func->Release();
-	return true;
+	return result;
 }
 
 void SkinHolder::Terminate()

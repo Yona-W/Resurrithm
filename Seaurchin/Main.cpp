@@ -4,7 +4,6 @@
 #include "Setting.h"
 #include "ExecutionManager.h"
 #include "AngelScriptManager.h"
-#include "SceneDebug.h"
 #include "MoverFunctionExpression.h"
 #include "Easing.h"
 #include "ScriptSpriteMover.h"
@@ -104,7 +103,6 @@ void Run()
 	logger->LogDebug(u8"Skin.as起動");
 	manager->ExecuteSkin();
 	logger->LogDebug(u8"Skin.as終了");
-	manager->AddScene(new SceneDebug());
 
 
 	auto start = high_resolution_clock::now();
