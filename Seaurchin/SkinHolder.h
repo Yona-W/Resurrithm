@@ -32,13 +32,13 @@ public:
 
 	asIScriptObject* ExecuteSkinScript(const std::filesystem::path& file, bool forceReload = false);
 
-	bool LoadSkinImage(const std::string& key, const std::string& filename);
+	bool LoadSkinImage(const std::string& key, const std::string& filename, bool async);
 	bool LoadSkinImageFromMem(const std::string& key, void* buffer, size_t size);
-	bool LoadSkinFont(const std::string& key, const std::string& filename, int font, int thick, int fontType);
+	bool LoadSkinFont(const std::string& key, const std::string& filename, int font, int thick, int fontType, bool async);
 	bool LoadSkinFontFromMem(const std::string& key, void* buffer, size_t size);
-	bool LoadSkinSound(const std::string& key, const std::string& filename);
+	bool LoadSkinSound(const std::string& key, const std::string& filename, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 	bool LoadSkinSoundFromMem(const std::string& key, const void* buffer, size_t size);
-	bool LoadSkinAnime(const std::string& key, const std::string& filename, int x, int y, int w, int h, int c, double time);
+	bool LoadSkinAnime(const std::string& key, const std::string& filename, int x, int y, int w, int h, int c, double time, bool async);
 	bool LoadSkinAnimeFromMem(const std::string& key, void* buffer, size_t size, int x, int y, int w, int h, int c, double time);
 	SImage* GetSkinImage(const std::string& key);
 	SFont* GetSkinFont(const std::string& key);

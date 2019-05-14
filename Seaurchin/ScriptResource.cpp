@@ -136,13 +136,29 @@ SAnimatedImage::~SAnimatedImage()
 	for (auto& img : images) DeleteGraph(img);
 }
 
-SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, const int xc, const int yc, const int w, const int h, const int count, const double time)
+SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, const int xc, const int yc, const int w, const int h, const int count, const double time, bool async)
 {
 	auto result = new SAnimatedImage(w, h, count, time);
 	result->AddRef();
 
 	result->images.resize(count);
+	if (async) SetUseASyncLoadFlag(TRUE);
 	LoadDivGraph(ConvertUnicodeToUTF8(file).c_str(), count, xc, yc, w, h, result->images.data());
+	if (async) SetUseASyncLoadFlag(FALSE);
+
+	SU_ASSERT(result->GetRefCount() == 1);
+	return result;
+}
+
+SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFileName(const string& file, const int xc, const int yc, const int w, const int h, const int count, const double time, bool async)
+{
+	auto result = new SAnimatedImage(w, h, count, time);
+	result->AddRef();
+
+	result->images.resize(count);
+	if (async) SetUseASyncLoadFlag(TRUE);
+	LoadDivGraph(file.c_str(), count, xc, yc, w, h, result->images.data());
+	if (async) SetUseASyncLoadFlag(FALSE);
 
 	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -330,13 +346,14 @@ tuple<int, int> SFont::RenderRich(SRenderTarget * rt, const string & utf8Str)
 	return make_tuple(mx, my);
 }
 
-SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, int fontType)
+SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, int fontType, bool async)
 {
 	auto result = new SFont();
 	result->AddRef();
 
-	int handle = CreateFontToHandle(name.c_str(), size, thick, fontType);
-	result->handle = handle;
+	if (async) SetUseASyncLoadFlag(TRUE);
+	result->handle = CreateFontToHandle(name.c_str(), size, thick, fontType);
+	if (async) SetUseASyncLoadFlag(FALSE);
 	result->size = size;
 	result->thick = thick;
 	result->fontType = fontType;
@@ -412,13 +429,33 @@ SSound::State SSound::GetState()
 	return state;
 }
 
-SSound* SSound::CreateSoundFromFile(const path& file, int loadType)
+SSound* SSound::CreateSoundFromFile(const path& file, bool async, int loadType)
 {
 	auto result = new SSound();
 	result->AddRef();
 
 	SetCreateSoundDataType(loadType);
+	if (async) SetUseASyncLoadFlag(TRUE);
 	result->handle = LoadSoundMem(ConvertUnicodeToUTF8(file).c_str(), 16);
+	if (async) SetUseASyncLoadFlag(FALSE);
+	if (result->handle == -1) {
+		result->Release();
+		return nullptr;
+	}
+
+	SU_ASSERT(result->GetRefCount() == 1);
+	return result;
+}
+
+SSound* SSound::CreateSoundFromFileName(const string& file, bool async, int loadType)
+{
+	auto result = new SSound();
+	result->AddRef();
+
+	SetCreateSoundDataType(loadType);
+	if (async) SetUseASyncLoadFlag(TRUE);
+	result->handle = LoadSoundMem(file.c_str(), 16);
+	if (async) SetUseASyncLoadFlag(FALSE);
 	if (result->handle == -1) {
 		result->Release();
 		return nullptr;
@@ -485,7 +522,7 @@ void RegisterScriptResource(ExecutionManager * exm)
 	engine->RegisterEnumValue(SU_IF_FONT_TYPE, "AntiAliasingEdge", DX_FONTTYPE_ANTIALIASING_EDGE);
 
 	engine->RegisterObjectType(SU_IF_FONT, 0, asOBJ_REF);
-	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_FACTORY, SU_IF_FONT "@ f(const string &in, int, int = 1, " SU_IF_FONT_TYPE " = 0)", asFUNCTION(SFont::CreateLoadedFontFromFont), asCALL_CDECL);
+	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_FACTORY, SU_IF_FONT "@ f(const string &in, int, int = 1, " SU_IF_FONT_TYPE " = " SU_IF_FONT_TYPE "::Normal, bool = false)", asFUNCTION(SFont::CreateLoadedFontFromFont), asCALL_CDECL);
 	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_ADDREF, "void f()", asMETHOD(SFont, AddRef), asCALL_THISCALL);
 	engine->RegisterObjectBehaviour(SU_IF_FONT, asBEHAVE_RELEASE, "void f()", asMETHOD(SFont, Release), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_FONT, "int get_Size()", asMETHOD(SFont, GetSize), asCALL_THISCALL);
@@ -498,6 +535,7 @@ void RegisterScriptResource(ExecutionManager * exm)
 	engine->RegisterEnumValue(SU_IF_SOUND_STATE, "Pause", SU_TO_INT32(SSound::State::Pause));
 
 	engine->RegisterObjectType(SU_IF_SOUND, 0, asOBJ_REF);
+	engine->RegisterObjectBehaviour(SU_IF_SOUND, asBEHAVE_FACTORY, SU_IF_SOUND "@ f(const string &in, bool = false, int = 0)", asFUNCTION(SSound::CreateSoundFromFileName), asCALL_CDECL);
 	engine->RegisterObjectBehaviour(SU_IF_SOUND, asBEHAVE_ADDREF, "void f()", asMETHOD(SSound, AddRef), asCALL_THISCALL);
 	engine->RegisterObjectBehaviour(SU_IF_SOUND, asBEHAVE_RELEASE, "void f()", asMETHOD(SSound, Release), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetLoop(bool)", asMETHOD(SSound, SetLoop), asCALL_THISCALL);
@@ -509,9 +547,13 @@ void RegisterScriptResource(ExecutionManager * exm)
 	engine->RegisterObjectMethod(SU_IF_SOUND, SU_IF_SOUND_STATE " GetState()", asMETHOD(SSound, GetState), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "double GetPosition()", asMETHOD(SSound, GetPosition), asCALL_THISCALL);
 
+	// TODO: Imageを継承させる
 	engine->RegisterObjectType(SU_IF_ANIMEIMAGE, 0, asOBJ_REF);
+	engine->RegisterObjectBehaviour(SU_IF_ANIMEIMAGE, asBEHAVE_FACTORY, SU_IF_ANIMEIMAGE "@ f(const string &in, int, int, int, int, int, double, bool = false)", asFUNCTION(SAnimatedImage::CreateLoadedImageFromFileName), asCALL_CDECL);
 	engine->RegisterObjectBehaviour(SU_IF_ANIMEIMAGE, asBEHAVE_ADDREF, "void f()", asMETHOD(SAnimatedImage, AddRef), asCALL_THISCALL);
 	engine->RegisterObjectBehaviour(SU_IF_ANIMEIMAGE, asBEHAVE_RELEASE, "void f()", asMETHOD(SAnimatedImage, Release), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_ANIMEIMAGE, "int get_CellTime()", asMETHOD(SAnimatedImage, GetCellTime), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_ANIMEIMAGE, "int get_Frame()", asMETHOD(SAnimatedImage, GetFrameCount), asCALL_THISCALL);
 
 	engine->RegisterObjectType(SU_IF_SETTING_ITEM, 0, asOBJ_REF);
 	engine->RegisterObjectBehaviour(SU_IF_SETTING_ITEM, asBEHAVE_ADDREF, "void f()", asMETHOD(SSettingItem, AddRef), asCALL_THISCALL);
