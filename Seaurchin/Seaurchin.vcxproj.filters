@@ -78,9 +78,6 @@
     <ClCompile Include="Scene.cpp">
       <Filter>インターフェース\C++</Filter>
     </ClCompile>
-    <ClCompile Include="Interfaces.cpp">
-      <Filter>インターフェース\AngelScript</Filter>
-    </ClCompile>
     <ClCompile Include="AngelScriptManager.cpp">
       <Filter>インターフェース\AngelScript</Filter>
     </ClCompile>
@@ -89,9 +86,6 @@
     </ClCompile>
     <ClCompile Include="ScriptFunction.cpp">
       <Filter>インターフェース\AngelScript</Filter>
-    </ClCompile>
-    <ClCompile Include="SceneDeveloperMode.cpp">
-      <Filter>ビルトインScene</Filter>
     </ClCompile>
     <ClCompile Include="SusAnalyzer.cpp">
       <Filter>インターフェース\C++</Filter>
@@ -206,9 +200,6 @@
     <ClInclude Include="Scene.h">
       <Filter>インターフェース\C++</Filter>
     </ClInclude>
-    <ClInclude Include="Interfaces.h">
-      <Filter>インターフェース\AngelScript</Filter>
-    </ClInclude>
     <ClInclude Include="AngelScriptManager.h">
       <Filter>インターフェース\AngelScript</Filter>
     </ClInclude>
@@ -223,9 +214,6 @@
     </ClInclude>
     <ClInclude Include="PrecompiledHeader.h">
       <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="SceneDeveloperMode.h">
-      <Filter>ビルトインScene</Filter>
     </ClInclude>
     <ClInclude Include="SusAnalyzer.h">
       <Filter>インターフェース\C++</Filter>

@@ -1,5 +1,5 @@
 ﻿#include "ScriptScene.h"
-
+#include "ScriptSprite.h"
 #include "ExecutionManager.h"
 #include "AngelScriptManager.h"
 #include "Controller.h"
@@ -293,15 +293,6 @@ void RegisterScriptScene(ExecutionManager * exm)
 	engine->RegisterInterface(SU_IF_COSCENE);
 	engine->RegisterInterfaceMethod(SU_IF_COSCENE, "void Initialize()");
 	engine->RegisterInterfaceMethod(SU_IF_COSCENE, "void Run()");
-
-	engine->RegisterGlobalFunction("int GetIndex()", asFUNCTION(ScriptSceneGetIndex), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void SetIndex(int)", asFUNCTION(ScriptSceneSetIndex), asCALL_CDECL);
-	engine->RegisterGlobalFunction("bool IsKeyHeld(int)", asFUNCTION(ScriptSceneIsKeyHeld), asCALL_CDECL);
-	engine->RegisterGlobalFunction("bool IsKeyTriggered(int)", asFUNCTION(ScriptSceneIsKeyTriggered), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void RunCoroutine(" SU_IF_COROUTINE "@, const string &in)", asFUNCTION(ScriptSceneRunCoroutine), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void KillCoroutine(const string &in)", asFUNCTION(ScriptSceneKillCoroutine), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void Disappear()", asFUNCTION(ScriptSceneDisappear), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void AddSprite(" SU_IF_SPRITE "@)", asFUNCTION(ScriptSceneAddSprite), asCALL_CDECL);
 }
 
 // Scene用メソッド

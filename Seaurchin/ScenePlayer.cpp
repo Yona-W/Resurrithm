@@ -6,10 +6,12 @@
 #include "SettingManager.h"
 #include "MusicsManager.h"
 #include "CharacterManager.h"
+#include "CharacterInstance.h"
 #include "SkillManager.h"
 #include "Result.h"
 #include "Character.h"
 #include "Setting.h"
+#include "ScoreProcessor.h"
 
 using namespace std;
 

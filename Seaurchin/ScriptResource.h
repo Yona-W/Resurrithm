@@ -88,7 +88,8 @@ public:
 	int GetFrameCount() const { return frameCount; }
 	int GetImageHandleAt(const double time) { return images[int(time / secondsPerFrame) % frameCount]; }
 
-	static SAnimatedImage* CreateLoadedImageFromFile(const std::filesystem::path& file, int xc, int yc, int w, int h, int count, double time);
+	static SAnimatedImage* CreateLoadedImageFromFile(const std::filesystem::path& file, int xc, int yc, int w, int h, int count, double time, bool async);
+	static SAnimatedImage* CreateLoadedImageFromFileName(const std::string& file, int xc, int yc, int w, int h, int count, double time, bool async);
 	static SAnimatedImage* CreateLoadedImageFromMemory(void* buffer, size_t size, int xc, int yc, int w, int h, int count, double time);
 };
 
@@ -110,7 +111,7 @@ public:
 	std::tuple<int, int> RenderRaw(SRenderTarget* rt, const std::string& utf8Str);
 	std::tuple<int, int> RenderRich(SRenderTarget* rt, const std::string& utf8Str);
 
-	static SFont* CreateLoadedFontFromFont(const std::string& name, int size, int thick, int fontType);
+	static SFont* CreateLoadedFontFromFont(const std::string& name, int size, int thick, int fontType, bool async);
 	static SFont* CreateLoadedFontFromMem(const void* mem, size_t memsize, int edge, int size, int thick, int fontType);
 };
 
@@ -140,7 +141,8 @@ public:
 	State GetState();
 	double GetPosition() const { return GetSoundCurrentTime(handle) / 1000.0; }
 
-	static SSound* CreateSoundFromFile(const std::filesystem::path& file, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
+	static SSound* CreateSoundFromFile(const std::filesystem::path& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
+	static SSound* CreateSoundFromFileName(const std::string& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 };
 
 class SSettingItem : public SResource {

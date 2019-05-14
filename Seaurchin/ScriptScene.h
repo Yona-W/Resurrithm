@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Scene.h"
-#include "ScriptSprite.h"
 #include "ScriptFunction.h"
+#include "ScriptSprite.h"
 
 #define SU_IF_SCENE "Scene"
 #define SU_IF_COSCENE "CoroutineScene"
@@ -44,6 +44,7 @@ public:
 
 class MethodObject;
 class CallbackObject;
+
 
 class ScriptScene : public Scene {
 	typedef Scene Base;

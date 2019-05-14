@@ -135,7 +135,6 @@
     <ClCompile Include="Easing.cpp" />
     <ClCompile Include="ExecutionManager.cpp" />
     <ClCompile Include="ExecutionManager.Interface.cpp" />
-    <ClCompile Include="Interfaces.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Misc.cpp" />
     <ClCompile Include="MusicsManager.cpp" />
@@ -150,7 +149,6 @@
     <ClCompile Include="Result.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="SceneDebug.cpp" />
-    <ClCompile Include="SceneDeveloperMode.cpp" />
     <ClCompile Include="ScenePlayer.cpp" />
     <ClCompile Include="ScenePlayer.Draw.cpp" />
     <ClCompile Include="AutoPlayerProcessor.cpp" />
@@ -192,7 +190,6 @@
     <ClInclude Include="Debug.h" />
     <ClInclude Include="Easing.h" />
     <ClInclude Include="ExecutionManager.h" />
-    <ClInclude Include="Interfaces.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Misc.h" />
     <ClInclude Include="MusicsManager.h" />
@@ -201,7 +198,6 @@
     <ClInclude Include="Result.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="SceneDebug.h" />
-    <ClInclude Include="SceneDeveloperMode.h" />
     <ClInclude Include="ScenePlayer.h" />
     <ClInclude Include="ScoreProcessor.h" />
     <ClInclude Include="ScriptResource.h" />

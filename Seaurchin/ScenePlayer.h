@@ -1,10 +1,7 @@
 ﻿#pragma once
 
-#include "Scene.h"
 #include "ScriptSprite.h"
-#include "ScriptResource.h"
 #include "SusAnalyzer.h"
-#include "ScoreProcessor.h"
 #include "Result.h"
 #include "CharacterInstance.h"
 
@@ -110,6 +107,7 @@ enum class AirDrawType {
 	AirActionCover,
 };
 
+class SusDrawableNoteData;
 struct AirDrawQuery {
 	double Z = 0.0;
 	AirDrawType Type = AirDrawType::Air;

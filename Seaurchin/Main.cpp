@@ -99,16 +99,11 @@ void Run()
 {
 	using namespace std::chrono;
 
-	if (CheckHitKey(KEY_INPUT_F2)) {
-		manager->ExecuteSystemMenu();
-	}
-	else {
-		logger->LogDebug(u8"スキン列挙開始");
-		manager->EnumerateSkins();
-		logger->LogDebug(u8"Skin.as起動");
-		manager->ExecuteSkin();
-		logger->LogDebug(u8"Skin.as終了");
-	}
+	logger->LogDebug(u8"スキン列挙開始");
+	manager->EnumerateSkins();
+	logger->LogDebug(u8"Skin.as起動");
+	manager->ExecuteSkin();
+	logger->LogDebug(u8"Skin.as終了");
 	manager->AddScene(new SceneDebug());
 
 

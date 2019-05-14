@@ -324,6 +324,23 @@ namespace {
 #undef CHECK_END
 }
 
+
+MoverObject::MoverObject()
+	: reference(1)
+	, target(nullptr)
+	, pFunction(nullptr)
+	, variables()
+	, fieldID(SSprite::FieldID::Undefined)
+	, state(StateID::Suspend)
+	, waiting(0)
+	, time(0)
+	, wait(0)
+	, begin(Values::Default)
+	, end(Values::Default)
+	, isBeginOffset(false)
+	, isEndOffset(false)
+{}
+
 bool MoverObject::RegisterType(asIScriptEngine * engine)
 {
 	engine->RegisterObjectType(SU_IF_MOVER_OBJECT, 0, asOBJ_REF);

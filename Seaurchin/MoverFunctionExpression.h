@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include <memory>
-
 class MoverFunctionExpressionVariables
 {
 public:

@@ -133,10 +133,14 @@ public:
 	static SSprite* Factory();
 	static SSprite* Factory(SImage * img);
 	static void RegisterType(asIScriptEngine * engine);
+
+	bool operator<(const SSprite& rhs) const {
+		return ZIndex < rhs.ZIndex;
+	}
 	struct Comparator {
 		bool operator()(const SSprite* lhs, const SSprite* rhs) const
 		{
-			return lhs->ZIndex < rhs->ZIndex;
+			return (lhs && rhs)? *lhs < *rhs : true;
 		}
 	};
 };

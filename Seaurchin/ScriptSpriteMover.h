@@ -24,21 +24,7 @@ public:
 	static bool RegisterType(asIScriptEngine* engine);
 
 public:
-	MoverObject()
-		: reference(1)
-		, target(nullptr)
-		, pFunction(nullptr)
-		, variables()
-		, fieldID(SSprite::FieldID::Undefined)
-		, state(StateID::Suspend)
-		, waiting(0)
-		, time(0)
-		, wait(0)
-		, begin(Values::Default)
-		, end(Values::Default)
-		, isBeginOffset(false)
-		, isEndOffset(false)
-	{}
+	MoverObject();
 
 	static MoverObject* Factory();
 	MoverObject* Clone();
@@ -81,8 +67,6 @@ private:
 	bool isBeginOffset;
 	bool isEndOffset;
 };
-
-class SSprite;
 
 class SSpriteMover final {
 public:

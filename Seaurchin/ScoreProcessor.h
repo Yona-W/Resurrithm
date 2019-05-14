@@ -1,9 +1,5 @@
 ﻿#pragma once
 
-#include "SusAnalyzer.h"
-#include "Controller.h"
-#include "ScriptResource.h"
-#include "CharacterInstance.h"
 #include "Skill.h"
 
 enum class NoteAttribute {
@@ -14,7 +10,7 @@ enum class NoteAttribute {
 	Activated,
 };
 
-class ScenePlayer;
+class SusDrawableNoteData;
 class ScoreProcessor {
 public:
 	virtual ~ScoreProcessor() = default;
@@ -28,6 +24,9 @@ public:
 	virtual bool ShouldJudge(std::shared_ptr<SusDrawableNoteData> note) = 0;
 };
 
+class ScenePlayer;
+class ControlState;
+class SImage;
 class PlayableProcessor : public ScoreProcessor {
 protected:
 	ScenePlayer* player;

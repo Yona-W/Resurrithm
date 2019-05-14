@@ -4,6 +4,7 @@
 #include "ExecutionManager.h"
 #include "SettingManager.h"
 #include "Setting.h"
+#include "ScoreProcessor.h"
 
 using namespace std;
 

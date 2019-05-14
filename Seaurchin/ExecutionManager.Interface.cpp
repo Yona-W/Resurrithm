@@ -10,11 +10,29 @@ void ExecutionManager::Fire(const string& message)
 	for (auto& scene : scenes) scene->OnEvent(message);
 }
 
-// ReSharper disable once CppMemberFunctionMayBeStatic
-void ExecutionManager::WriteLog(const string & message) const
+void ExecutionManager::WriteLog(ScriptLogSeverity severity, const string & message)
 {
 	auto log = spdlog::get("main");
-	log->info(message);
+	switch (severity) {
+	case ScriptLogSeverity::Trace:
+		log->trace(message);
+		break;
+	case ScriptLogSeverity::Debug:
+		log->debug(message);
+		break;
+	case ScriptLogSeverity::Info:
+		log->info(message);
+		break;
+	case ScriptLogSeverity::Warning:
+		log->warn(message);
+		break;
+	case ScriptLogSeverity::Error:
+		log->error(message);
+		break;
+	case ScriptLogSeverity::Critical:
+		log->critical(message);
+		break;
+	}
 }
 
 ScenePlayer* ExecutionManager::CreatePlayer()

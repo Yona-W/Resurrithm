@@ -1,5 +1,17 @@
 ﻿#pragma once
 
+#define SU_IF_KEY "Key"
+#define SU_IF_SEVERITY "Severity"
+
+enum class ScriptLogSeverity {
+	Trace,
+	Debug,
+	Info,
+	Warning,
+	Error,
+	Critical,
+};
+
 class SettingTree;
 class SettingManager;
 class AngelScript;
@@ -72,9 +84,12 @@ public:
 	bool ExecuteSkin();
 	bool ExecuteSkin(const std::string& file);
 	bool ExecuteScene(asIScriptObject* sceneObject);
-	bool ExecuteSystemMenu();
 	void Fire(const std::string& message);
-	void WriteLog(const std::string& message) const;
+
+	void WriteLog(const std::string& message) { WriteLog(ScriptLogSeverity::Info, message); }
+	void WriteLog(ScriptLogSeverity severity, const std::string& message);
+	void ExitApplication() const { PostMessage(GetMainWindowHandle(), WM_CLOSE, 0, 0); }
+
 	ScenePlayer* CreatePlayer();
 	SSettingItem* GetSettingItem(const std::string& group, const std::string& key) const;
 	void GetStoredResult(DrawableResult* result) const;

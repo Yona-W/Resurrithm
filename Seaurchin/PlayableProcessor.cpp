@@ -1,6 +1,9 @@
-﻿#include "ScoreProcessor.h"
+﻿#include "ScenePlayer.h"
+#include "ScoreProcessor.h"
+#include "Controller.h"
 #include "ExecutionManager.h"
-#include "ScenePlayer.h"
+#include "ScriptResource.h"
+
 
 using namespace std;
 
