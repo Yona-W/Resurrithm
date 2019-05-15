@@ -68,7 +68,7 @@ public:
 
 /*!
  * @brief グローバル関数の保持、実行を行います。
- * @detail Createによりインスタンスを生成し、Prepare、SetArgument、Execute、Unprepareの順に実行します。
+ * @details Createによりインスタンスを生成し、Prepare、SetArgument、Execute、Unprepareの順に実行します。
  */
 class FunctionObject {
 private:
@@ -115,7 +115,7 @@ public:
 
 /*!
  * @brief メンバ関数の保持、実行を行います。
- * @detail Createによりインスタンスを生成し、Prepare、SetArgument、Execute/ExecuteAsSuspendable、Unprepareの順に実行します。
+ * @details Createによりインスタンスを生成し、Prepare、SetArgument、Execute/ExecuteAsSuspendable、Unprepareの順に実行します。
  */
 class MethodObject {
 private:
@@ -169,7 +169,7 @@ public:
 
 /*!
  * @brief コールバック関数の保持、実行を行います。
- * @detail Createによりインスタンスを生成し、Prepare、SetArgument、Execute、Unprepareの順に実行します。
+ * @details Createによりインスタンスを生成し、Prepare、SetArgument、Execute、Unprepareの順に実行します。
  * 保持するコールバックはデリゲートになるため、循環参照を発生させる場合があります。
  * これを回避するために、このオブジェクトを介してコールバックを実行するスレッドで適切なタイミングで
  * Dispose、Releaseを呼び出すことでデリゲートを解放し、循環参照状態を解消することが望まれます。

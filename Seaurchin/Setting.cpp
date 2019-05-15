@@ -19,20 +19,11 @@ namespace {
 	}
 }
 
-/*!
- * @param[in] hModule アプリケーションのモジュールハンドル。
- * @param[in] filename 設定ファイル名。
- */
 SettingTree::SettingTree(HMODULE hModule, const path& filename)
 	: rootDir(GetRootDirectory(hModule))
 	, fileName(filename)
 {}
 
-/*!
- * @brief 設定ファイルから設定値を読み込みます。
- * @note 設定ファイルが存在しない場合、現在の設定をファイルへ書き出します。
- * @return 読み込みに失敗するとfalseが返ります。
- */
 bool SettingTree::Load()
 {
 	auto log = spdlog::get("main");
@@ -64,9 +55,6 @@ bool SettingTree::Load()
 	return true;
 }
 
-/*!
- * @brief 設定ファイルへ設定値を書きだします。
- */
 void SettingTree::Save() const
 {
 	auto log = spdlog::get("main");
@@ -90,23 +78,12 @@ void SettingTree::Save() const
 	log->info(u8"設定ファイルを保存しました");
 }
 
-/*!
- * @brief グループ名を指定して設定値集合を取得します。
- * @param[in] group 取得したい設定値の属するグループ名。
- * @return 設定値集合からなるtoml::Valueの生ポインタ。該当する設定値が存在しない場合nullが返ります。
- */
 const toml::Value* SettingTree::GetGroup(const std::string& group) const
 {
 	const auto g = setting.find(group);
 	return (g && g->is<toml::Table>()) ? g : nullptr;
 }
 
-/*!
- * @brief グループ名、キー名を指定して設定値を取得します。
- * @param[in] group 取得したい設定値の属するグループ名。
- * @param[in] key 取得したい設定値の属するキー名。
- * @return 設定値を格納したtoml::Valueの生ポインタ。該当する設定値が存在しない場合nullが返ります。
- */
 const toml::Value* SettingTree::GetValues(const string& group, const std::string& key) const
 {
 	const auto g = setting.find(group);

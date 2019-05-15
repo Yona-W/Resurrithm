@@ -24,13 +24,23 @@ private:
 	toml::Value setting;					//!< 設定値のテーブル
 
 public:
+	//! @param[in] hModule アプリケーションのモジュールハンドル。
+	//! @param[in] filename 設定ファイル名。
 	explicit SettingTree(HMODULE hModule, const std::filesystem::path& filename);
+
 	//! @note 自動的に保存します。
 	~SettingTree() { Save(); }
 
+	//! @brief 設定ファイルから設定値を読み込みます。
+	//! @note 設定ファイルが存在しない場合、現在の設定をファイルへ書き出します。
+	//! @return 読み込みに失敗するとfalseが返ります。
 	bool Load();
+
 	//! @brief 設定値を再読み込みします。
+	//! @return 再読み込みに失敗するとfalseが返ります。
 	bool Reload() { return Load(); }
+
+	//! @brief 設定ファイルへ設定値を書きだします。
 	void Save() const;
 
 	//! @brief アプリケーションのワーキングディレクトリへの絶対パスを取得します。
@@ -40,7 +50,16 @@ public:
 	//! @brief 全設定項目の設定値を格納したテーブルを取得します。
 	//! @return 全設定項目の設定値を格納した1oml::Table。[グループ名].[キー名]で設定値を参照できます。
 	const toml::Value& GetRoot() const { return setting; }
+
+	//! @brief グループ名を指定して設定値集合を取得します。
+	//!  @param[in] group 取得したい設定値の属するグループ名。
+	//!  @return 設定値集合からなるtoml::Valueの生ポインタ。該当する設定値が存在しない場合nullが返ります。
 	const toml::Value* GetGroup(const std::string& group) const;
+
+	//! @brief グループ名、キー名を指定して設定値を取得します。
+	//! @param[in] group 取得したい設定値の属するグループ名。
+	//! @param[in] key 取得したい設定値の属するキー名。
+	//! @return 設定値を格納したtoml::Valueの生ポインタ。該当する設定値が存在しない場合nullが返ります。
 	const toml::Value* GetValues(const std::string& group, const std::string& key) const;
 
 	//! @brief グループ名、キー名に対応する設定項目の設定値を取得します。
