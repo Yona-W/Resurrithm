@@ -24,8 +24,6 @@ void InitializeSkin(Skin@ skin) {
   skin.LoadImage("LogoSeaurchin", "SeaurchinLogo.png");   //320x320
   skin.LoadImage("LogoDxLib", "DxLogo.jpg");              //204^2
   skin.LoadImage("LogoAngelScript", "aslogo.png");        //311x135
-  skin.LoadImage("LogoBoost", "boost.png");               //277x86
-  skin.LoadImage("LogoFreeType", "fond2-small.png");      //584x388
   skin.LoadImage("PlayerTopCover", "PlayerTopCover.png"); //1280x106
   skin.LoadImage("GaugeCountEmpty", "GaugeCountEmpty.png");
   skin.LoadImage("GaugeCountFull", "GaugeCountFull.png");

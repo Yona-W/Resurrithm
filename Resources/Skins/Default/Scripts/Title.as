@@ -45,8 +45,6 @@ class Title : CoroutineScene {
 
     @imgWhite = skin.GetImage("White");
     @imgDxLib = skin.GetImage("LogoDxLib");
-    @imgBoost = skin.GetImage("LogoBoost");
-    @imgFreeType = skin.GetImage("LogoFreeType");
     @imgAngelScript = skin.GetImage("LogoAngelScript");
     @imgSeaurchin = skin.GetImage("LogoSeaurchin");
     @imgCursorMenu = skin.GetImage("CursorMenu");
