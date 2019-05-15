@@ -52,6 +52,8 @@ SImage* SImage::CreateBlankImage()
 
 SImage* SImage::CreateLoadedImageFromFile(const path & file, const bool async)
 {
+	if (!is_regular_file(file) || !exists(file)) return nullptr;
+
 	if (async) SetUseASyncLoadFlag(TRUE);
 	auto result = new SImage(LoadGraph(ConvertUnicodeToUTF8(file).c_str()));
 	if (async) SetUseASyncLoadFlag(FALSE);
@@ -63,6 +65,9 @@ SImage* SImage::CreateLoadedImageFromFile(const path & file, const bool async)
 
 SImage* SImage::CreateLoadedImageFromFileName(const string& file, const bool async)
 {
+	const path path = ConvertUTF8ToUnicode(file);
+	if (!is_regular_file(path) || !exists(path)) return nullptr;
+
 	if (async) SetUseASyncLoadFlag(TRUE);
 	auto result = new SImage(LoadGraph(file.c_str()));
 	if (async) SetUseASyncLoadFlag(FALSE);
@@ -138,6 +143,8 @@ SAnimatedImage::~SAnimatedImage()
 
 SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, const int xc, const int yc, const int w, const int h, const int count, const double time, bool async)
 {
+	if (!is_regular_file(file) || !exists(file)) return nullptr;
+
 	auto result = new SAnimatedImage(w, h, count, time);
 	result->AddRef();
 
@@ -152,6 +159,9 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, con
 
 SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFileName(const string& file, const int xc, const int yc, const int w, const int h, const int count, const double time, bool async)
 {
+	const path path = ConvertUTF8ToUnicode(file);
+	if (!is_regular_file(path) || !exists(path)) return nullptr;
+
 	auto result = new SAnimatedImage(w, h, count, time);
 	result->AddRef();
 
@@ -392,6 +402,8 @@ SSound::~SSound()
 }
 
 void SSound::SetPosition(double ms) {
+	if (!handle) return;
+
 	bool needPlay = GetState() == State::Play;
 	if (needPlay) Pause();
 	SetSoundCurrentTime(ms, handle);
@@ -400,16 +412,19 @@ void SSound::SetPosition(double ms) {
 
 void SSound::Play()
 {
-	if (GetState() == State::Play && false) {
+	if (GetState() == State::Play) {
 		Stop();
 		SetSoundCurrentTime(0, handle);
 	}
 
 	PlaySoundMem(handle, (isLoop) ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK);
+	state = State::Play;
 }
 
 SSound::State SSound::GetState()
 {
+	if (!handle) return state;
+
 	if (!CheckSoundMem(handle)) {
 		switch (state)
 		{
@@ -431,17 +446,18 @@ SSound::State SSound::GetState()
 
 SSound* SSound::CreateSoundFromFile(const path& file, bool async, int loadType)
 {
-	auto result = new SSound();
-	result->AddRef();
+	if (!is_regular_file(file) || !exists(file)) return nullptr;
 
 	SetCreateSoundDataType(loadType);
 	if (async) SetUseASyncLoadFlag(TRUE);
-	result->handle = LoadSoundMem(ConvertUnicodeToUTF8(file).c_str(), 16);
+	const auto handle = LoadSoundMem(ConvertUnicodeToUTF8(file).c_str(), 16);
 	if (async) SetUseASyncLoadFlag(FALSE);
-	if (result->handle == -1) {
-		result->Release();
-		return nullptr;
-	}
+
+	if (handle == -1) return nullptr;
+
+	auto result = new SSound();
+	result->AddRef();
+	result->handle = handle;
 
 	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -449,6 +465,9 @@ SSound* SSound::CreateSoundFromFile(const path& file, bool async, int loadType)
 
 SSound* SSound::CreateSoundFromFileName(const string& file, bool async, int loadType)
 {
+	const path path = ConvertUTF8ToUnicode(file);
+	if (!is_regular_file(path) || !exists(path)) return nullptr;
+
 	auto result = new SSound();
 	result->AddRef();
 

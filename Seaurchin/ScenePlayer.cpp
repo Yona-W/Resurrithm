@@ -172,9 +172,9 @@ void ScenePlayer::LoadWorker()
 
 	// 動画・音声の読み込み
 	auto file = scorefile.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
-	soundBGM = SSound::CreateSoundFromFile(file, DX_SOUNDDATATYPE_FILE);
+	soundBGM = SSound::CreateSoundFromFile(file, false, DX_SOUNDDATATYPE_FILE);
 	if (!soundBGM) {
-		// TODO: ログとか
+		spdlog::get("main")->warn(u8"音声ファイル {0} の読み込みに失敗しました。", ConvertUnicodeToUTF8(file));
 	}
 	state = PlayingState::ReadyToStart;
 
