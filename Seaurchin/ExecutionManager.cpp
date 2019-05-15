@@ -17,7 +17,6 @@
 #include "SkillManager.h"
 #include "ScenePlayer.h"
 #include "Controller.h"
-#include "CharacterInstance.h"
 #include "Character.h"
 #include "Skill.h"
 #include "MoverFunctionExpression.h"
@@ -140,7 +139,11 @@ void ExecutionManager::Initialize()
 	RegisterScriptSprite(this);
 	RegisterScriptScene(this);
 	SkinHolder::RegisterType(engine);
-	RegisterCharacterSkillTypes(engine);
+	RegisterResultTypes(engine);
+	SkillManager::RegisterType(engine);
+	CharacterManager::RegisterType(engine);
+	engine->RegisterFuncdef("void " SU_IF_SKILL_CALLBACK "(const string &in)");
+	engine->RegisterFuncdef("void " SU_IF_JUDGE_CALLBACK "(" SU_IF_JUDGE_DATA ", const string &in)");
 	RegisterPlayerScene(this);
 	RegisterGlobalManagementFunction();
 	extensions->RegisterInterfaces();
@@ -151,7 +154,7 @@ void ExecutionManager::Initialize()
 
 	// キャラ・スキル読み込み
 	characters->LoadAllCharacters();
-	skills->LoadAllSkills();
+	skills->LoadAllSkills(engine);
 
 	// 外部通信
 	hCommunicationPipe = CreateNamedPipe(

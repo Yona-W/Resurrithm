@@ -129,9 +129,6 @@
     <ClCompile Include="Result.cpp">
       <Filter>インターフェース\キャラクター</Filter>
     </ClCompile>
-    <ClCompile Include="CharacterInstance.cpp">
-      <Filter>インターフェース\キャラクター</Filter>
-    </ClCompile>
     <ClCompile Include="Easing.cpp">
       <Filter>インターフェース\描画システム</Filter>
     </ClCompile>
@@ -252,9 +249,6 @@
       <Filter>インターフェース\描画システム</Filter>
     </ClInclude>
     <ClInclude Include="Result.h">
-      <Filter>インターフェース\キャラクター</Filter>
-    </ClInclude>
-    <ClInclude Include="CharacterInstance.h">
       <Filter>インターフェース\キャラクター</Filter>
     </ClInclude>
     <ClInclude Include="Crc32.h">

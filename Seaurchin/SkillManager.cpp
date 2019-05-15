@@ -20,7 +20,7 @@ namespace {
 	 * @param[in] file スキル定義ファイルへのパス。Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR に対する相対パスです。
 	 * @return スキル情報を返します。ロード、パースに失敗した場合はnullを返します。
 	 */
-	shared_ptr<SkillParameter> LoadFromToml(path file)
+	shared_ptr<SkillParameter> LoadFromToml(asIScriptEngine* engine, path file)
 	{
 		auto log = spdlog::get("main");
 		auto result = make_shared<SkillParameter>();
@@ -44,36 +44,58 @@ namespace {
 
 			auto details = root.get<vector<toml::Table>>("Detail");
 			for (const auto& detail : details) {
-				SkillDetail sdt;
-				sdt.Description = detail.at("Description").as<string>();
+				SkillDetail* sdt = new SkillDetail();
 
-				auto abilities = detail.at("Abilities").as<vector<toml::Table>>();
-				for (const auto& ability : abilities) {
-					AbilityParameter ai;
-					ai.Name = ability.at("Type").as<string>();
-					auto args = ability.at("Arguments").as<toml::Table>();
-					for (const auto& p : args) {
-						switch (p.second.type()) {
-						case toml::Value::INT_TYPE:
-							ai.Arguments[p.first] = p.second.as<int>();
-							break;
-						case toml::Value::DOUBLE_TYPE:
-							ai.Arguments[p.first] = p.second.as<double>();
-							break;
-						case toml::Value::STRING_TYPE:
-							ai.Arguments[p.first] = p.second.as<string>();
-							break;
-						default:
-							break;
-						}
+				sdt->Level = detail.at("Level").as<int>();
+				sdt->Description = detail.at("Description").as<string>();
+
+				const auto ability = detail.at("Ability").as<toml::Table>();
+				sdt->AbilityName = ability.at("Type").as<string>();
+				const auto args = ability.at("Arguments").as<toml::Table>();
+				sdt->Arguments = CScriptDictionary::Create(engine);
+				for (const auto& p : args) {
+					switch (p.second.type()) {
+					case toml::Value::INT_TYPE:
+					{
+						asINT64 avalue = p.second.as<int>();
+						sdt->Arguments->Set(p.first, avalue);
+						break;
 					}
-					sdt.Abilities.push_back(ai);
+					case toml::Value::DOUBLE_TYPE:
+					{
+						double avalue = p.second.as<double>();
+						sdt->Arguments->Set(p.first, avalue);
+						break;
+					}
+					case toml::Value::STRING_TYPE:
+					{
+						auto avalue = p.second.as<string>();
+						sdt->Arguments->Set(p.first, &avalue, engine->GetTypeIdByDecl("string"));
+						break;
+					}
+					default:
+						break;
+					}
 				}
 
-				auto level = detail.at("Level").as<int>();
+				const auto& ind = detail.at("Indicator").as<toml::Table>();
+				sdt->Indicators = CScriptDictionary::Create(engine);
+				for (const auto& p : ind) {
+					switch (p.second.type()) {
+					case toml::Value::STRING_TYPE:
+					{
+						auto avalue = ConvertUnicodeToUTF8(iconRoot / ConvertUTF8ToUnicode(p.second.as<string>()));
+						sdt->Indicators->Set(p.first, &avalue, engine->GetTypeIdByDecl("string"));
+						break;
+					}
+					default:
+						break;
+					}
+				}
+
 				result->Details.push_back(sdt);
 
-				if (result->MaxLevel < level) result->MaxLevel = level;
+				if (result->MaxLevel < sdt->Level) result->MaxLevel = sdt->Level;
 			}
 		}
 		catch (exception & ex) {
@@ -94,7 +116,7 @@ SkillManager::SkillManager()
  * @details 読み込む対象は Setting::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR 直下にある *.toml です。
  * @todo 非同期動作ができた方がベター
  */
-void SkillManager::LoadAllSkills()
+void SkillManager::LoadAllSkills(asIScriptEngine* engine)
 {
 	using namespace filesystem;
 	const auto skillroot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR;
@@ -103,7 +125,7 @@ void SkillManager::LoadAllSkills()
 		for (const auto& fdata : directory_iterator(skillroot)) {
 			if (is_directory(fdata)) continue;
 			if (fdata.path().extension() != ".toml") continue;
-			const auto skill = LoadFromToml(fdata.path());
+			const auto skill = LoadFromToml(engine, fdata.path());
 			if (skill) skills.push_back(skill);
 		}
 	}

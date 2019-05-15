@@ -2,11 +2,11 @@
 #include "ScenePlayer.h"
 #include "ScriptSprite.h"
 #include "ScriptSpriteMover.h"
+#include "ScriptScene.h"
 #include "ExecutionManager.h"
 #include "SettingManager.h"
 #include "MusicsManager.h"
-#include "CharacterManager.h"
-#include "CharacterInstance.h"
+#include "Skill.h"
 #include "SkillManager.h"
 #include "Result.h"
 #include "Character.h"
@@ -25,9 +25,7 @@ void RegisterPlayerScene(ExecutionManager* manager)
 	engine->RegisterObjectProperty(SU_IF_SCENE_PLAYER_METRICS, "double JudgeLineRightX", asOFFSET(ScenePlayerMetrics, JudgeLineRightX));
 	engine->RegisterObjectProperty(SU_IF_SCENE_PLAYER_METRICS, "double JudgeLineRightY", asOFFSET(ScenePlayerMetrics, JudgeLineRightY));
 
-	engine->RegisterObjectType(SU_IF_SCENE_PLAYER, 0, asOBJ_REF);
-	engine->RegisterObjectBehaviour(SU_IF_SCENE_PLAYER, asBEHAVE_ADDREF, "void f()", asMETHOD(ScenePlayer, AddRef), asCALL_THISCALL);
-	engine->RegisterObjectBehaviour(SU_IF_SCENE_PLAYER, asBEHAVE_RELEASE, "void f()", asMETHOD(ScenePlayer, Release), asCALL_THISCALL);
+	RegisterSpriteBasic<SShape>(engine, SU_IF_SCENE_PLAYER);
 	engine->RegisterObjectMethod(SU_IF_SPRITE, SU_IF_SCENE_PLAYER "@ opCast()", asFUNCTION((CastReferenceType<SSprite, ScenePlayer>)), asCALL_CDECL_OBJLAST);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, SU_IF_SPRITE "@ opImplCast()", asFUNCTION((CastReferenceType<ScenePlayer, SSprite>)), asCALL_CDECL_OBJLAST);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void AdjustCamera(double, double, double)", asMETHOD(ScenePlayer, AdjustCamera), asCALL_THISCALL);
@@ -51,9 +49,9 @@ void RegisterPlayerScene(ExecutionManager* manager)
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void MovePositionBySecond(double)", asMETHOD(ScenePlayer, MovePositionBySecond), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void MovePositionByMeasure(int)", asMETHOD(ScenePlayer, MovePositionByMeasure), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void GetCurrentResult(" SU_IF_DRESULT " &out)", asMETHOD(ScenePlayer, GetCurrentResult), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetAbility(" SU_IF_SKILL_DETAIL "@)", asMETHOD(ScenePlayer, SetAbility), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetJudgeCallback(" SU_IF_JUDGE_CALLBACK "@)", asMETHOD(ScenePlayer, SetJudgeCallback), asCALL_THISCALL);
-
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, SU_IF_CHARACTER_INSTANCE "@ GetCharacterInstance()", asMETHOD(ScenePlayer, GetCharacterInstance), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetSkillCallback(" SU_IF_SKILL_CALLBACK "@)", asMETHOD(ScenePlayer, SetAbilityCallback), asCALL_THISCALL);
 }
 
 namespace
@@ -100,10 +98,6 @@ ScenePlayer::~ScenePlayer()
 void ScenePlayer::Initialize()
 {
 	LoadResources();
-
-	const auto cp = manager->GetCharacterManagerSafe()->GetCharacterParameterSafe(0);
-	const auto sp = manager->GetSkillManagerSafe()->GetSkillParameterSafe(0);
-	currentCharacterInstance = CharacterInstance::CreateInstance(cp, sp, manager->GetScriptInterfaceSafe(), currentResult);
 }
 
 void ScenePlayer::EnqueueJudgeSound(const JudgeSoundType type)
@@ -477,7 +471,7 @@ void ScenePlayer::GetReady()
 	}
 
 	isReady = true;
-	currentCharacterInstance->OnStart();
+	ability->OnStart(currentResult.get());
 }
 
 void ScenePlayer::SetPlayerResource(const string & name, SResource * resource)
@@ -510,12 +504,6 @@ double ScenePlayer::GetPlayingTime() const
 void ScenePlayer::GetCurrentResult(DrawableResult * result) const
 {
 	currentResult->GetCurrentResult(result);
-}
-
-CharacterInstance* ScenePlayer::GetCharacterInstance() const
-{
-	currentCharacterInstance->AddRef();
-	return currentCharacterInstance.get();
 }
 
 void ScenePlayer::MovePositionBySecond(const double sec)
@@ -551,6 +539,26 @@ void ScenePlayer::MovePositionByMeasure(const int meas)
 	currentTime = newBgmPos + gap;
 	processor->MovePosition(currentTime - oldTime);
 	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
+}
+
+void ScenePlayer::SetAbility(SkillDetail* detail) {
+	using namespace filesystem;
+	auto log = spdlog::get("main");
+
+	ability.reset(nullptr);
+
+	const auto scrpath = ConvertUTF8ToUnicode(detail->AbilityName + ".as");
+	const auto abroot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
+	const auto abo = manager->GetScriptInterfaceUnsafe()->ExecuteScriptAsObject(abroot, scrpath, true);
+	if (!abo) return;
+
+	abo->AddRef();
+	auto ptr = Ability::Create(abo);
+	if (!ptr) return;
+	ability.reset(ptr);
+
+	ptr->Initialize(detail);
+	log->info(u8"アビリティー " + ConvertUnicodeToUTF8(scrpath));
 }
 
 void ScenePlayer::Pause()
@@ -594,7 +602,7 @@ void ScenePlayer::Reload()
 
 void ScenePlayer::SetJudgeCallback(asIScriptFunction * func) const
 {
-	if (!currentCharacterInstance) return;
+	if (!ability) return;
 
 	asIScriptContext* ctx = asGetActiveContext();
 	if (!ctx) return;
@@ -608,8 +616,52 @@ void ScenePlayer::SetJudgeCallback(asIScriptFunction * func) const
 	}
 
 	func->AddRef();
-	currentCharacterInstance->SetCallback(func, sceneObj);
+	const auto callback = CallbackObject::Create(func);
+
 	func->Release();
+	if (!callback) return;
+
+	callback->SetUserData(sceneObj, SU_UDTYPE_SCENE);
+
+	callback->AddRef();
+	sceneObj->RegisterDisposalCallback(callback);
+
+	callback->AddRef();
+	ability->SetJudgeCallback(callback);
+
+	callback->Release();
+}
+
+void ScenePlayer::SetAbilityCallback(asIScriptFunction* func) const
+{
+	if (!ability) return;
+
+	asIScriptContext* ctx = asGetActiveContext();
+	if (!ctx) return;
+
+	void* p = ctx->GetUserData(SU_UDTYPE_SCENE);
+	ScriptScene* sceneObj = static_cast<ScriptScene*>(p);
+
+	if (!sceneObj) {
+		ScriptSceneWarnOutOf("SetSkillCallback", "Scene Class", ctx);
+		return;
+	}
+
+	func->AddRef();
+	const auto callback = CallbackObject::Create(func);
+
+	func->Release();
+	if (!callback) return;
+
+	callback->SetUserData(sceneObj, SU_UDTYPE_SCENE);
+
+	callback->AddRef();
+	sceneObj->RegisterDisposalCallback(callback);
+
+	callback->AddRef();
+	ability->SetAbilityCallback(callback);
+
+	callback->Release();
 }
 
 void ScenePlayer::AdjustCamera(const double cy, const double cz, const double ctz)

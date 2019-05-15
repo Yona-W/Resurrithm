@@ -625,14 +625,15 @@ void PlayableProcessor::IncrementCombo(const shared_ptr<SusDrawableNoteData> & n
 		player->currentResult->PerformAttack();
 		infoClone.JudgeType = AbilityJudgeType::Attack;
 	}
-	player->currentCharacterInstance->OnJudge(infoClone, extra);
+	player->ability->OnJudge(player->currentResult.get(), &infoClone);
 }
 
 void PlayableProcessor::IncrementComboEx(const shared_ptr<SusDrawableNoteData> & note, const string & extra) const
 {
 	note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 	player->currentResult->PerformJusticeCritical();
-	player->currentCharacterInstance->OnJudge({ AbilityJudgeType::JusticeCritical, note->Type[size_t(SusNoteType::AwesomeExTap)] ? AbilityNoteType::AwesomeExTap : AbilityNoteType::ExTap, note->StartLane, note->StartLane + note->Length }, extra);
+	JudgeInformation infoClone = { AbilityJudgeType::JusticeCritical, note->Type[size_t(SusNoteType::AwesomeExTap)] ? AbilityNoteType::AwesomeExTap : AbilityNoteType::ExTap, note->StartLane, note->StartLane + note->Length };
+	player->ability->OnJudge(player->currentResult.get(), &infoClone);
 }
 
 void PlayableProcessor::IncrementComboHell(const std::shared_ptr<SusDrawableNoteData> & note, const int state, const string & extra) const
@@ -644,7 +645,10 @@ void PlayableProcessor::IncrementComboHell(const std::shared_ptr<SusDrawableNote
 		note->OnTheFlyData.reset(size_t(NoteAttribute::HellChecking));
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 		player->currentResult->PerformJusticeCritical();
-		player->currentCharacterInstance->OnJudge({ AbilityJudgeType::JusticeCritical, AbilityNoteType::HellTap, note->StartLane, note->StartLane + note->Length }, extra);
+		{
+			JudgeInformation infoClone = { AbilityJudgeType::JusticeCritical, AbilityNoteType::HellTap, note->StartLane, note->StartLane + note->Length };
+			player->ability->OnJudge(player->currentResult.get(), &infoClone);
+		}
 		break;
 	case 0:
 		// とりあえず通過した
@@ -656,7 +660,10 @@ void PlayableProcessor::IncrementComboHell(const std::shared_ptr<SusDrawableNote
 	case 1:
 		// 判定失敗
 		player->currentResult->PerformMiss();
-		player->currentCharacterInstance->OnJudge({ AbilityJudgeType::Miss, AbilityNoteType::HellTap, note->StartLane, note->StartLane + note->Length }, extra);
+		{
+			JudgeInformation infoClone = { AbilityJudgeType::Miss, AbilityNoteType::HellTap, note->StartLane, note->StartLane + note->Length };
+			player->ability->OnJudge(player->currentResult.get(), &infoClone);
+		}
 		note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 		break;
 	default: break;
@@ -682,12 +689,13 @@ void PlayableProcessor::IncrementComboAir(const std::shared_ptr<SusDrawableNoteD
 		player->currentResult->PerformAttack();
 		infoClone.JudgeType = AbilityJudgeType::Attack;
 	}
-	player->currentCharacterInstance->OnJudge(infoClone, extra);
+	player->ability->OnJudge(player->currentResult.get(), &infoClone);
 }
 
 void PlayableProcessor::ResetCombo(const shared_ptr<SusDrawableNoteData> & note, const JudgeInformation & info) const
 {
+	auto infoClone = info;
 	note->OnTheFlyData.set(size_t(NoteAttribute::Finished));
 	player->currentResult->PerformMiss();
-	player->currentCharacterInstance->OnJudge(info, "");
+	player->ability->OnJudge(player->currentResult.get(), &infoClone);
 }

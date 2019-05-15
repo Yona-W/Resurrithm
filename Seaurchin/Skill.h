@@ -2,7 +2,7 @@
 
 #define SU_IF_ABILITY "Ability"
 #define SU_IF_SKILL "Skill"
-#define SU_IF_SKILL_INDICATORS "SkillIndicators"
+#define SU_IF_SKILL_DETAIL "SkillDetail"
 #define SU_IF_SKILL_CALLBACK "SkillCallback"
 #define SU_IF_NOTETYPE "NoteType"
 #define SU_IF_JUDGETYPE "JudgeType"
@@ -18,61 +18,48 @@
 class SImage;
 class CallbackObject;
 
-class AbilityParameter final {
-public:
-	std::string Name;
-	std::unordered_map<std::string, std::any> Arguments;
-};
-
 class SkillDetail final {
 public:
 	int32_t Level;
 	std::string Description;
-	std::vector<AbilityParameter> Abilities;
+	std::string AbilityName;
+	CScriptDictionary* Arguments;
+	CScriptDictionary* Indicators;
+
+	~SkillDetail() {
+		if (Arguments) Arguments->Release();
+		if (Indicators) Indicators->Release();
+	}
 };
 
 class SkillParameter final {
 public:
 	int32_t GetMaxLevel() { return MaxLevel; }
-	SkillDetail& GetDetail(int32_t level)
+	SkillDetail* GetDetail(int32_t level)
 	{
-		if (Details.size() == 0) return SkillDetail();
+		if (Details.size() == 0) return new SkillDetail();
 
 		if (level <= 0) return Details.front();
 
 		auto l = level;
 		if (l > MaxLevel) l = MaxLevel;
 		while (l >= 0) {
-			const auto d = std::find_if(Details.begin(), Details.end(), [l](const auto& x) { return x.Level == l; });
+			const auto d = std::find_if(Details.begin(), Details.end(), [l](const auto& x) { return x->Level == l; });
 			if (d != Details.end()) return *d;
 			--l;
 		}
 		return Details.front();
 	}
-	std::string GetDescription(int32_t level) { return GetDetail(level).Description; }
+	std::string GetDescription(int32_t level) { return GetDetail(level)->Description; }
+	CScriptDictionary* GetArguments(int32_t level) { const auto& detail = GetDetail(level); detail->Arguments->AddRef(); return detail->Arguments; }
+	CScriptDictionary* GetIndicators(int32_t level) { const auto& detail = GetDetail(level); detail->Indicators->AddRef(); return detail->Indicators; }
 
 public:
 	std::string Name;
 	std::string IconPath;
-	std::vector<SkillDetail> Details;
+	std::vector<SkillDetail*> Details;
 	int32_t CurrentLevel;
 	int32_t MaxLevel;
-};
-
-class SkillIndicators final {
-private:
-	std::vector<SImage*> indicatorIcons;
-	mutable CallbackObject* callback;
-
-public:
-	SkillIndicators();
-	~SkillIndicators();
-
-	uint32_t GetSkillIndicatorCount() const;
-	SImage* GetSkillIndicatorImage(uint32_t index);
-	void SetCallback(asIScriptFunction* func);
-	int AddSkillIndicator(const std::string& icon);
-	void TriggerSkillIndicator(int index) const;
 };
 
 enum class AbilityNoteType {
@@ -103,7 +90,9 @@ struct JudgeInformation {
 
 
 class MethodObject;
+class CallbackObject;
 class Result;
+class ScriptScene;
 
 class Ability {
 private:
@@ -111,6 +100,8 @@ private:
 	MethodObject* methodOnStart;
 	MethodObject* methodOnFinish;
 	MethodObject* methodOnJudge;
+	CallbackObject* judgeCallback;
+	CallbackObject* abilityCallback;
 
 private:
 	Ability(MethodObject*, MethodObject*, MethodObject*, MethodObject*);
@@ -120,10 +111,14 @@ public:
 public:
 	static Ability* Create(asIScriptObject*);
 
-	bool Initialize(CScriptDictionary* args, SkillIndicators* indicators);
+	bool Initialize(const SkillDetail*);
 	bool OnStart(Result* result);
 	bool OnFinish(Result* result);
 	bool OnJudge(Result* result, JudgeInformation* judgeInfo);
+	bool SetJudgeCallback(CallbackObject* callback);
+	bool SetAbilityCallback(CallbackObject* callback);
+	bool CallJudgeCallback(JudgeInformation* judgeInfo);
+	bool CallAbilityCallback(const std::string& key);
 };
 
 void RegisterSkillTypes(asIScriptEngine* engine);

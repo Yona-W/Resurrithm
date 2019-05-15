@@ -128,7 +128,6 @@
     <ClCompile Include="..\library\angelscript\add_on\scriptstdstring\scriptstdstring_utils.cpp" />
     <ClCompile Include="AngelScriptManager.cpp" />
     <ClCompile Include="Character.cpp" />
-    <ClCompile Include="CharacterInstance.cpp" />
     <ClCompile Include="CharacterManager.cpp" />
     <ClCompile Include="Controller.cpp" />
     <ClCompile Include="Debug.cpp" />
@@ -177,7 +176,6 @@
     <ClInclude Include="..\library\dxlib\include\DxDataTypeWin.h" />
     <ClInclude Include="..\library\dxlib\include\DxFunctionWin.h" />
     <ClInclude Include="..\library\dxlib\include\DxLib.h" />
-    <ClInclude Include="CharacterInstance.h" />
     <ClInclude Include="CharacterManager.h" />
     <ClInclude Include="Crc32.h" />
     <ClInclude Include="ExtensionManager.h" />

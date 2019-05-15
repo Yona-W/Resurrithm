@@ -52,6 +52,7 @@
 #define SU_UDTYPE_WAIT 101
 #define SU_UDTYPE_SKIN 102
 #define SU_UDTYPE_ENTRYPOINT 103
+#define SU_UDTYPE_ABILITY 104
 
 // カスタムウィンドウメッセージ
 

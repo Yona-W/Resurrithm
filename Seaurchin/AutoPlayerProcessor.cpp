@@ -276,6 +276,7 @@ void AutoPlayerProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData> & n
 
 void AutoPlayerProcessor::IncrementCombo(const JudgeInformation & info, const string & extra) const
 {
+	auto infoClone = info;
 	player->currentResult->PerformJusticeCritical();
-	player->currentCharacterInstance->OnJudge(info, extra);
+	player->ability->OnJudge(player->currentResult.get(), &infoClone);
 }

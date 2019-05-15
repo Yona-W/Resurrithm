@@ -3,7 +3,6 @@
 #include "ScriptSprite.h"
 #include "SusAnalyzer.h"
 #include "Result.h"
-#include "CharacterInstance.h"
 
 #define SU_IF_SCENE_PLAYER "ScenePlayer"
 #define SU_IF_SCENE_PLAYER_METRICS "ScenePlayerMetrics"
@@ -123,6 +122,8 @@ struct ScenePlayerMetrics {
 
 class ExecutionManager;
 class MoverObject;
+class Ability;
+class SkillDetail;
 class ScenePlayer : public SSprite {
 	friend class ScoreProcessor;
 	friend class AutoPlayerProcessor;
@@ -200,7 +201,7 @@ protected:
 	const std::shared_ptr<Result> currentResult;
 	DrawableResult previousStatus{}, status{};
 
-	std::shared_ptr<CharacterInstance> currentCharacterInstance;
+	std::unique_ptr<Ability> ability;
 
 	DrawableNotesList data;
 	DrawableNotesList seenData, judgeData;
@@ -266,11 +267,12 @@ public:
 	void GetReady();
 	void Play();
 	double GetPlayingTime() const;
-	CharacterInstance * GetCharacterInstance() const;
 	void GetCurrentResult(DrawableResult * result) const;
 	void MovePositionBySecond(double sec);
 	void MovePositionByMeasure(int meas);
-	void SetJudgeCallback(asIScriptFunction * func) const;
+	void SetAbility(SkillDetail* detail);
+	void SetJudgeCallback(asIScriptFunction* func) const;
+	void SetAbilityCallback(asIScriptFunction * func) const;
 	void Pause();
 	void Resume();
 	void Reload();

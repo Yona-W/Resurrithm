@@ -329,7 +329,6 @@ class CharacterSelect : CoroutineScene {
     if(cim is null) return;
 
     spName.SetText(ch.Name);
-    //spDescription.SetText(cm.GetDescription(0));
     cim.ApplyFullImage(spImage);
   }
 
@@ -338,7 +337,7 @@ class CharacterSelect : CoroutineScene {
     if(sk is null) return;
 
     spSkill.SetText(sk.Name);
-    spDescription.SetText(sk.GetDescription(0));
+    spDescription.SetText(sk.GetDetail(0).Description);
     spIcon.SetImage(Image(sk.IconPath));
   }
 

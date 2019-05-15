@@ -137,9 +137,10 @@ class Play : CoroutineScene {
 	  judgeLineWidth = metrics.JudgeLineRightX - metrics.JudgeLineLeftX;
 	  judgeLineY = metrics.JudgeLineLeftY;
 
+    player.SetAbility(GetSkillManager().GetSkill(0).GetDetail(0));
     player.SetJudgeCallback(JudgeCallback(OnJudge));
-    charinfo.InitInfo(player.GetCharacterInstance());
-    player.Z = 5;
+    charinfo.InitInfo(player);
+    player.Apply("z:5");
     AddSprite(player);
     player.Load();
     while(!player.IsLoadCompleted()) YieldFrame(1);
@@ -370,7 +371,7 @@ class Play : CoroutineScene {
 
 class CharacterInfo : CoroutineScene {
   Skin@ skin;
-  array<Sprite@> icons;
+  dictionary icons;
   Container@ container;
   Sprite@ spBack, spCharacter, spIcon;
   TextSprite@ spSkill, spDescription;
@@ -381,9 +382,8 @@ class CharacterInfo : CoroutineScene {
     InitReady();
   }
 
-  void InitInfo(CharacterInstance@ ci) {
-    auto si = ci.GetSkillIndicators();
-    si.SetCallback(SkillCallback(OnSkill));
+  void InitInfo(ScenePlayer@ player) {
+    player.SetSkillCallback(SkillCallback(OnSkill));
 
     @container = Container();
     @spBack = Sprite(skin.GetImage("CharacterBack"));
@@ -391,17 +391,17 @@ class CharacterInfo : CoroutineScene {
 
     @spCharacter = Sprite();
     spCharacter.Apply("x:8, y: 6");
-    CharacterImages@ cimg = ci.GetCharacterImages();
+    CharacterImages@ cimg = GetCharacterManager().CreateCharacterImages();
     if (cimg !is null) cimg.ApplySmallImage(spCharacter);
 
     @spSkill = TextSprite(skin.GetFont("Normal32"), "");
     spSkill.Apply("x:11, y: 180, r: 0, g: 0, b: 0, scaleX: 0.75, scaleY: 0.75");
-    Skill@ skill = ci.GetSkill();
+    Skill@ skill = GetSkillManager().GetSkill(0);
     if(skill !is null) spSkill.SetText(skill.Name);
 
     @spDescription = TextSprite(skin.GetFont("Normal32"), "");
     spDescription.Apply("x:11, y: 208, r: 0, g: 0, b: 0, scaleX: 0.5, scaleY: 0.5");
-    if(skill !is null) spDescription.SetText(ci.GetSkill().GetDescription(0));
+    if(skill !is null) spDescription.SetText(skill.GetDetail(0).Description);
     spDescription.SetRich(true);
 
     container.AddChild(spBack);
@@ -414,12 +414,13 @@ class CharacterInfo : CoroutineScene {
     spIcon.Apply("x:217, y:180, scaleX:0.75, scaleY:0.75");
     container.AddChild(spIcon);
 
-    int ic = si.GetIndicatorCount();
-    for(int i = 0; i < ic; i++) {
-      Sprite@ icon = Sprite(si.GetIndicatorImage(i));
+    dictionary@ indicators = skill.GetDetail(0).Indicators;
+    array<string>@ keys = indicators.getKeys();
+    for(uint i = 0; i < keys.length(); ++i) {
+      Sprite@ icon = Sprite(Image(string(indicators[keys[i]])));
       int ix = 276 - (i * 28);
       icon.Apply("scaleX:0.25, scaleY:0.25, origX:48, origY:48, y:164, x:" + ix);
-      icons.insertLast(icon);
+      @icons[keys[i]] = icon;
       container.AddChild(icon);
     }
 
@@ -464,11 +465,13 @@ class CharacterInfo : CoroutineScene {
 
   }
 
-  void OnSkill(int index) {
-    auto target = icons[index];
-    target.AbortMove(true);
-    target.Apply("scaleX:0.3, scaleY: 0.3");
-    target.AddMove("scale:{end:0.25, time: 0.2}");
+  void OnSkill(const string &in index) {
+    Sprite@ target;
+    if(icons.get(index, @target)) { 
+      target.AbortMove(true);
+      target.Apply("scaleX:0.3, scaleY: 0.3");
+      target.AddMove("scale:{end:0.25, time: 0.2}");
+    }
   }
 
   void OnEvent(const string &in event) {
