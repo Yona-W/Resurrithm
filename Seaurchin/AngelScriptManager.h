@@ -187,7 +187,7 @@ private:
 
 public:
 	//! @brief CallbackObjectのインスタンスを生成します。
-	//! @param[in] obj CallbackObjectで管理するコールバック関数。
+	//! @param[in] callback CallbackObjectで管理するコールバック関数。
 	//! @return CallbackObjectのインスタンス。処理に失敗した場合、nullptrを返します。
 	static CallbackObject* Create(asIScriptFunction* callback);
 

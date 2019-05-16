@@ -267,7 +267,7 @@ public:
 
 	void Reset();
 	void SetMessageCallBack(const std::function<void(std::string, std::string)>& func);
-	void LoadFromFile(const std::wstring& fileName, bool analyzeOnlyMetaData = false);
+	bool LoadFromFile(const std::filesystem::path& fileName, bool analyzeOnlyMetaData = false);
 	void RenderScoreData(DrawableNotesList& data, NoteCurvesList& curveData);
 	float GetBeatsAt(uint32_t measure) const;
 	double GetBpmAt(uint32_t measure, uint32_t tick) const;

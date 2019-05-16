@@ -9,9 +9,6 @@ typedef lock_guard<mutex> LockGuard;
 
 // CategoryInfo ---------------------------
 
-/*!
- * @param[in] path カテゴリの実体に当たるディレクトリへのパス。絶対パスを想定しています。
- */
 CategoryInfo::CategoryInfo(const path& cpath)
 {
 	categoryPath = cpath;
@@ -42,12 +39,6 @@ MusicsManager::~MusicsManager()
 	if (loadWorker.joinable()) loadWorker.join();
 }
 
-/*!
- * @brief 譜面一覧を再読み込みします。
- * @details 現在の譜面一覧を破棄し、該当ディレクトリから譜面を列挙し、所有するアナライザで譜面を解析します。
- * かなりの時間がかかる処理になるので、外部からはこれを直接実行せず、
- * loadingフラグを用いて適切に非同期処理することが推奨されます。
- */
 void MusicsManager::CreateMusicCache()
 {
 	{
@@ -69,7 +60,7 @@ void MusicsManager::CreateMusicCache()
 				if (file.path().extension() != ".sus") continue;     //これ大文字どうすんの
 				analyzer->Reset();
 				analyzer->LoadFromFile(file.path(), true);
-				auto music = find_if(category->Musics.begin(), category->Musics.end(), [&](const std::shared_ptr<MusicMetaInfo> info) {
+				auto music = find_if(category->Musics.begin(), category->Musics.end(), [&](const shared_ptr<MusicMetaInfo> info) {
 					return info->SongId == analyzer->SharedMetaData.USongId;
 					});
 				if (music == category->Musics.end()) {
@@ -100,12 +91,6 @@ void MusicsManager::CreateMusicCache()
 	}
 }
 
-/*!
- * @brief 譜面一覧を再読み込みします。
- * @param[in] async 非同期で読み込みたい場合はtrueを渡してください。
- * @return 関数の実行に成功するとSuccessが返ります。譜面一覧再読み込み中に実行するとReloadingを返します。
- * @details エクステンションの列挙、初期化、登録を行うインターフェースを提供します。
- */
 MusicSelectionState MusicsManager::ReloadMusic(const bool async)
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -126,21 +111,12 @@ MusicSelectionState MusicsManager::ReloadMusic(const bool async)
 	return MusicSelectionState::Success;
 }
 
-/*!
- * @brief 譜面一覧の再読み込み中かどうかを確認します。
- * @return 譜面一覧の再読み込み中ならtrueを返します。
- */
 bool MusicsManager::IsReloading() const
 {
 	LockGuard lock(flagMutex);
 	return loading;
 }
 
-/*!
- * @brief 譜面選択状態をリセットします。
- * @return 関数の実行に成功するとSuccessが返ります。譜面一覧再読み込み中に実行するとReloadingを返します。
- * @details 関数の実行に成功すると、カテゴリ選択状態で0番目のカテゴリを選択中の状態になります。
- */
 MusicSelectionState MusicsManager::ResetState()
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -153,13 +129,7 @@ MusicSelectionState MusicsManager::ResetState()
 	return MusicSelectionState::Success;
 }
 
-/*!
- * @brief 現在選択中のカテゴリから相対位置を指定してカテゴリ情報を取得します。
- * @param[in] relative 現在選択中のカテゴリに対する相対カテゴリ数。
- * @return 該当位置にあるカテゴリ情報を返します。カテゴリ情報取得に失敗するとnullを返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
-std::shared_ptr<CategoryInfo> MusicsManager::GetCategoryAt(const int32_t relative) const
+shared_ptr<CategoryInfo> MusicsManager::GetCategoryAt(const int32_t relative) const
 {
 	// NOTE: リロード中は負数が返ってくる
 	const auto categorySize = GetCategorySize();
@@ -170,13 +140,7 @@ std::shared_ptr<CategoryInfo> MusicsManager::GetCategoryAt(const int32_t relativ
 	return categories[actual % categorySize];
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置を指定して楽曲情報を取得します。
- * @param[in] relative 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にある楽曲情報を返します。楽曲情報取得に失敗するとnullを返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
-std::shared_ptr<MusicMetaInfo> MusicsManager::GetMusicAt(const int32_t relative) const
+shared_ptr<MusicMetaInfo> MusicsManager::GetMusicAt(const int32_t relative) const
 {
 	// NOTE: リロード中はnullが返ってくる
 	const auto category = GetCategoryAt(0);
@@ -190,13 +154,7 @@ std::shared_ptr<MusicMetaInfo> MusicsManager::GetMusicAt(const int32_t relative)
 	return category->Musics[actual % musicSize];
 }
 
-/*!
- * @brief 現在選択中の譜面から相対位置を指定して譜面情報を取得します。
- * @param[in] relative 現在選択中の譜面に対する相対譜面差分数。
- * @return 該当位置にある譜面情報を返します。譜面情報取得に失敗するとnullを返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
-std::shared_ptr<MusicScoreInfo> MusicsManager::GetScoreVariantAt(const int32_t relative) const
+shared_ptr<MusicScoreInfo> MusicsManager::GetScoreVariantAt(const int32_t relative) const
 {
 	// NOTE: リロード中はnullが返ってくる
 	const auto music = GetMusicAt(relative);
@@ -208,11 +166,6 @@ std::shared_ptr<MusicScoreInfo> MusicsManager::GetScoreVariantAt(const int32_t r
 	return music->Scores[min(SU_TO_UINT32(variantIndex), size - 1)];
 }
 
-/*!
- * @brief 現在選択中の譜面の実体となるSUSファイルのパスを返します。
- * @return 現在選択中の譜面の実体となるSUSファイルへの絶対パス。パスの取得に失敗した場合、空のパスが返ります。
- * @details 特にリロード中に実行するとパスの取得に失敗します。
- */
 path MusicsManager::GetSelectedScorePath() const
 {
 	const auto cat = GetCategoryAt(0);
@@ -222,13 +175,12 @@ path MusicsManager::GetSelectedScorePath() const
 	return SettingManager::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(cat->GetName()) / score->Path;
 }
 
-/*!
- * @brief 現在の選択状態で取得可能な文字列情報を相対位置を指定して取得します。
- * @param[in] relativeIndex 現在選択中の項目に対する相対項目数。
- * @return カテゴリ選択中ならカテゴリ名を、楽曲選択中なら楽曲名を返します。情報の取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
-std::string MusicsManager::GetPrimaryString(const int32_t relativeIndex) const
+string MusicsManager::GetSelectedScorePathString() const
+{
+	return ConvertUnicodeToUTF8(GetSelectedScorePath());
+}
+
+string MusicsManager::GetPrimaryString(const int32_t relativeIndex) const
 {
 	switch (state) {
 	case MusicSelectionState::Category:
@@ -240,48 +192,24 @@ std::string MusicsManager::GetPrimaryString(const int32_t relativeIndex) const
 	}
 }
 
-/*!
- * @brief 現在選択中のカテゴリから相対位置をしてカテゴリ名を取得します。
- * @param[in] relativeIndex 現在選択中のカテゴリに対する相対カテゴリ数。
- * @return 該当位置にあるカテゴリ名を返します。カテゴリ名の取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 string MusicsManager::GetCategoryName(const int32_t relativeIndex) const
 {
 	const auto category = GetCategoryAt(relativeIndex);
 	return category ? category->GetName() : u8"Unavailable!";
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をして楽曲名を取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にある楽曲名を返します。楽曲名の取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 string MusicsManager::GetMusicName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
 	return music ? music->Name : u8"Unavailable!";
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をしてアーティスト名を取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にあるアーティスト名を返します。アーティスト名の取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 string MusicsManager::GetArtistName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
 	return music ? music->Artist : u8"Unavailable!";
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をしてジャケットファイルパスを取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にあるジャケットファイルパスを返します。ジャケットファイルパスの取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 string MusicsManager::GetMusicJacketFileName(const int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
@@ -291,12 +219,6 @@ string MusicsManager::GetMusicJacketFileName(const int32_t relativeIndex) const
 	return ConvertUnicodeToUTF8(result);
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をして背景動画ファイルパスを取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にある背景動画ファイルパスを返します。絶対パスです。背景動画ファイルパスの取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 string MusicsManager::GetBackgroundFileName(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
@@ -306,73 +228,36 @@ string MusicsManager::GetBackgroundFileName(const int32_t relativeIndex) const
 	return ConvertUnicodeToUTF8(result);
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をして難易度を取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にある難易度を返します。難易度の取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 int MusicsManager::GetDifficulty(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->Difficulty : 0;
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をして譜面レベルを取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にある譜面レベルを返します。譜面レベルの取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 int MusicsManager::GetLevel(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->Level : 0;
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をしてBPMを取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にあるBPMを返します。BPMの取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
 double MusicsManager::GetBpm(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->BpmToShow : 0;
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をしてレベル追加情報を取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にあるレベル追加情報を返します。レベル追加情報の取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
-std::string MusicsManager::GetExtraLevel(const int32_t relativeIndex) const
+string MusicsManager::GetExtraLevel(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->DifficultyName : u8"";
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をして譜面製作者名を取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当位置にある譜面製作者名を返します。譜面製作者名の取得に失敗すると"Unavailable!"を返します。
- * @details 特にリロード中に実行すると情報取得に失敗します。
- */
-std::string MusicsManager::GetDesignerName(const int32_t relativeIndex) const
+string MusicsManager::GetDesignerName(const int32_t relativeIndex) const
 {
 	const auto variant = GetScoreVariantAt(relativeIndex);
 	return variant ? variant->Designer : u8"";
 }
 
-/*!
- * @brief 現在選択中の項目を「確定」します。
- * @return 関数の実行に成功するとSuccess/Confirmedを返します。
- * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
- * @details 譜面選択操作のすべてが完了した際にはConfirmedが返ります。
- * 「確定」できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
- */
 MusicSelectionState MusicsManager::Enter()
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -393,12 +278,6 @@ MusicSelectionState MusicsManager::Enter()
 	}
 }
 
-/*!
- * @brief 現在選択中の項目を「取り消し」ます。
- * @return 関数の実行に成功するとSuccessを返します。
- * 関数の実行に失敗するとReloading/OutOfFunctionが返ります。
- * @details 「取り消し」できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
- */
 MusicSelectionState MusicsManager::Exit()
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -418,12 +297,6 @@ MusicSelectionState MusicsManager::Exit()
 	return MusicSelectionState::Success;
 }
 
-/*!
- * @brief 現在選択中の項目に対して「次」の項目へ移ります。
- * @return 関数の実行に成功するとSuccessを返します。
- * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
- * @details 「次」の項目を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
- */
 MusicSelectionState MusicsManager::Next()
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -456,12 +329,6 @@ MusicSelectionState MusicsManager::Next()
 	return MusicSelectionState::Success;
 }
 
-/*!
- * @brief 現在選択中の項目に対して「前」の項目へ移ります。
- * @return 関数の実行に成功するとSuccessを返します。
- * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
- * @details 「前」の項目を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
- */
 MusicSelectionState MusicsManager::Previous()
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -495,12 +362,6 @@ MusicSelectionState MusicsManager::Previous()
 	return MusicSelectionState::Success;
 }
 
-/*!
- * @brief 現在選択中の項目に対して「次の差分」へ移ります。
- * @return 関数の実行に成功するとSuccessを返します。
- * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
- * @details 「次の差分」を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
- */
 MusicSelectionState MusicsManager::NextVariant()
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -519,12 +380,6 @@ MusicSelectionState MusicsManager::NextVariant()
 	return MusicSelectionState::Success;
 }
 
-/*!
- * @brief 現在選択中の項目に対して「前の差分」へ移ります。
- * @return 関数の実行に成功するとSuccessを返します。
- * 関数の実行に失敗するとReloading/Error/OutOfFunctionが返ります。
- * @details 「前の差分」を選択できない状態でこの関数を実行した際にはOutOfFunctionが返ります。
- */
 MusicSelectionState MusicsManager::PreviousVariant()
 {
 	if (IsReloading()) return MusicSelectionState::Reloading;
@@ -543,53 +398,28 @@ MusicSelectionState MusicsManager::PreviousVariant()
 	return MusicSelectionState::Success;
 }
 
-/*!
- * @brief 現在の選択状態を返します。
- * @return 現在の選択状態。
- */
 MusicSelectionState MusicsManager::GetState() const
 {
 	return IsReloading() ? MusicSelectionState::Reloading : state;
 }
 
-/*!
- * @brief 総カテゴリ数を返します。
- * @return 総カテゴリ数。
- * @details 再読み込み中は負数が返ります。
- */
 int32_t MusicsManager::GetCategorySize() const
 {
 	return IsReloading() ? -1 : SU_TO_INT32(categories.size());
 }
 
-/*!
- * @brief 現在選択中のカテゴリから相対位置をしてカテゴリ内の楽曲数を取得します。
- * @param[in] relativeIndex 現在選択中のカテゴリに対する相対カテゴリ数。
- * @return 該当するカテゴリ内の楽曲数。
- * @details 再読み込み中は負数が返ります。
- */
 int32_t MusicsManager::GetMusicSize(int32_t relativeIndex) const
 {
 	const auto category = GetCategoryAt(relativeIndex);
 	return category ? SU_TO_INT32(category->Musics.size()) : -1;
 }
 
-/*!
- * @brief 現在選択中の楽曲から相対位置をして楽曲内の譜面差分数を取得します。
- * @param[in] relativeIndex 現在選択中の楽曲に対する相対楽曲数。
- * @return 該当する楽曲内の差分譜面数。
- * @details 再読み込み中は負数が返ります。
- */
 int32_t MusicsManager::GetVariantSize(int32_t relativeIndex) const
 {
 	const auto music = GetMusicAt(relativeIndex);
 	return music ? SU_TO_INT32(music->Scores.size()) : -1;
 }
 
-/*!
- * @brief ミュージックカーソルクラスをスキンに登録します。
- * @param[in] engine スクリプトエンジン。
- */
 void MusicsManager::RegisterType(asIScriptEngine* engine)
 {
 	engine->RegisterEnum(SU_IF_MSCSTATE);
@@ -604,6 +434,7 @@ void MusicsManager::RegisterType(asIScriptEngine* engine)
 	engine->RegisterObjectType(SU_IF_MSCURSOR, 0, asOBJ_REF | asOBJ_NOCOUNT);
 	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " ReloadMusic(bool = false)", asMETHOD(MusicsManager, ReloadMusic), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_MSCURSOR, SU_IF_MSCSTATE " ResetState()", asMETHOD(MusicsManager, ResetState), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetSelectedScorePath()", asMETHOD(MusicsManager, GetSelectedScorePathString), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetPrimaryString(int = 0)", asMETHOD(MusicsManager, GetPrimaryString), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetCategoryName(int = 0)", asMETHOD(MusicsManager, GetCategoryName), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_MSCURSOR, "string GetMusicName(int = 0)", asMETHOD(MusicsManager, GetMusicName), asCALL_THISCALL);

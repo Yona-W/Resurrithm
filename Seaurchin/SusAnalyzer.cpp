@@ -2,6 +2,7 @@
 #include <utility>
 
 using namespace std;
+using namespace std::filesystem;
 using namespace crc32_constexpr;
 
 std::regex SusAnalyzer::regexSusCommand("#([0-9A-Za-z]+)(?:\\s+([^\\n]+))?");
@@ -143,24 +144,39 @@ void SusAnalyzer::SetMessageCallBack(const function<void(string, string)> & func
 }
 
 //一応UTF-8として処理することにしますがどうせ変わらないだろうなぁ
-//あと列挙済みファイルを流し込む前提でエラーチェックしない
-void SusAnalyzer::LoadFromFile(const wstring & fileName, const bool analyzeOnlyMetaData)
+bool SusAnalyzer::LoadFromFile(const path & fileName, const bool analyzeOnlyMetaData)
 {
 	auto log = spdlog::get("main");
+
+	Reset();
+	if (!analyzeOnlyMetaData) log->info(u8"ファイル \"{0}\" の解析を開始…", ConvertUnicodeToUTF8(fileName));
+
+	if (!is_regular_file(fileName) || !exists(fileName)) {
+		log->error(u8"ファイル \"{0}\" が存在しません。", ConvertUnicodeToUTF8(fileName));
+		return false;
+	}
+	if (fileName.extension().string() != ".sus") {
+		log->error(u8"SUSファイルの拡張子は\".sus\"でなければなりません。");
+		return false;
+	}
+
 	ifstream file;
+	file.open(fileName, ios::in);
+	if (!file.is_open()) {
+		log->error(u8"ファイル \"{0}\" のオープンに失敗しました。", ConvertUnicodeToUTF8(fileName));
+		return false;
+	}
+
+	// BOMチェック
+	{
+		char bom[3] = { 0 };
+		file.read(bom, 3);
+		if (file.gcount() != 3 || bom[0] != char(0xEF) || bom[1] != char(0xBB) || bom[2] != char(0xBF)) file.seekg(0);
+	}
+
 	string rawline;
 	std::smatch match;
 	uint32_t line = 0;
-
-	Reset();
-	if (!analyzeOnlyMetaData) log->info(u8"{0}の解析を開始…", ConvertUnicodeToUTF8(fileName));
-
-	file.open(fileName, ios::in);
-
-	char bom[3] = { 0 };
-	file.read(bom, 3);
-	if (file.gcount() != 3 || bom[0] != char(0xEF) || bom[1] != char(0xBB) || bom[2] != char(0xBF)) file.seekg(0);
-
 	while (getline(file, rawline)) {
 		++line;
 		if (rawline.empty() || rawline[0] != '#') continue;
@@ -219,6 +235,8 @@ void SusAnalyzer::LoadFromFile(const wstring & fileName, const bool analyzeOnlyM
 			SharedBpmChanges.emplace_back(GetAbsoluteTime(t.Measure, t.Tick), bpmDefinitions[d.DefinitionNumber]);
 		}
 	}
+
+	return true;
 }
 
 void SusAnalyzer::ProcessCommand(const std::smatch & result, const bool onlyMeta, const uint32_t line)

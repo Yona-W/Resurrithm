@@ -139,6 +139,7 @@ protected:
 	const std::unique_ptr<SusAnalyzer> analyzer;
 	std::multiset<SSprite*, SSprite::Comparator> sprites;
 	std::vector<SSprite*> spritesPending;
+	std::filesystem::path lastUseFile;
 
 	SSound* soundBGM;
 
@@ -217,7 +218,7 @@ protected:
 	double scoreDuration = 0.0;
 	const double soundBufferingLatency; // = 0.030
 	const double airRollSpeed; // = 1.5
-	PlayingState state = PlayingState::ScoreNotLoaded;
+	PlayingState state = PlayingState::ScoreNotLoaded;	// TODO: たぶんこいつも排他制御しないとぶっ壊れる
 	PlayingState lastState;
 	bool airActionShown = false;
 	bool metronomeAvailable = true;
@@ -225,7 +226,7 @@ protected:
 	void TickGraphics(double delta);
 	void AddSprite(SSprite * sprite);
 	void LoadResources();
-	void LoadWorker();
+	void LoadWorker(const std::filesystem::path& file);
 	void RemoveSlideEffect();
 	void UpdateSlideEffect();
 	void CalculateNotes(double time, double duration, double preced);
@@ -262,7 +263,8 @@ public:
 	void Finalize();
 
 	void Initialize();
-	void Load();
+	void Load(const std::string& fileName);
+	bool IsScoreLoaded();
 	bool IsLoadCompleted();
 	void GetReady();
 	void Play();

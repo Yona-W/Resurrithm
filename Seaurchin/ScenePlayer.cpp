@@ -5,15 +5,14 @@
 #include "ScriptScene.h"
 #include "ExecutionManager.h"
 #include "SettingManager.h"
-#include "MusicsManager.h"
 #include "Skill.h"
-#include "SkillManager.h"
 #include "Result.h"
 #include "Character.h"
 #include "Setting.h"
 #include "ScoreProcessor.h"
 
 using namespace std;
+using namespace std::filesystem;
 
 void RegisterPlayerScene(ExecutionManager* manager)
 {
@@ -36,7 +35,8 @@ void RegisterPlayerScene(ExecutionManager* manager)
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_ANIMEIMAGE "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetLaneSprite(" SU_IF_SPRITE "@)", asMETHOD(ScenePlayer, SetLaneSprite), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Initialize()", asMETHOD(ScenePlayer, Initialize), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Load()", asMETHOD(ScenePlayer, Load), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Load(const string &in)", asMETHOD(ScenePlayer, Load), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "bool IsScoreLoaded()", asMETHOD(ScenePlayer, IsScoreLoaded), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "bool IsLoadCompleted()", asMETHOD(ScenePlayer, IsLoadCompleted), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void GetReady()", asMETHOD(ScenePlayer, GetReady), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Play()", asMETHOD(ScenePlayer, Play), asCALL_THISCALL);
@@ -133,67 +133,66 @@ void ScenePlayer::Finalize()
 	judgeSoundThread.join();
 }
 
-void ScenePlayer::LoadWorker()
+void ScenePlayer::LoadWorker(const path& file)
 {
 	{
 		lock_guard<mutex> lock(asyncMutex);
 		isLoadCompleted = false;
 	}
 
-	auto mm = manager->GetMusicsManagerSafe();
-	auto scorefile = mm->GetSelectedScorePath();
+	// TODO: パラメータのリセットをきちんと行う
+	lastUseFile = file;
+	state = PlayingState::ScoreNotLoaded;
 
 	// 譜面の読み込み
 	analyzer->Reset();
-	analyzer->LoadFromFile(scorefile.wstring());
-	metronomeAvailable = !analyzer->SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::DisableMetronome)];
-	analyzer->RenderScoreData(data, curveData);
-	// 各種情報の設定
-	segmentsPerSecond = analyzer->SharedMetaData.SegmentsPerSecond;
-	usePrioritySort = analyzer->SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::EnableDrawPriority)];
-	state = PlayingState::BgmNotLoaded;
-	scoreDuration = analyzer->SharedMetaData.ScoreDuration;
-	// Processor
-	processor->Reset();
-	// スライド描画バッファ
-	uint32_t maxElements = 0;
-	for (const auto& note : data) {
-		if (!note->Type[size_t(SusNoteType::Slide)]) continue;
-		const auto reserved = accumulate(note->ExtraData.begin(), note->ExtraData.end(), 2, [this](const int current, const shared_ptr<SusDrawableNoteData> part) {
-			if (part->Type.test(size_t(SusNoteType::Control))) return current;
-			if (part->Type.test(size_t(SusNoteType::Injection))) return current;
-			return current + int(curveData[part].size()) + 1;
-			});
-		maxElements = max(maxElements, uint32_t(reserved));
+	if (analyzer->LoadFromFile(file)) {
+		metronomeAvailable = !analyzer->SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::DisableMetronome)];
+		analyzer->RenderScoreData(data, curveData);
+		// 各種情報の設定
+		segmentsPerSecond = analyzer->SharedMetaData.SegmentsPerSecond;
+		usePrioritySort = analyzer->SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::EnableDrawPriority)];
+		state = PlayingState::BgmNotLoaded;
+		scoreDuration = analyzer->SharedMetaData.ScoreDuration;
+		// Processor
+		processor->Reset();
+		// スライド描画バッファ
+		uint32_t maxElements = 0;
+		for (const auto& note : data) {
+			if (!note->Type[size_t(SusNoteType::Slide)]) continue;
+			const auto reserved = accumulate(note->ExtraData.begin(), note->ExtraData.end(), 2, [this](const int current, const shared_ptr<SusDrawableNoteData> part) {
+				if (part->Type.test(size_t(SusNoteType::Control))) return current;
+				if (part->Type.test(size_t(SusNoteType::Injection))) return current;
+				return current + int(curveData[part].size()) + 1;
+				});
+			maxElements = max(maxElements, uint32_t(reserved));
+		}
+		slideVertices.reserve(maxElements * 4);
+		slideIndices.reserve(maxElements * 6);
+
+
+		// 動画・音声の読み込み
+		const auto soundfile = file.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
+		soundBGM = SSound::CreateSoundFromFile(soundfile, false, DX_SOUNDDATATYPE_FILE);
+		if (!soundBGM) {
+			spdlog::get("main")->warn(u8"音声ファイル {0} の読み込みに失敗しました。", ConvertUnicodeToUTF8(soundfile));
+		}
+		state = PlayingState::ReadyToStart;
+
+		if (!analyzer->SharedMetaData.UMovieFileName.empty()) {
+			movieFileName = file.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName);
+		}
+
+		// 前カウントの計算
+		// WaveOffsetが1小節分より長いとめんどくさそうなので差し引いてく
+		backingTime = -60.0 / analyzer->GetBpmAt(0, 0) * analyzer->GetBeatsAt(0);
+		nextMetronomeTime = backingTime;
+		while (backingTime > analyzer->SharedMetaData.WaveOffset) backingTime -= 60.0 / analyzer->GetBpmAt(0, 0) * analyzer->GetBeatsAt(0);
+		currentTime = backingTime;
 	}
-	slideVertices.reserve(maxElements * 4);
-	slideIndices.reserve(maxElements * 6);
-
-
-	// 動画・音声の読み込み
-	auto file = scorefile.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
-	soundBGM = SSound::CreateSoundFromFile(file, false, DX_SOUNDDATATYPE_FILE);
-	if (!soundBGM) {
-		spdlog::get("main")->warn(u8"音声ファイル {0} の読み込みに失敗しました。", ConvertUnicodeToUTF8(file));
-	}
-	state = PlayingState::ReadyToStart;
-
-	if (!analyzer->SharedMetaData.UMovieFileName.empty()) {
-		movieFileName = scorefile.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName);
-	}
-
-	// 前カウントの計算
-	// WaveOffsetが1小節分より長いとめんどくさそうなので差し引いてく
-	backingTime = -60.0 / analyzer->GetBpmAt(0, 0) * analyzer->GetBeatsAt(0);
-	nextMetronomeTime = backingTime;
-	while (backingTime > analyzer->SharedMetaData.WaveOffset) backingTime -= 60.0 / analyzer->GetBpmAt(0, 0) * analyzer->GetBeatsAt(0);
-	currentTime = backingTime;
 
 	{
 		lock_guard<mutex> lock(asyncMutex);
-		manager->SetData("Player:Title", analyzer->SharedMetaData.UTitle);
-		manager->SetData("Player:Artist", analyzer->SharedMetaData.UArtist);
-		manager->SetData<int>("Player:Level", analyzer->SharedMetaData.Level);
 		isLoadCompleted = true;
 	}
 }
@@ -434,15 +433,22 @@ void ScenePlayer::ProcessSoundQueue()
 
 // スクリプト側から呼べるやつら
 
-void ScenePlayer::Load()
+void ScenePlayer::Load(const string& fileName)
 {
 	if (loadWorkerThread.joinable()) {
 		spdlog::get("main")->error(u8"ScenePlayer::Loadは実行中です。");
 		return;
 	}
 
-	thread loadThread([&] { LoadWorker(); });
+	const path file = ConvertUTF8ToUnicode(fileName);
+	thread loadThread([this, file] { LoadWorker(file); });
 	loadWorkerThread.swap(loadThread);
+}
+
+bool ScenePlayer::IsScoreLoaded()
+{
+	lock_guard<mutex> lock(asyncMutex);
+	return state != PlayingState::ScoreNotLoaded;
 }
 
 bool ScenePlayer::IsLoadCompleted()
@@ -591,7 +597,7 @@ void ScenePlayer::Reload()
 	if (soundBGM) soundBGM->Release();
 
 	SetMainWindowText(u8"リロード中…");
-	LoadWorker();
+	LoadWorker(ConvertUnicodeToUTF8(lastUseFile));
 	SetMainWindowText(SU_APP_NAME u8" " SU_APP_VERSION);
 
 	const auto bgmMeantToBePlayedAt = prevBgmPos - (analyzer->SharedMetaData.WaveOffset - prevOffset);

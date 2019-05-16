@@ -31,15 +31,35 @@ private:
 public:
 	explicit SkillManager();
 
+	//! @brief スキル一覧を生成します。
+	//! @details 読み込む対象は Setting::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR 直下にある *.toml です。
+	//! @param[in] engine スクリプトエンジン。
+	//! @todo 非同期動作ができた方がベター
 	void LoadAllSkills(asIScriptEngine* engine);
+
 
 	//! @brief スキル一覧の総キャラクター数を返します。
 	//! @details スキル一覧が生成されていない時は負値を返します。
 	int32_t GetSize() const { return SU_TO_INT32(skills.size()); }
+
+	//! @brief 選択スキルを次のスキルに切り替えます。
 	void Next();
+
+	//! @brief 選択スキルを前のスキルに切り替えます。
 	void Previous();
+
+	//! @brief 相対位置を指定してスキル情報の生ポインタを取得します。
+	//! @param[in] relative 選択中のスキルに対する相対スキル数。
+	//! @return 該当するスキル情報の生ポインタ。該当するスキルがない場合nullが返ります。
 	SkillParameter* GetSkillParameterUnsafe(const int relative);
+
+	//! @brief 相対位置を指定してスキル情報のポインタを取得します。
+	//! @param[in] relative 選択中のスキルに対する相対スキル数。
+	//! @return 該当するスキル情報のポインタ。該当するスキルがない場合nullが返ります。
 	std::shared_ptr<SkillParameter> GetSkillParameterSafe(const int relative);
 
+	//! @brief スキンにスキルマネージャーを登録します。
+	//! @param[in] engine スクリプトエンジン。
+	//! @return 関連クラス等の登録も行います。
 	static void RegisterType(asIScriptEngine* engine);
 };

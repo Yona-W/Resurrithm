@@ -174,6 +174,7 @@ class Title : CoroutineScene {
           ExitApplication();
         }
         if (ret == CursorState::Confirmed && current == CursorState::OutOfFunction) {
+          SetData("Player:FilePath", cursor.GetSelectedScorePath());
           if (Execute("Play.as")) {
             Fire("Select:End");
             Disappear();

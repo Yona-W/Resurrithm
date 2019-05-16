@@ -142,13 +142,17 @@ class Play : CoroutineScene {
     charinfo.InitInfo(player);
     player.Apply("z:5");
     AddSprite(player);
-    player.Load();
+    player.Load(GetStringData("Player:FilePath"));
     while(!player.IsLoadCompleted()) YieldFrame(1);
-    SetMusicInfo();
-    Fire("Player:Ready");
-    player.GetReady();
-    YieldTime(5);
-    player.Play();
+    if (player.IsScoreLoaded()) {
+      SetMusicInfo();
+      Fire("Player:Ready");
+      player.GetReady();
+      YieldTime(5);
+      player.Play();
+    } else {
+      WriteLog(Severity::Error, "譜面のロードに失敗");
+    }
   }
 
   Sprite@ spTopCover, spBack, spCustomBack;

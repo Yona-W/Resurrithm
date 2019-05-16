@@ -17,6 +17,7 @@ namespace {
 
 	/*!
 	 * @brief スキル定義ファイルへのパスをもとにスキルをロードします。
+	 * @param[in] engine スクリプトエンジン。
 	 * @param[in] file スキル定義ファイルへのパス。Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR に対する相対パスです。
 	 * @return スキル情報を返します。ロード、パースに失敗した場合はnullを返します。
 	 */
@@ -111,11 +112,6 @@ SkillManager::SkillManager()
 	: selected(-1)
 {}
 
-/*!
- * @brief スキル一覧を生成します。
- * @details 読み込む対象は Setting::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR 直下にある *.toml です。
- * @todo 非同期動作ができた方がベター
- */
 void SkillManager::LoadAllSkills(asIScriptEngine* engine)
 {
 	using namespace filesystem;
@@ -135,9 +131,6 @@ void SkillManager::LoadAllSkills(asIScriptEngine* engine)
 	selected = (size == 0) ? -1 : 0;
 }
 
-/*!
- * @brief 選択スキルを次のスキルに切り替えます。
- */
 void SkillManager::Next()
 {
 	const auto size = GetSize();
@@ -146,9 +139,6 @@ void SkillManager::Next()
 	selected = (selected + 1) % size;
 }
 
-/*!
- * @brief 選択スキルを前のスキルに切り替えます。
- */
 void SkillManager::Previous()
 {
 	const auto size = GetSize();
@@ -157,11 +147,6 @@ void SkillManager::Previous()
 	selected = (selected + size - 1) % size;
 }
 
-/*!
- * @brief 相対位置を指定してスキル情報の生ポインタを取得します。
- * @param[in] relative 選択中のスキルに対する相対スキル数。
- * @return 該当するスキル情報の生ポインタ。該当するスキルがない場合nullが返ります。
- */
 SkillParameter * SkillManager::GetSkillParameterUnsafe(const int relative)
 {
 	const auto size = GetSize();
@@ -172,11 +157,6 @@ SkillParameter * SkillManager::GetSkillParameterUnsafe(const int relative)
 	return skills[ri % size].get();
 }
 
-/*!
- * @brief 相対位置を指定してスキル情報のポインタを取得します。
- * @param[in] relative 選択中のスキルに対する相対スキル数。
- * @return 該当するスキル情報のポインタ。該当するスキルがない場合nullが返ります。
- */
 shared_ptr<SkillParameter> SkillManager::GetSkillParameterSafe(const int relative)
 {
 	const auto size = GetSize();
@@ -187,11 +167,6 @@ shared_ptr<SkillParameter> SkillManager::GetSkillParameterSafe(const int relativ
 	return skills[ri % size];
 }
 
-/*!
- * @brief スキンにスキルマネージャーを登録します。
- * @param[in] engine スクリプトエンジン。
- * @return 関連クラス等の登録も行います。
- */
 void SkillManager::RegisterType(asIScriptEngine* engine)
 {
 	RegisterSkillTypes(engine);
