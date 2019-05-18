@@ -136,6 +136,7 @@
     <ClCompile Include="ExecutionManager.Interface.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Misc.cpp" />
+    <ClCompile Include="Music.cpp" />
     <ClCompile Include="MusicsManager.cpp" />
     <ClCompile Include="PlayableProcessor.cpp" />
     <ClCompile Include="ExtensionManager.cpp" />
@@ -179,6 +180,7 @@
     <ClInclude Include="CharacterManager.h" />
     <ClInclude Include="Crc32.h" />
     <ClInclude Include="ExtensionManager.h" />
+    <ClInclude Include="Music.h" />
     <ClInclude Include="ScriptSpriteMover.h" />
     <ClInclude Include="SeaurchinExtension.h" />
     <ClInclude Include="AngelScriptManager.h" />

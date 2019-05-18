@@ -14,17 +14,19 @@ class Title : CoroutineScene {
   }
 
   void Run() {
+    MusicManager@ musicManager = GetMusicManager();
     @cntLogos = Container();
     AddSprite(cntLogos);
 
     if (!ExistsData("LogoShown")) {
       SetData("LogoShown", true);
+      musicManager.Reload(true);
       RunCoroutine(Coroutine(Intro), "Title:Intro");
       introWorking = true;
     } else {
       introWorking = false;
     }
-    while(introWorking && !IsKeyTriggered(Key::INPUT_RETURN)) YieldFrame(1);
+    while((introWorking && !IsKeyTriggered(Key::INPUT_RETURN)) || musicManager.IsReloading()) YieldFrame(1);
     cntLogos.AddMove("alpha:{begin:1, end:0, time:0.75}");
     cntLogos.AddMove("death:{wait:0.75}");
 
@@ -59,12 +61,10 @@ class Title : CoroutineScene {
     moverList[0].Apply("begin:0, end:1, time:1");
 
     @moverList[1] = MoverObject();
-    moverList[1].Apply("begin:1, end:0, time:1, wait:3");
+    moverList[1].Apply("begin:1, end:0, time:1");
 
     @moverList[2] = MoverObject();
-    moverList[2].Apply("wait", 4);
-
-    array<string> moverKeyList = { "alpha", "alpha", "death", "x" };
+    moverList[2].Apply("wait", 1);
 
     array<Sprite@> dxl = {
       TextSprite(font64, "Powered by"),
@@ -75,10 +75,8 @@ class Title : CoroutineScene {
     dxl[1].Apply("x:416, y:162, r:0, g:0, b: 0, alpha:0");
     dxl[2].Apply("x:200, y:200, origY:102, alpha:0");
     dxl[2].HasAlpha = false;
-    for(int i = 0; i < dxl.length(); i++) {
-      for(uint j = 0; j < moverList.length(); ++j) {
-        dxl[i].AddMove(moverKeyList[j], moverList[j]);
-      }
+    for(uint i = 0; i < dxl.length(); i++) {
+      dxl[i].AddMove("alpha", moverList[0]);
       cntLogos.AddChild(dxl[i]);
     }
 
@@ -90,14 +88,23 @@ class Title : CoroutineScene {
     logo[0].Apply("x:200, y:300, alpha:0");
     logo[1].Apply("x:516, y:300, alpha:0");
     logo[2].Apply("x:206, y:500, alpha:0");
-    for(int i = 0; i < logo.length(); i++) {
-      for(uint j = 0; j < moverList.length(); ++j) {
-        logo[i].AddMove(moverKeyList[j], moverList[j]);
-      }
+    for(uint i = 0; i < logo.length(); i++) {
+      logo[i].AddMove("alpha", moverList[0]);
       cntLogos.AddChild(logo[i]);
     }
 
-    YieldTime(4.0);
+    MusicManager@ musicManager = GetMusicManager();
+	while (musicManager.IsReloading()) YieldTime(1.5);
+    for(uint i = 0; i < dxl.length(); i++) {
+      dxl[i].AddMove("alpha", moverList[1]);
+      dxl[i].AddMove("death", moverList[2]);
+      cntLogos.AddChild(dxl[i]);
+    }
+    for(uint i = 0; i < logo.length(); i++) {
+      logo[i].AddMove("alpha", moverList[1]);
+      logo[i].AddMove("death", moverList[2]);
+      cntLogos.AddChild(logo[i]);
+    }
     introWorking = false;
   }
 
@@ -114,7 +121,7 @@ class Title : CoroutineScene {
 
     TextSprite @buffer = TextSprite(font64, "${#000000}Ground Slider Simulator\n${hidden}dummy${visible}${blue}S${#40C0ff}e${#40ffC0}a${green}u${yellow}r${#ff8010}c${red}h${#C000ff}i${#000000}${bold}n");
     buffer.SetRich(true);
-    @spTitle = ClipSprite(buffer.Width, buffer.Height);
+    @spTitle = ClipSprite(int(buffer.Width), int(buffer.Height));
     spTitle.Transfer(buffer);
     spTitle.Apply("origY:" + (buffer.Height/2) + ", x:640, y:360, z:1");
     spTitle.SetRange(0, 0, 0, 1);

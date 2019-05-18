@@ -12,6 +12,7 @@
 #include "ScriptSprite.h"
 #include "SkinHolder.h"
 #include "MusicsManager.h"
+#include "Music.h"
 #include "ExtensionManager.h"
 #include "CharacterManager.h"
 #include "SkillManager.h"
@@ -322,9 +323,13 @@ void ExecutionManager::RegisterGlobalManagementFunction()
 	engine->RegisterGlobalFunction("bool RegisterMoverFunction(const string &in, const string &in)", asFUNCTIONPR(MoverFunctionExpressionManager::Register, (const string&, const string&), bool), asCALL_CDECL);
 	engine->RegisterGlobalFunction("bool IsMoverFunctionRegistered(const string &in)", asFUNCTIONPR(MoverFunctionExpressionManager::IsRegistered, (const string&), bool), asCALL_CDECL);
 
+	if (!ScoreDifficulty::RegisterTypes(engine)) spdlog::get("main")->error(u8"スクリプトレジストエラー : ScoreDifficulty");
+	if (!ScoreParameter::RegisterTypes(engine)) spdlog::get("main")->error(u8"スクリプトレジストエラー : ScoreParameter");
+	if (!MusicParameter::RegisterTypes(engine)) spdlog::get("main")->error(u8"スクリプトレジストエラー : MusicParameter");
+	if (!CategoryParameter::RegisterTypes(engine)) spdlog::get("main")->error(u8"スクリプトレジストエラー : CategoryParameter");
 	MusicsManager::RegisterType(engine);
 
-	engine->RegisterGlobalFunction(SU_IF_MSCURSOR "@ GetMusicCursor()", asMETHOD(ExecutionManager, GetMusicsManagerUnsafe), asCALL_THISCALL_ASGLOBAL, this);
+	engine->RegisterGlobalFunction(SU_IF_MUSIC_MANAGER "@ GetMusicManager()", asMETHOD(ExecutionManager, GetMusicsManagerUnsafe), asCALL_THISCALL_ASGLOBAL, this);
 	engine->RegisterGlobalFunction(SU_IF_CHARACTER_MANAGER "@ GetCharacterManager()", asMETHOD(ExecutionManager, GetCharacterManagerUnsafe), asCALL_THISCALL_ASGLOBAL, this);
 	engine->RegisterGlobalFunction(SU_IF_SKILL_MANAGER "@ GetSkillManager()", asMETHOD(ExecutionManager, GetSkillManagerUnsafe), asCALL_THISCALL_ASGLOBAL, this);
 	engine->RegisterGlobalFunction("bool Execute(const string &in)", asMETHODPR(ExecutionManager, ExecuteSkin, (const string&), bool), asCALL_THISCALL_ASGLOBAL, this);
