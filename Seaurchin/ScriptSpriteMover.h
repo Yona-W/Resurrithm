@@ -4,6 +4,8 @@
 #include "ScriptSprite.h"
 
 class MoverObject {
+	INPLEMENT_REF_COUNTER
+
 public:
 	static class Values
 	{
@@ -23,16 +25,14 @@ public:
 
 	static bool RegisterType(asIScriptEngine* engine);
 
-public:
-	MoverObject();
+private:
+	explicit MoverObject();
+	MoverObject(const MoverObject&) = delete;
 
+public:
 	static MoverObject* Factory();
 	MoverObject* Clone();
 	void Clear();
-
-	void AddRef() { ++reference; }
-	void Release() { if (--reference == 0) delete this; }
-	int GetRefCount() const { return reference; }
 
 	bool SetTargetSprite(SSprite * pSprite) { if (!pSprite) return false; target = pSprite; return true; }
 	bool HasFunction() { return !!pFunction; }
@@ -50,8 +50,6 @@ public:
 	bool Abort();
 
 private:
-	int reference;
-
 	SSprite* target;
 	MoverFunctionExpressionSharedPtr pFunction;
 	MoverFunctionExpressionVariables variables;

@@ -560,11 +560,15 @@ void ScenePlayer::SetAbility(SkillDetail* detail) {
 
 	abo->AddRef();
 	auto ptr = Ability::Create(abo);
-	if (!ptr) return;
+	if (!ptr) {
+		abo->Release();
+		return;
+	}
 	ability.reset(ptr);
 
 	ptr->Initialize(detail);
 	log->info(u8"アビリティー " + ConvertUnicodeToUTF8(scrpath));
+	abo->Release();
 }
 
 void ScenePlayer::Pause()

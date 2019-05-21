@@ -48,3 +48,20 @@ void SplitProps(const std::string& source, PropList& vec);
 #define SU_TO_UINT32(value) static_cast<uint32_t>((value))
 #define SU_TO_FLOAT(value)  static_cast<float>((value))
 #define SU_TO_DOUBLE(value) static_cast<double>((value))
+
+#ifdef _DEBUG 
+#define INPLEMENT_REF_COUNTER \
+private: \
+	int32_t refcount; \
+public: \
+	void AddRef() { ++refcount; } \
+	void Release() { if (--refcount == 0) delete this; } \
+	int32_t GetRefCount() const { return refcount; }
+#else
+#define INPLEMENT_REF_COUNTER \
+private: \
+	int32_t refcount; \
+public: \
+	void AddRef() { ++refcount; } \
+	void Release() { if (--refcount == 0) delete this; }
+#endif

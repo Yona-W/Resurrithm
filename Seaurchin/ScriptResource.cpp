@@ -1,15 +1,22 @@
 ﻿#include "ScriptResource.h"
 #include "ExecutionManager.h"
 #include "AngelScriptManager.h"
+#include "Setting.h"
 
 using namespace std;
 using namespace filesystem;
 
 SResource::SResource()
-= default;
+	: refcount(1)
+	, handle(0)
+{}
 
 SResource::~SResource()
-= default;
+{
+#ifdef _DEBUG
+	SU_ASSERT(GetRefCount() == 0);
+#endif
+}
 
 // SImage ----------------------
 
@@ -57,7 +64,6 @@ SImage* SImage::CreateLoadedImageFromFile(const path & file, const bool async)
 	if (async) SetUseASyncLoadFlag(TRUE);
 	auto result = new SImage(LoadGraph(ConvertUnicodeToUTF8(file).c_str()));
 	if (async) SetUseASyncLoadFlag(FALSE);
-	result->AddRef();
 
 	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -71,7 +77,6 @@ SImage* SImage::CreateLoadedImageFromFileName(const string& file, const bool asy
 	if (async) SetUseASyncLoadFlag(TRUE);
 	auto result = new SImage(LoadGraph(file.c_str()));
 	if (async) SetUseASyncLoadFlag(FALSE);
-	result->AddRef();
 
 	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -80,7 +85,6 @@ SImage* SImage::CreateLoadedImageFromFileName(const string& file, const bool asy
 SImage* SImage::CreateLoadedImageFromMemory(void* buffer, const size_t size)
 {
 	auto result = new SImage(CreateGraphFromMem(buffer, size));
-	result->AddRef();
 
 	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -99,7 +103,6 @@ SRenderTarget::SRenderTarget(const int w, const int h)
 SRenderTarget* SRenderTarget::CreateBlankTarget(const int w, const int h)
 {
 	auto result = new SRenderTarget(w, h);
-	result->AddRef();
 
 	SU_ASSERT(result->GetRefCount() == 1);
 	return result;
@@ -146,7 +149,6 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, con
 	if (!is_regular_file(file) || !exists(file)) return nullptr;
 
 	auto result = new SAnimatedImage(w, h, count, time);
-	result->AddRef();
 
 	result->images.resize(count);
 	if (async) SetUseASyncLoadFlag(TRUE);
@@ -163,7 +165,6 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFileName(const string& file
 	if (!is_regular_file(path) || !exists(path)) return nullptr;
 
 	auto result = new SAnimatedImage(w, h, count, time);
-	result->AddRef();
 
 	result->images.resize(count);
 	if (async) SetUseASyncLoadFlag(TRUE);
@@ -177,7 +178,6 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFileName(const string& file
 SAnimatedImage* SAnimatedImage::CreateLoadedImageFromMemory(void* buffer, const size_t size, const int xc, const int yc, const int w, const int h, const int count, const double time)
 {
 	auto result = new SAnimatedImage(w, h, count, time);
-	result->AddRef();
 
 	result->images.resize(count);
 	CreateDivGraphFromMem(buffer, size, count, xc, yc, w, h, result->images.data());
@@ -359,7 +359,6 @@ tuple<int, int> SFont::RenderRich(SRenderTarget * rt, const string & utf8Str)
 SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, int fontType, bool async)
 {
 	auto result = new SFont();
-	result->AddRef();
 
 	if (async) SetUseASyncLoadFlag(TRUE);
 	result->handle = CreateFontToHandle(name.c_str(), size, thick, fontType);
@@ -375,7 +374,6 @@ SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, 
 SFont* SFont::CreateLoadedFontFromMem(const void *mem, size_t memsize, int edge, int size, int thick, int fontType)
 {
 	auto result = new SFont();
-	result->AddRef();
 
 	int handle = LoadFontDataFromMemToHandle(mem, memsize, edge);
 	result->handle = handle;
@@ -456,7 +454,6 @@ SSound* SSound::CreateSoundFromFile(const path& file, bool async, int loadType)
 	if (handle == -1) return nullptr;
 
 	auto result = new SSound();
-	result->AddRef();
 	result->handle = handle;
 
 	SU_ASSERT(result->GetRefCount() == 1);
@@ -469,7 +466,6 @@ SSound* SSound::CreateSoundFromFileName(const string& file, bool async, int load
 	if (!is_regular_file(path) || !exists(path)) return nullptr;
 
 	auto result = new SSound();
-	result->AddRef();
 
 	SetCreateSoundDataType(loadType);
 	if (async) SetUseASyncLoadFlag(TRUE);
@@ -488,8 +484,7 @@ SSound* SSound::CreateSoundFromFileName(const string& file, bool async, int load
 
 SSettingItem::SSettingItem(const shared_ptr<SettingItem> s)
 	: setting(s)
-{
-}
+{}
 
 SSettingItem::~SSettingItem()
 {

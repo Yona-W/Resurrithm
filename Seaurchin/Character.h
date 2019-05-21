@@ -29,9 +29,9 @@ public:
 };
 
 class CharacterImageSet final {
-private:
-	int reference = 0;
+	INPLEMENT_REF_COUNTER
 
+private:
 	std::shared_ptr<CharacterParameter> parameter;
 	SImage* imageFull = nullptr;
 	SImage* imageSmall = nullptr;
@@ -39,13 +39,12 @@ private:
 
 	void LoadAllImage();
 
-public:
-	void AddRef() { reference++; }
-	void Release() { if (--reference == 0) delete this; }
-	int GetRefCount() const { return reference; }
+private:
 	explicit CharacterImageSet(std::shared_ptr<CharacterParameter> param);
+	CharacterImageSet(const CharacterImageSet&) = delete;
 	~CharacterImageSet();
 
+public:
 	void ApplyFullImage(SSprite * sprite) const;
 	void ApplySmallImage(SSprite * sprite) const;
 	void ApplyFaceImage(SSprite * sprite) const;

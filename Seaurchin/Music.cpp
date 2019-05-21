@@ -28,7 +28,7 @@ ScoreParameter::ScoreParameter()
 ScoreParameter::~ScoreParameter()
 {
 #ifdef _DEBUG
-	SU_ASSERT(GetRefcount() == 0);
+	SU_ASSERT(GetRefCount() == 0);
 #endif
 }
 
@@ -99,7 +99,7 @@ CategoryParameter::CategoryParameter()
 CategoryParameter::~CategoryParameter()
 {
 #ifdef _DEBUG
-	SU_ASSERT(GetRefcount() == 0);
+	SU_ASSERT(GetRefCount() == 0);
 #endif
 
 	for (auto& p : music) p->Release();
@@ -204,7 +204,7 @@ MusicParameter::MusicParameter()
 MusicParameter::~MusicParameter()
 {
 #ifdef _DEBUG
-	SU_ASSERT(GetRefcount() == 0);
+	SU_ASSERT(GetRefCount() == 0);
 #endif
 
 	for (auto& p : scores) p->Release();

@@ -13,17 +13,10 @@ ScriptScene::ScriptScene(asIScriptObject* scene)
 	, mainMethod(nullptr)
 	, eventMethod(nullptr)
 	, finished(false)
-{
-	sceneObject->AddRef();
-}
+{}
 
 ScriptScene::~ScriptScene()
 {
-	for (auto& i : sprites) i->Release();
-	sprites.clear();
-	for (auto& i : spritesPending) i->Release();
-	spritesPending.clear();
-
 	KillCoroutine("");
 
 	if (mainMethod) mainMethod->Unprepare();
@@ -33,6 +26,11 @@ ScriptScene::~ScriptScene()
 	delete eventMethod;
 
 	sceneObject->Release();
+
+	for (auto& i : sprites) i->Release();
+	sprites.clear();
+	for (auto& i : spritesPending) i->Release();
+	spritesPending.clear();
 }
 
 void ScriptScene::Initialize()

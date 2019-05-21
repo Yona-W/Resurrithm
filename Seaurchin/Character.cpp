@@ -25,13 +25,18 @@ void CharacterParameter::RegisterType(asIScriptEngine* engine)
 
 
 CharacterImageSet::CharacterImageSet(const shared_ptr<CharacterParameter> param)
+	: refcount(1)
+	, parameter(param)
 {
-	parameter = param;
 	LoadAllImage();
 }
 
 CharacterImageSet::~CharacterImageSet()
 {
+#ifdef _DEBUG
+	SU_ASSERT(GetRefCount() == 0);
+#endif
+
 	imageFull->Release();
 	imageSmall->Release();
 	imageFace->Release();
@@ -67,9 +72,7 @@ void CharacterImageSet::ApplyFaceImage(SSprite * sprite) const
 
 CharacterImageSet* CharacterImageSet::CreateImageSet(const shared_ptr<CharacterParameter> param)
 {
-	auto result = new CharacterImageSet(param);
-	result->AddRef();
-	return result;
+	return new CharacterImageSet(param);
 }
 
 void CharacterImageSet::LoadAllImage()

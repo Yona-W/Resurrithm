@@ -24,7 +24,8 @@ class SSpriteMover;
 
 //基底がImageSpriteでもいい気がしてるんだよね正直
 class SSprite {
-public:
+	INPLEMENT_REF_COUNTER
+
 	enum class FieldID : unsigned int {
 		// 未定義を表す
 		Undefined = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "unknown"),
@@ -69,7 +70,6 @@ private:
 	virtual void DrawBy(const Transform2D& tf, const ColorTint& ct);
 
 protected:
-	int reference;
 	SSpriteMover* pMover;
 
 	void CopyParameterFrom(SSprite* original);
@@ -87,9 +87,6 @@ public:
 
 	SSprite();
 	virtual ~SSprite();
-	void AddRef();
-	void Release();
-	int GetRefCount() const { return reference; }
 
 	virtual void Dismiss() { IsDead = true; }
 	void Revive() { IsDead = false; }

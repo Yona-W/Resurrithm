@@ -94,7 +94,7 @@ class Title : CoroutineScene {
     }
 
     MusicManager@ musicManager = GetMusicManager();
-	while (musicManager.IsReloading()) YieldTime(1.5);
+    while (musicManager.IsReloading()) YieldTime(1.5);
     for(uint i = 0; i < dxl.length(); i++) {
       dxl[i].AddMove("alpha", moverList[1]);
       dxl[i].AddMove("death", moverList[2]);

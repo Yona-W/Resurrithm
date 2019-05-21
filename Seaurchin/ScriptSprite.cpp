@@ -265,7 +265,7 @@ namespace {
 		SKIP_SP(p);
 		CHECK_END(p);
 
-		MoverObject * pMoverObject = new MoverObject();
+		MoverObject * pMoverObject = MoverObject::Factory();
 		bool retVal = false;
 		while (*p != '\0') {
 			if (!AddMoveObject(p, &p, pMoverObject)) break;
@@ -450,7 +450,7 @@ const SImage* SSprite::GetImage() const
 }
 
 SSprite::SSprite()
-	: reference(0)
+	: refcount(0)	// いずれは初期値1にして他と統一したい
 	, pMover(new SSpriteMover(this)) // NOTE: this渡すのはちょっと怖いけど
 	, ZIndex(0)
 	, Color(Colors::white)
@@ -462,19 +462,13 @@ SSprite::SSprite()
 
 SSprite::~SSprite()
 {
+#ifdef _DEBUG
+	SU_ASSERT(GetRefCount() == 0);
+#endif
+
 	if (Image) Image->Release();
 	Image = nullptr;
 	delete pMover;
-}
-
-void SSprite::AddRef()
-{
-	++reference;
-}
-
-void SSprite::Release()
-{
-	if (--reference == 0) delete this;
 }
 
 bool SSprite::Apply(FieldID id, const double value)
@@ -808,8 +802,11 @@ void SShape::RegisterType(asIScriptEngine * engine)
 
 void STextSprite::Refresh()
 {
-	delete target;
-	delete scrollBuffer;
+	if (target) target->Release();
+	target = nullptr;
+	if (scrollBuffer) scrollBuffer->Release();
+	scrollBuffer = nullptr;
+
 	if (!Font) {
 		size = std::make_tuple<int, int>(0, 0);
 		return;
@@ -935,8 +932,8 @@ double STextSprite::GetHeight()
 STextSprite::~STextSprite()
 {
 	if (Font) Font->Release();
-	delete target;
-	delete scrollBuffer;
+	if (target) target->Release();
+	if (scrollBuffer) scrollBuffer->Release();
 }
 
 void STextSprite::Tick(const double delta)
@@ -1141,12 +1138,12 @@ SSynthSprite::SSynthSprite(const int w, const int h)
 
 SSynthSprite::~SSynthSprite()
 {
-	delete target;
+	if (target) target->Release();
 }
 
 void SSynthSprite::Clear()
 {
-	delete target;
+	if (target) target->Release();
 	target = new SRenderTarget(width, height);
 }
 

@@ -50,6 +50,7 @@ asIScriptObject* AngelScript::InstantiateObject(asITypeInfo* type) const
 	ptr->AddRef();
 	sharedContext->Unprepare();
 
+	type->Release();
 	return ptr;
 }
 
@@ -114,7 +115,6 @@ asIScriptObject* AngelScript::ExecuteScriptAsObject(const path& root, const path
 		obj = InstantiateObject(type);
 	}
 
-	if (type) type->Release();
 	mod->Discard();
 	return obj;
 }
@@ -223,7 +223,10 @@ MethodObject* MethodObject::Create(asIScriptObject* obj, const char* decl)
 
 	auto engine = obj->GetEngine();
 	auto func = obj->GetObjectType()->GetMethodByDecl(decl);
-	if (!func) return nullptr;
+	if (!func) {
+		obj->Release();
+		return nullptr;
+	}
 
 	obj->AddRef();
 	func->AddRef();
@@ -329,16 +332,14 @@ CallbackObject* CallbackObject::Create(asIScriptFunction* callback)
 }
 
 CallbackObject::CallbackObject(asIScriptEngine* engine, asIScriptFunction* callback)
-	: context(engine->CreateContext())
+	: refcount(1)
+	, context(engine->CreateContext())
 	, object(static_cast<asIScriptObject*>(callback->GetDelegateObject()))
 	, function(callback->GetDelegateFunction())
-	, type(callback->GetDelegateObjectType())
 	, exists(true)
-	, refcount(1)
 {
 	function->AddRef();
 	object->AddRef();
-	type->AddRef();
 
 	callback->Release();
 }
@@ -346,6 +347,10 @@ CallbackObject::CallbackObject(asIScriptEngine* engine, asIScriptFunction* callb
 CallbackObject::~CallbackObject()
 {
 	Dispose();
+
+#ifdef _DEBUG
+	SU_ASSERT(GetRefCount() == 0);
+#endif
 }
 
 void CallbackObject::Dispose()
@@ -355,8 +360,7 @@ void CallbackObject::Dispose()
 	auto engine = context->GetEngine();
 	context->Release();
 	function->Release();
-	engine->ReleaseScriptObject(object, type);
-	type->Release();
+	engine->ReleaseScriptObject(object, object->GetObjectType());
 
 	exists = false;
 }

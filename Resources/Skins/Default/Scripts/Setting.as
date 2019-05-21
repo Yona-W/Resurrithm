@@ -158,7 +158,7 @@ class SettingScene : CoroutineScene {
       }
       if (IsKeyTriggered(Key::INPUT_RIGHT)) {
         if (isSelectingGroup) {
-          if (++selGroup >= groups.length()) selGroup--;
+          if (++selGroup >= int(groups.length())) selGroup--;
           LoadSettingGroup(selGroup);
         } else {
           target[selected].MoveNext();

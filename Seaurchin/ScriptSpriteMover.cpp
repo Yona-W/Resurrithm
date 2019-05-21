@@ -264,7 +264,7 @@ namespace {
 		SKIP_SP(p);
 		CHECK_END(p);
 
-		MoverObject * pMoverObject = new MoverObject();
+		MoverObject * pMoverObject = MoverObject::Factory();
 		bool retVal = false;
 		while (*p != '\0') {
 			if (!AddMoveObject(p, &p, pMoverObject)) break;
@@ -326,7 +326,7 @@ namespace {
 
 
 MoverObject::MoverObject()
-	: reference(1)
+	: refcount(1)
 	, target(nullptr)
 	, pFunction(nullptr)
 	, variables()
@@ -584,7 +584,7 @@ bool SSpriteMover::AddMove(const std::string & dict)
 bool SSpriteMover::AddMove(const std::string & key, const CScriptDictionary * dict)
 {
 	SU_ASSERT(target);
-	MoverObject* pMover = new MoverObject();
+	MoverObject* pMover = MoverObject::Factory();
 
 	pMover->RegisterTargetField(SSprite::GetFieldId(key));
 

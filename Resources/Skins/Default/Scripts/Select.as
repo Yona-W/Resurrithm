@@ -1,5 +1,5 @@
 [EntryPoint]
-class Title : CoroutineScene {
+class Select : CoroutineScene {
   Skin@ skin;
   MusicManager@ musicManager;
   uint currentCategoryIndex;

@@ -43,9 +43,11 @@ namespace {
 		const auto type = obj->GetObjectType();
 		ScriptScene* ret = nullptr;
 		if (scriptInterface->CheckImplementation(type, SU_IF_COSCENE)) {
+			obj->AddRef();
 			ret = new ScriptCoroutineScene(obj);
 		}
 		else if (scriptInterface->CheckImplementation(type, SU_IF_SCENE)) {
+			obj->AddRef();
 			ret = new ScriptScene(obj);
 		}
 		else {

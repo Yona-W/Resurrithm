@@ -1,22 +1,5 @@
 ﻿#pragma once
 
-#ifdef _DEBUG 
-#define INPLEMENT_REF_COUNTER \
-private: \
-	int32_t refcount; \
-public: \
-	void AddRef() { ++refcount; } \
-	void Release() { if (--refcount == 0) delete this; } \
-	int32_t GetRefcount() const { return refcount; }
-#else
-#define INPLEMENT_REF_COUNTER \
-private: \
-	int32_t refcount; \
-public: \
-	void AddRef() { ++refcount; } \
-	void Release() { if (--refcount == 0) delete this; }
-#endif
-
 #define SU_IF_CATEGORY "Category"
 #define SU_IF_MUSIC "Music"
 #define SU_IF_SCORE "Score"

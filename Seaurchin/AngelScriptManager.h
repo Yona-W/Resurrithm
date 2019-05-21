@@ -177,13 +177,13 @@ public:
  * オブジェクトが呼び出し禁止状態になっているときはIsExistsがfalseを返します。
  */
 class CallbackObject {
+	INPLEMENT_REF_COUNTER
+
 private:
 	asIScriptContext* context;		//!< コールバックを実行するコンテキスト
 	asIScriptObject* object;		//!< コールバックをもつオブジェクトのインスタンス
 	asIScriptFunction* function;	//!< 実行するコールバック
-	asITypeInfo* type;				//!< コールバックを持つオブジェクトの型情報
 	bool exists;					//!< コールバックのデリゲートが存在しているか
-	int refcount;					//!< 参照カウント
 
 public:
 	//! @brief CallbackObjectのインスタンスを生成します。
@@ -193,19 +193,10 @@ public:
 
 private:
 	explicit CallbackObject(asIScriptEngine* engine, asIScriptFunction* callback);
-public:
+	CallbackObject(const CallbackObject&) = delete;
 	~CallbackObject();
 
-	//! @brief 参照カウントを増やします。
-	void AddRef() { ++refcount; }
-
-	//! @brief 参照カウントを減らします。
-	void Release() { if (--refcount == 0) delete this; }
-
-	//! @brief 参照カウントを返します。
-	//! @return 現在の参照カウント。
-	int GetRefCount() const { return refcount; }
-
+public:
 	//! @brief オブジェクトが所有しているデリゲート「のみ」を解放します。
 	//! @note これを呼び出すとコンテキスト等が解放されます。これの呼び出し以降はPrepare、Executeなどを呼び出さないでください。
 	void Dispose();

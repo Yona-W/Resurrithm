@@ -60,6 +60,11 @@ public:
 	std::vector<SkillDetail*> Details;
 	int32_t CurrentLevel;
 	int32_t MaxLevel;
+
+public:
+	~SkillParameter() {
+		for (auto p : Details) delete p;
+	}
 };
 
 enum class AbilityNoteType {

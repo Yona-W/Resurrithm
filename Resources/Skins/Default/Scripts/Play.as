@@ -117,9 +117,9 @@ class Play : CoroutineScene {
     }
 
     {
-	    ScenePlayerMetrics metrics;
-	    player.GetMetrics(metrics);
-	    Image@ imgLine = skin.GetImage("*Lane-JudgeLine");
+      ScenePlayerMetrics metrics;
+      player.GetMetrics(metrics);
+      Image@ imgLine = skin.GetImage("*Lane-JudgeLine");
       Sprite@ sp = Sprite(imgLine);
       sp.Apply("x:0, y:3840, z:3, origY:"+(imgLine.Height/2));
       ctnLane.AddChild(sp);
@@ -131,11 +131,11 @@ class Play : CoroutineScene {
     SetPlayerResource();
     player.Initialize();
 
-	  ScenePlayerMetrics metrics;
-	  player.GetMetrics(metrics);
-	  judgeLineBegin = metrics.JudgeLineLeftX + (1280 / 2);
-	  judgeLineWidth = metrics.JudgeLineRightX - metrics.JudgeLineLeftX;
-	  judgeLineY = metrics.JudgeLineLeftY;
+    ScenePlayerMetrics metrics;
+    player.GetMetrics(metrics);
+    judgeLineBegin = metrics.JudgeLineLeftX + (1280 / 2);
+    judgeLineWidth = metrics.JudgeLineRightX - metrics.JudgeLineLeftX;
+    judgeLineY = metrics.JudgeLineLeftY;
 
     player.SetAbility(GetSkillManager().GetSkill(0).GetDetail(0));
     player.SetJudgeCallback(JudgeCallback(OnJudge));
@@ -341,22 +341,22 @@ class Play : CoroutineScene {
   // 判定発生ごとに呼ばれるコールバック
   Image@ imgJC, imgJ, imgA, imgM;
   void OnJudge(JudgeData data, const string &in ex) {
-  	Sprite@ sp;
-  	switch (data.Judge) {
-  	  case JudgeType::JusticeCritical:
-  	    @sp = Sprite(imgJC);
-  	    break;
-  	  case JudgeType::Justice:
-  	    @sp = Sprite(imgJ);
-  	    break;
-  	  case JudgeType::Attack:
-  	    @sp = Sprite(imgA);
-  	    break;
-  	  case JudgeType::Miss:
-  	    @sp = Sprite(imgM);
-  	    break;
-  	}
-  	sp.Apply(dictionary = {
+    Sprite@ sp;
+    switch (data.Judge) {
+      case JudgeType::JusticeCritical:
+        @sp = Sprite(imgJC);
+        break;
+      case JudgeType::Justice:
+        @sp = Sprite(imgJ);
+        break;
+      case JudgeType::Attack:
+        @sp = Sprite(imgA);
+        break;
+      case JudgeType::Miss:
+        @sp = Sprite(imgM);
+        break;
+    }
+    sp.Apply(dictionary = {
       { "x", judgeLineBegin + judgeLineWidth / 16 * (data.Left + (data.Right - data.Left) / 2) },
       { "y" , judgeLineY - 170 },
       { "z", 10 },
@@ -366,10 +366,10 @@ class Play : CoroutineScene {
       { "scaleY", 0.5 },
       { "alpha", 0 }
     });
-  	sp.AddMove("y:{@end:-150, time:0.5, func:out_sine}");
-  	sp.AddMove("alpha:{begin:0.0, end:1.0, time:0.5}");
-  	sp.AddMove("death:{wait:0.6}");
-  	AddSprite(sp);
+    sp.AddMove("y:{@end:-150, time:0.5, func:out_sine}");
+    sp.AddMove("alpha:{begin:0.0, end:1.0, time:0.5}");
+    sp.AddMove("death:{wait:0.6}");
+    AddSprite(sp);
   }
 }
 
@@ -463,10 +463,6 @@ class CharacterInfo : CoroutineScene {
 
   void Run() {
     while(true) YieldFrame(100);
-  }
-
-  void Draw() {
-
   }
 
   void OnSkill(const string &in index) {

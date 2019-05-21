@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Setting.h"
 #include "ScriptSpriteMisc.h"
 
 #define SU_IF_IMAGE "Image"
@@ -14,18 +13,16 @@
 
 //リソース基底クラス
 class SResource {
+	INPLEMENT_REF_COUNTER
+
 protected:
-	int reference = 0;
 	int handle = 0;
 
 public:
 	SResource();
 	virtual ~SResource();
-	void AddRef() { ++reference; }
-	void Release() { if (--reference == 0) delete this; }
 
 	int GetHandle() const { return handle; }
-	int GetRefCount() const { return reference; }
 };
 
 //画像
@@ -145,6 +142,7 @@ public:
 	static SSound* CreateSoundFromFileName(const std::string& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 };
 
+class SettingItem;
 class SSettingItem : public SResource {
 protected:
 	std::shared_ptr<SettingItem> setting;

@@ -52,10 +52,12 @@ bool SkinHolder::Initialize()
 
 void SkinHolder::Terminate()
 {
+#ifdef _DEBUG
 	for (const auto& it : images) SU_ASSERT(it.second->GetRefCount() == 1);
 	for (const auto& it : sounds) SU_ASSERT(it.second->GetRefCount() == 1);
 	for (const auto& it : fonts) SU_ASSERT(it.second->GetRefCount() == 1);
 	for (const auto& it : animatedImages) SU_ASSERT(it.second->GetRefCount() == 1);
+#endif
 
 	for (const auto& it : images) it.second->Release();
 	for (const auto& it : sounds) it.second->Release();
