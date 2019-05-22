@@ -27,9 +27,7 @@ ScoreParameter::ScoreParameter()
 
 ScoreParameter::~ScoreParameter()
 {
-#ifdef _DEBUG
-	SU_ASSERT(GetRefCount() == 0);
-#endif
+	SU_ASSERT(IS_REFCOUNT(this, 0));
 }
 
 ScoreParameter* ScoreParameter::Create(SusAnalyzer* analyzer, const path& cpath)
@@ -98,9 +96,7 @@ CategoryParameter::CategoryParameter()
 
 CategoryParameter::~CategoryParameter()
 {
-#ifdef _DEBUG
-	SU_ASSERT(GetRefCount() == 0);
-#endif
+	SU_ASSERT(IS_REFCOUNT(this, 0));
 
 	for (auto& p : music) p->Release();
 }
@@ -203,9 +199,7 @@ MusicParameter::MusicParameter()
 
 MusicParameter::~MusicParameter()
 {
-#ifdef _DEBUG
-	SU_ASSERT(GetRefCount() == 0);
-#endif
+	SU_ASSERT(IS_REFCOUNT(this, 0));
 
 	for (auto& p : scores) p->Release();
 }

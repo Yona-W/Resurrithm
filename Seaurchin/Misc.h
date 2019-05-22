@@ -57,6 +57,7 @@ public: \
 	void AddRef() { ++refcount; } \
 	void Release() { if (--refcount == 0) delete this; } \
 	int32_t GetRefCount() const { return refcount; }
+#define IS_REFCOUNT(obj, count) ((obj)->GetRefCount() == (count))
 #else
 #define INPLEMENT_REF_COUNTER \
 private: \
@@ -64,4 +65,5 @@ private: \
 public: \
 	void AddRef() { ++refcount; } \
 	void Release() { if (--refcount == 0) delete this; }
+#define IS_REFCOUNT(obj, count) (true)
 #endif

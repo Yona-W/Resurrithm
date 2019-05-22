@@ -327,10 +327,8 @@ namespace {
 
 // 一般
 
-void RegisterScriptSprite(ExecutionManager * exm)
+void RegisterScriptSprite(asIScriptEngine* engine)
 {
-	const auto engine = exm->GetScriptInterfaceUnsafe()->GetEngine();
-
 	MoverObject::RegisterType(engine);
 
 	SSprite::RegisterType(engine);
@@ -344,11 +342,156 @@ void RegisterScriptSprite(ExecutionManager * exm)
 
 //SSprite ------------------
 
+SSprite::SSprite()
+	: refcount(1)
+	, Color(Colors::white)
+	, ZIndex(0)
+	, HasAlpha(true)
+	, IsDead(false)
+	, pMover(new SSpriteMover(this)) // NOTE: this渡すのはちょっと怖いけど
+	, Image(nullptr)
+{}
+
+SSprite::~SSprite()
+{
+	SU_ASSERT(IS_REFCOUNT(this, 0));
+
+	if (Image) Image->Release();
+	delete pMover;
+}
+
+SSprite* SSprite::Clone() const
+{
+	auto clone = new SSprite();
+	clone->CopyParameterFrom(this);
+
+	{
+		if (Image) Image->AddRef();
+		clone->SetImage(Image);
+	}
+
+	SU_ASSERT(IS_REFCOUNT(clone, 1));
+	return clone;
+}
+
+void SSprite::Tick(const double delta)
+{
+	pMover->Tick(delta);
+}
+
+void SSprite::Draw() const
+{
+	DrawBy(Transform, Color);
+}
+
+void SSprite::Draw(const Transform2D& parent, const ColorTint& color) const
+{
+	const auto tf = Transform.ApplyFrom(parent);
+	const auto cl = Color.ApplyFrom(color);
+	DrawBy(tf, cl);
+}
+
+void SSprite::DrawBy(const Transform2D& tf, const ColorTint& ct) const
+{
+	if (!Image) return;
+
+	SetDrawBright(255, 255, 255);
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
+	DrawRotaGraph3F(
+		tf.X, tf.Y,
+		tf.OriginX, tf.OriginY,
+		tf.ScaleX, tf.ScaleY,
+		tf.Angle, Image->GetHandle(),
+		HasAlpha ? TRUE : FALSE, FALSE);
+}
+
+void SSprite::CopyParameterFrom(const SSprite* original)
+{
+	Transform = original->Transform;
+	Color = original->Color;
+	ZIndex = original->ZIndex;
+	IsDead = original->IsDead;
+	HasAlpha = original->HasAlpha;
+}
+
+void SSprite::SetImage(SImage* img)
+{
+	if (Image) Image->Release();
+	Image = img;
+}
+
+const SImage* SSprite::GetImage() const
+{
+	if (Image) Image->AddRef();
+	return Image;
+}
+
+bool SSprite::Apply(const string& dict)
+{
+	return ::Apply(dict.c_str(), this);
+}
+
+bool SSprite::Apply(const CScriptDictionary* dict)
+{
+	auto i = dict->begin();
+	while (i != dict->end()) {
+		const auto key = i.GetKey();
+		const auto id = SSprite::GetFieldId(key);
+		double dv = 0;
+		if (i.GetValue(dv)) if (!Apply(id, dv)) spdlog::get("main")->warn(u8"プロパティに \"{0}\" は設定できません。", key);
+		++i;
+	}
+
+	dict->Release();
+	return true; // TODO: 雑
+}
+
+bool SSprite::AddMove(const string& dict)
+{
+	return pMover->AddMove(dict);
+}
+
+bool SSprite::AddMove(const string& key, const CScriptDictionary* dict)
+{
+	if (!dict) return false;
+
+	dict->AddRef();
+	const bool result = pMover->AddMove(key, dict);
+
+	dict->Release();
+	return result;
+}
+
+bool SSprite::AddMove(const string& key, MoverObject* pMoverObj)
+{
+	if (!pMoverObj) return false;
+
+	MoverObject* pClone = pMoverObj->Clone();
+
+	SSprite::FieldID id = SSprite::GetFieldId(key);
+	if (!pClone->RegisterTargetField(id)) {
+		pClone->Release();
+		pMoverObj->Release();
+		return false;
+	}
+
+	const bool result = pMover->AddMove(pClone);
+
+	pMoverObj->Release();
+	return result;
+}
+
+void SSprite::AbortMove(const bool terminate)
+{
+	pMover->Abort(terminate);
+}
+
 bool SSprite::GetField(const SSprite * pSprite, FieldID id, double& value)
 {
 	if (!pSprite) return false;
 
 	const SShape* pShape = dynamic_cast<const SShape*>(pSprite);
+	const STextSprite* pText = dynamic_cast<const STextSprite*>(pSprite);
 	const SClippingSprite* pClip = dynamic_cast<const SClippingSprite*>(pSprite);
 	const SAnimeSprite* pAnim = dynamic_cast<const SAnimeSprite*>(pSprite);
 
@@ -364,11 +507,21 @@ bool SSprite::GetField(const SSprite * pSprite, FieldID id, double& value)
 	case FieldID::ScaleX: value = SU_TO_DOUBLE(pSprite->Transform.ScaleX); return true;
 	case FieldID::ScaleY: value = SU_TO_DOUBLE(pSprite->Transform.ScaleY); return true;
 	case FieldID::Alpha: value = SU_TO_DOUBLE(pSprite->Color.A / 255.0); return true;
-	case FieldID::R: value = SU_TO_DOUBLE(pSprite->Color.R); return true;
-	case FieldID::G: value = SU_TO_DOUBLE(pSprite->Color.G); return true;
-	case FieldID::B: value = SU_TO_DOUBLE(pSprite->Color.B); return true;
 
 	case FieldID::Death: value = pSprite->IsDead ? 1.0 : 0.0; return true;
+
+	case FieldID::R:
+		if (pShape) { value = SU_TO_DOUBLE(pShape->Color.R); return true; }
+		if (pText) { value = SU_TO_DOUBLE(pText->Color.R); return true; }
+		return false;
+	case FieldID::G:
+		if (pShape) { value = SU_TO_DOUBLE(pShape->Color.G); return true; }
+		if (pText) { value = SU_TO_DOUBLE(pText->Color.G); return true; }
+		return false;
+	case FieldID::B:
+		if (pShape) { value = SU_TO_DOUBLE(pShape->Color.B); return true; }
+		if (pText) { value = SU_TO_DOUBLE(pText->Color.B); return true; }
+		return false;
 
 	case FieldID::Width: if (!pShape) return false; value = SU_TO_DOUBLE(pShape->Width); return true;
 	case FieldID::Height: if (!pShape) return false; value = SU_TO_DOUBLE(pShape->Height); return true;
@@ -387,12 +540,10 @@ bool SSprite::GetField(const SSprite * pSprite, FieldID id, double& value)
 
 bool SSprite::SetField(SSprite * pSprite, FieldID id, double value)
 {
-	if (!pSprite) {
-		spdlog::get("main")->critical(u8"なんで");
-		return false;
-	}
+	if (!pSprite) return false;
 
 	SShape* pShape = dynamic_cast<SShape*>(pSprite);
+	STextSprite* pText = dynamic_cast<STextSprite*>(pSprite);
 	SClippingSprite* pClip = dynamic_cast<SClippingSprite*>(pSprite);
 	SAnimeSprite* pAnim = dynamic_cast<SAnimeSprite*>(pSprite);
 
@@ -407,12 +558,21 @@ bool SSprite::SetField(SSprite * pSprite, FieldID id, double value)
 	case FieldID::ScaleX: return pSprite->SetScaleX(value);
 	case FieldID::ScaleY: return pSprite->SetScaleY(value);
 	case FieldID::Alpha: return pSprite->SetAlpha(value);
-	case FieldID::R: return pSprite->SetColorR(value);
-	case FieldID::G: return pSprite->SetColorG(value);
-	case FieldID::B: return pSprite->SetColorB(value);
 
 	case FieldID::Death: pSprite->Dismiss(); return true;
 
+	case FieldID::R:
+		if (pShape) return pShape->SetColorR(value);
+		if (pText) return pText->SetColorR(value);
+		return false;
+	case FieldID::G:
+		if (pShape) return pShape->SetColorG(value);
+		if (pText) return pText->SetColorG(value);
+		return false;
+	case FieldID::B:
+		if (pShape) return pShape->SetColorB(value);
+		if (pText) return pText->SetColorB(value);
+		return false;
 	case FieldID::Width: if (!pShape) return false; return pShape->SetWidth(value);
 	case FieldID::Height: if (!pShape) return false; return pShape->SetHeight(value);
 
@@ -428,170 +588,17 @@ bool SSprite::SetField(SSprite * pSprite, FieldID id, double value)
 	}
 }
 
-void SSprite::CopyParameterFrom(SSprite * original)
-{
-	Transform = original->Transform;
-	ZIndex = original->ZIndex;
-	Color = original->Color;
-	IsDead = original->IsDead;
-	HasAlpha = original->HasAlpha;
-}
-
-void SSprite::SetImage(SImage * img)
-{
-	if (Image) Image->Release();
-	Image = img;
-}
-
-const SImage* SSprite::GetImage() const
-{
-	if (Image) Image->AddRef();
-	return Image;
-}
-
-SSprite::SSprite()
-	: refcount(0)	// いずれは初期値1にして他と統一したい
-	, pMover(new SSpriteMover(this)) // NOTE: this渡すのはちょっと怖いけど
-	, ZIndex(0)
-	, Color(Colors::white)
-	, IsDead(false)
-	, HasAlpha(true)
-	, Image(nullptr)
-{
-}
-
-SSprite::~SSprite()
-{
-#ifdef _DEBUG
-	SU_ASSERT(GetRefCount() == 0);
-#endif
-
-	if (Image) Image->Release();
-	Image = nullptr;
-	delete pMover;
-}
-
-bool SSprite::Apply(FieldID id, const double value)
-{
-	return SSprite::SetField(this, id, value);
-}
-
-void SSprite::Apply(const string & dict)
-{
-	::Apply(dict.c_str(), this);
-	return;
-}
-
-void SSprite::Apply(const CScriptDictionary * dict)
-{
-	auto i = dict->begin();
-	while (i != dict->end()) {
-		const auto key = i.GetKey();
-		const auto id = SSprite::GetFieldId(key);
-		double dv = 0;
-		if (i.GetValue(dv)) if (!Apply(id, dv)) spdlog::get("main")->warn(u8"プロパティに \"{0}\" は設定できません。", key);
-		++i;
-	}
-
-	dict->Release();
-}
-
-void SSprite::AddMove(const string & dict)
-{
-	pMover->AddMove(dict);
-}
-
-void SSprite::AddMove(const string & key, const CScriptDictionary * dict)
-{
-	dict->AddRef();
-	pMover->AddMove(key, dict);
-
-	dict->Release();
-}
-
-void SSprite::AddMove(const string & key, MoverObject * pMoverObj)
-{
-	if (!pMoverObj) return;
-
-	MoverObject* pClone = pMoverObj->Clone();
-
-	SSprite::FieldID id = SSprite::GetFieldId(key);
-	if (!pClone->RegisterTargetField(id)) {
-		pClone->Release();
-		pMoverObj->Release();
-		return;
-	}
-
-	pMover->AddMove(pClone);
-
-	pMoverObj->Release();
-}
-
-void SSprite::AbortMove(const bool terminate)
-{
-	pMover->Abort(terminate);
-}
-
-void SSprite::Tick(const double delta)
-{
-	pMover->Tick(delta);
-}
-
-void SSprite::Draw()
-{
-	DrawBy(Transform, Color);
-}
-
-void SSprite::Draw(const Transform2D & parent, const ColorTint & color)
-{
-	const auto tf = Transform.ApplyFrom(parent);
-	const auto cl = Color.ApplyFrom(color);
-	DrawBy(tf, cl);
-}
-
-void SSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
-{
-	if (!Image) return;
-	SetDrawBright(ct.R, ct.G, ct.B);
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
-	DrawRotaGraph3F(
-		tf.X, tf.Y,
-		tf.OriginX, tf.OriginY,
-		tf.ScaleX, tf.ScaleY,
-		tf.Angle, Image->GetHandle(),
-		HasAlpha ? TRUE : FALSE, FALSE);
-}
-
-SSprite* SSprite::Clone()
-{
-	//コピコンで良くないかこれ
-	auto clone = new SSprite();
-	clone->AddRef();
-
-	clone->CopyParameterFrom(this);
-
-	{
-		if (Image) Image->AddRef();
-		clone->SetImage(Image);
-	}
-
-	SU_ASSERT(clone->GetRefCount() == 1);
-	return clone;
-}
-
 SSprite* SSprite::Factory()
 {
 	auto result = new SSprite();
-	result->AddRef();
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
 SSprite* SSprite::Factory(SImage * img)
 {
 	auto result = new SSprite();
-	result->AddRef();
 
 	{
 		if (img) img->AddRef();
@@ -599,13 +606,9 @@ SSprite* SSprite::Factory(SImage * img)
 	}
 
 	if (img) img->Release();
-	SU_ASSERT(result->GetRefCount() == 1);
-	return result;
-}
 
-ColorTint GetColor(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a)
-{
-	return ColorTint{ a, r, g, b };
+	SU_ASSERT(IS_REFCOUNT(result, 1));
+	return result;
 }
 
 void SSprite::RegisterType(asIScriptEngine * engine)
@@ -639,7 +642,7 @@ void SSprite::RegisterType(asIScriptEngine * engine)
 	engine->RegisterEnumValue(SU_IF_SHAPETYPE, "Oval", int(SShapeType::Oval));
 	engine->RegisterEnumValue(SU_IF_SHAPETYPE, "OvalFill", int(SShapeType::OvalFill));
 
-	//ShapeType
+	//TextAlign
 	engine->RegisterEnum(SU_IF_TEXTALIGN);
 	engine->RegisterEnumValue(SU_IF_TEXTALIGN, "Top", int(STextAlign::Top));
 	engine->RegisterEnumValue(SU_IF_TEXTALIGN, "Bottom", int(STextAlign::Bottom));
@@ -658,66 +661,63 @@ SShape::SShape()
 	: Type(SShapeType::BoxFill)
 	, Width(32)
 	, Height(32)
+{}
+
+SShape* SShape::Clone() const
 {
+	auto clone = new SShape();
+	clone->CopyParameterFrom(this);
+
+	clone->Width = Width;
+	clone->Height = Height;
+
+	SU_ASSERT(IS_REFCOUNT(clone, 1));
+	return clone;
 }
 
-void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
+void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct) const
 {
-	SetDrawBright(ct.R, ct.G, ct.B);
+	const unsigned int clr = GetColor(ct.R, ct.G, ct.B);
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
+
 	switch (Type) {
 	case SShapeType::Pixel:
-		DrawPixel(SU_TO_INT32(tf.X), SU_TO_INT32(tf.Y), GetColor(255, 255, 255));
+		DrawPixel(SU_TO_INT32(tf.X), SU_TO_INT32(tf.Y), clr);
 		break;
-	case SShapeType::Box: {
-		const glm::vec2 points[] = {
-			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle)),
-			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle))
-		};
-		DrawQuadrangleAA(
-			tf.X + points[0].x, tf.Y - points[0].y,
-			tf.X + points[1].x, tf.Y - points[1].y,
-			tf.X + points[2].x, tf.Y - points[2].y,
-			tf.X + points[3].x, tf.Y - points[3].y,
-			GetColor(255, 255, 255), FALSE
-		);
-		break;
-	}
+	case SShapeType::Box:
 	case SShapeType::BoxFill: {
 		const glm::vec2 points[] = {
-			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle)),
-			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle))
+			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), tf.Angle),
+			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), tf.Angle),
+			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), tf.Angle),
+			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), tf.Angle)
 		};
 		DrawQuadrangleAA(
 			tf.X + points[0].x, tf.Y - points[0].y,
 			tf.X + points[1].x, tf.Y - points[1].y,
 			tf.X + points[2].x, tf.Y - points[2].y,
 			tf.X + points[3].x, tf.Y - points[3].y,
-			GetColor(255, 255, 255), TRUE
+			clr, Type == SShapeType::BoxFill
 		);
 		break;
 	}
 	case SShapeType::Oval: {
 		auto prev = glm::rotate(
 			glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(0), Height * tf.ScaleY / 2.0 * glm::sin(0)),
-			float(tf.Angle)
+			tf.Angle
 		);
 		for (auto i = 1; i <= 256; ++i) {
 			const auto angle = 2.0 * glm::pi<double>() / 256.0 * i;
 			const auto next = glm::rotate(
 				glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(angle), Height * tf.ScaleY / 2.0 * glm::sin(angle)),
-				float(tf.Angle)
+				tf.Angle
 			);
 			DrawLineAA(
-				float(tf.X + prev.x),
-				float(tf.Y - prev.y),
-				float(tf.X + next.x),
-				float(tf.Y - next.y),
-				GetColor(255, 255, 255)
+				tf.X + prev.x,
+				tf.Y - prev.y,
+				tf.X + next.x,
+				tf.Y - next.y,
+				clr
 			);
 			prev = next;
 		}
@@ -726,22 +726,22 @@ void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
 	case SShapeType::OvalFill: {
 		auto prev = glm::rotate(
 			glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(0), Height * tf.ScaleY / 2.0 * glm::sin(0)),
-			float(tf.Angle)
+			tf.Angle
 		);
 		for (auto i = 1; i <= 256; ++i) {
 			const auto angle = 2.0 * glm::pi<double>() / 256.0 * i;
 			const auto next = glm::rotate(
 				glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(angle), Height * tf.ScaleY / 2.0 * glm::sin(angle)),
-				float(tf.Angle)
+				tf.Angle
 			);
 			DrawTriangleAA(
-				float(tf.X),
-				float(tf.Y),
-				float(tf.X + prev.x),
-				float(tf.Y - prev.y),
-				float(tf.X + next.x),
-				float(tf.Y - next.y),
-				GetColor(255, 255, 255),
+				tf.X,
+				tf.Y,
+				tf.X + prev.x,
+				tf.Y - prev.y,
+				tf.X + next.x,
+				tf.Y - next.y,
+				clr,
 				TRUE
 			);
 			prev = next;
@@ -751,39 +751,11 @@ void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
 	}
 }
 
-void SShape::Draw()
-{
-	DrawBy(Transform, Color);
-}
-
-void SShape::Draw(const Transform2D & parent, const ColorTint & color)
-{
-	const auto tf = Transform.ApplyFrom(parent);
-	const auto cl = Color.ApplyFrom(color);
-	DrawBy(tf, cl);
-}
-
-SShape* SShape::Clone()
-{
-	//やっぱりコピコンで良くないかこれ
-	auto clone = new SShape();
-	clone->AddRef();
-
-	clone->CopyParameterFrom(this);
-
-	clone->Width = Width;
-	clone->Height = Height;
-
-	SU_ASSERT(clone->GetRefCount() == 1);
-	return clone;
-}
-
 SShape* SShape::Factory()
 {
 	auto result = new SShape();
-	result->AddRef();
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -796,9 +768,86 @@ void SShape::RegisterType(asIScriptEngine * engine)
 	engine->RegisterObjectProperty(SU_IF_SHAPE, "double Width", asOFFSET(SShape, Width));
 	engine->RegisterObjectProperty(SU_IF_SHAPE, "double Height", asOFFSET(SShape, Height));
 	engine->RegisterObjectProperty(SU_IF_SHAPE, SU_IF_SHAPETYPE " Type", asOFFSET(SShape, Type));
+	engine->RegisterObjectMethod(SU_IF_SHAPE, "bool SetColor(uint8, uint8, uint8)", asMETHODPR(SShape, SetColor, (uint8_t, uint8_t, uint8_t), bool), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SHAPE, "bool SetColor(double, uint8, uint8, uint8)", asMETHODPR(SShape, SetColor, (double, uint8_t, uint8_t, uint8_t), bool), asCALL_THISCALL);
 }
 
 // TextSprite -----------
+
+STextSprite::STextSprite()
+	: target(nullptr)
+	, scrollBuffer(nullptr)
+	, size(0, 0)
+	, horizontalAlignment(STextAlign::Left)
+	, verticalAlignment(STextAlign::Top)
+	, isScrolling(false)
+	, scrollWidth(0)
+	, scrollMargin(0)
+	, scrollSpeed(0.0)
+	, scrollPosition(0.0)
+	, isRich(false)
+	, Font(nullptr)
+	, Text("")
+{}
+
+STextSprite::~STextSprite()
+{
+	if (Font) Font->Release();
+	if (target) target->Release();
+	if (scrollBuffer) scrollBuffer->Release();
+}
+
+STextSprite* STextSprite::Clone() const
+{
+	//やっぱりコピコンで良くないかこれ
+	auto clone = new STextSprite();
+	clone->AddRef();
+
+	clone->CopyParameterFrom(this);
+
+	if (target) {
+		clone->SetText(Text);
+	}
+	if (Font) {
+		Font->AddRef();
+		clone->SetFont(Font);
+	}
+
+	SU_ASSERT(IS_REFCOUNT(clone, 1));
+	return clone;
+}
+
+void STextSprite::Tick(const double delta)
+{
+	SSprite::Tick(delta);
+	if (isScrolling) scrollPosition += scrollSpeed * delta;
+}
+
+void STextSprite::Draw() const
+{
+	if (!target) return;
+
+	if (isScrolling && target->GetWidth() >= scrollWidth) {
+		DrawScroll(Transform, Color);
+	}
+	else {
+		DrawNormal(Transform, Color);
+	}
+}
+
+void STextSprite::Draw(const Transform2D& parent, const ColorTint& color) const
+{
+	if (!target) return;
+
+	const auto tf = Transform.ApplyFrom(parent);
+	const auto cl = Color.ApplyFrom(color);
+	if (isScrolling && target->GetWidth() >= scrollWidth) {
+		DrawScroll(tf, cl);
+	}
+	else {
+		DrawNormal(tf, cl);
+	}
+}
 
 void STextSprite::Refresh()
 {
@@ -826,7 +875,7 @@ void STextSprite::Refresh()
 	}
 }
 
-void STextSprite::DrawNormal(const Transform2D & tf, const ColorTint & ct)
+void STextSprite::DrawNormal(const Transform2D & tf, const ColorTint & ct) const
 {
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
 	SetDrawBright(ct.R, ct.G, ct.B);
@@ -839,7 +888,7 @@ void STextSprite::DrawNormal(const Transform2D & tf, const ColorTint & ct)
 		tf.Angle, target->GetHandle(), TRUE, FALSE);
 }
 
-void STextSprite::DrawScroll(const Transform2D & tf, const ColorTint & ct)
+void STextSprite::DrawScroll(const Transform2D & tf, const ColorTint & ct) const
 {
 	const auto pds = GetDrawScreen();
 	SetDrawScreen(scrollBuffer->GetHandle());
@@ -919,103 +968,17 @@ void STextSprite::SetRich(const bool enabled)
 	Refresh();
 }
 
-double STextSprite::GetWidth()
-{
-	return get<0>(size);
-}
-
-double STextSprite::GetHeight()
-{
-	return get<1>(size);
-}
-
-STextSprite::~STextSprite()
-{
-	if (Font) Font->Release();
-	if (target) target->Release();
-	if (scrollBuffer) scrollBuffer->Release();
-}
-
-void STextSprite::Tick(const double delta)
-{
-	SSprite::Tick(delta);
-	if (isScrolling) scrollPosition += scrollSpeed * delta;
-}
-
-void STextSprite::Draw()
-{
-	if (!target) return;
-	if (isScrolling && target->GetWidth() >= scrollWidth) {
-		DrawScroll(Transform, Color);
-	}
-	else {
-		DrawNormal(Transform, Color);
-	}
-}
-
-void STextSprite::Draw(const Transform2D & parent, const ColorTint & color)
-{
-	const auto tf = Transform.ApplyFrom(parent);
-	const auto cl = Color.ApplyFrom(color);
-	if (!target) return;
-	if (isScrolling && target->GetWidth() >= scrollWidth) {
-		DrawScroll(tf, cl);
-	}
-	else {
-		DrawNormal(tf, cl);
-	}
-}
-
-STextSprite::STextSprite()
-	: target(nullptr)
-	, scrollBuffer(nullptr)
-	, size(0, 0)
-	, horizontalAlignment(STextAlign::Left)
-	, verticalAlignment(STextAlign::Top)
-	, isScrolling(false)
-	, scrollWidth(0)
-	, scrollMargin(0)
-	, scrollSpeed(0.0)
-	, scrollPosition(0.0)
-	, isRich(false)
-	, Font(nullptr)
-	, Text("")
-{
-}
-
-STextSprite* STextSprite::Clone()
-{
-	//やっぱりコピコンで良くないかこれ
-	auto clone = new STextSprite();
-	clone->AddRef();
-
-	clone->CopyParameterFrom(this);
-
-	if (target) {
-		clone->SetText(Text);
-	}
-	if (Font) {
-		Font->AddRef();
-		clone->SetFont(Font);
-	}
-
-	SU_ASSERT(clone->GetRefCount() == 1);
-	return clone;
-}
-
 STextSprite* STextSprite::Factory()
 {
 	auto result = new STextSprite();
-	result->AddRef();
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
 STextSprite* STextSprite::Factory(SFont * img, const string & str)
 {
 	auto result = new STextSprite();
-	result->AddRef();
 
 	result->SetText(str);
 	{
@@ -1024,7 +987,8 @@ STextSprite* STextSprite::Factory(SFont * img, const string & str)
 	}
 
 	if (img) img->Release();
-	SU_ASSERT(result->GetRefCount() == 1);
+
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -1042,8 +1006,11 @@ void STextSprite::RegisterType(asIScriptEngine * engine)
 	engine->RegisterObjectMethod(SU_IF_TXTSPRITE, "void SetRich(bool)", asMETHOD(STextSprite, SetRich), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_TXTSPRITE, "double get_Width()", asMETHOD(STextSprite, GetWidth), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_TXTSPRITE, "double get_Height()", asMETHOD(STextSprite, GetHeight), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_TXTSPRITE, "bool SetColor(uint8, uint8, uint8)", asMETHODPR(STextSprite, SetColor, (uint8_t, uint8_t, uint8_t), bool), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_TXTSPRITE, "bool SetColor(double, uint8, uint8, uint8)", asMETHODPR(STextSprite, SetColor, (double, uint8_t, uint8_t, uint8_t), bool), asCALL_THISCALL);
 }
 
+#if 0
 // STextInput ---------------------------------------
 
 STextInput::STextInput()
@@ -1112,14 +1079,42 @@ STextInput* STextInput::Factory(SFont * img)
 
 void STextInput::RegisterType(asIScriptEngine * engine)
 {}
-
+#endif
 
 // SSynthSprite -------------------------------------
 
-void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
+SSynthSprite::SSynthSprite(const int w, const int h)
+	: target(new SRenderTarget(w, h))
+	, width(w)
+	, height(h)
+{}
+
+SSynthSprite::~SSynthSprite()
+{
+	if (target) target->Release();
+}
+
+SSynthSprite* SSynthSprite::Clone() const
+{
+	auto clone = new SSynthSprite(width, height);
+	clone->CopyParameterFrom(this);
+
+	if (target) {
+		// NOTE: 許して……
+		SSynthSprite* ptr = const_cast<SSynthSprite*>(this);
+		ptr->AddRef();
+		clone->Transfer(ptr);
+	}
+
+	SU_ASSERT(IS_REFCOUNT(clone, 1));
+	return clone;
+}
+
+void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct) const
 {
 	if (!target) return;
-	SetDrawBright(ct.R, ct.G, ct.B);
+
+	SetDrawBright(255, 255, 255);
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
 	DrawRotaGraph3F(
 		tf.X, tf.Y,
@@ -1127,18 +1122,6 @@ void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
 		tf.ScaleX, tf.ScaleY,
 		tf.Angle, target->GetHandle(),
 		HasAlpha ? TRUE : FALSE, FALSE);
-}
-
-SSynthSprite::SSynthSprite(const int w, const int h)
-	: target(nullptr)
-	, width(w)
-	, height(h)
-{
-}
-
-SSynthSprite::~SSynthSprite()
-{
-	if (target) target->Release();
 }
 
 void SSynthSprite::Clear()
@@ -1159,8 +1142,7 @@ void SSynthSprite::Transfer(SSprite * sprite)
 	sprite->Release();
 }
 
-// ReSharper disable once CppMemberFunctionMayBeConst
-void SSynthSprite::Transfer(SImage * image, const double x, const double y)
+void SSynthSprite::Transfer(SImage * image, const double x, const double y) const
 {
 	if (!image) return;
 
@@ -1173,42 +1155,11 @@ void SSynthSprite::Transfer(SImage * image, const double x, const double y)
 	image->Release();
 }
 
-void SSynthSprite::Draw()
-{
-	DrawBy(Transform, Color);
-}
-
-void SSynthSprite::Draw(const Transform2D & parent, const ColorTint & color)
-{
-	const auto tf = Transform.ApplyFrom(parent);
-	const auto cl = Color.ApplyFrom(color);
-	DrawBy(tf, cl);
-}
-
-SSynthSprite* SSynthSprite::Clone()
-{
-	auto clone = new SSynthSprite(width, height);
-	clone->AddRef();
-
-	clone->CopyParameterFrom(this);
-
-	if (target) {
-		this->AddRef();
-		clone->Transfer(this);
-	}
-
-	SU_ASSERT(clone->GetRefCount() == 1);
-	return clone;
-}
-
 SSynthSprite* SSynthSprite::Factory(const int w, const int h)
 {
 	auto result = new SSynthSprite(w, h);
-	result->AddRef();
 
-	result->Clear();
-
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -1222,19 +1173,46 @@ void SSynthSprite::RegisterType(asIScriptEngine * engine)
 	engine->RegisterObjectMethod(SU_IF_SYHSPRITE, "int get_Height()", asMETHOD(SSynthSprite, GetWidth), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SYHSPRITE, "void Clear()", asMETHOD(SSynthSprite, Clear), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SYHSPRITE, "void Transfer(" SU_IF_SPRITE "@)", asMETHODPR(SSynthSprite, Transfer, (SSprite*), void), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SYHSPRITE, "void Transfer(" SU_IF_IMAGE "@, double, double)", asMETHODPR(SSynthSprite, Transfer, (SImage*, double, double), void), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SYHSPRITE, "void Transfer(" SU_IF_IMAGE "@, double, double)", asMETHODPR(SSynthSprite, Transfer, (SImage*, double, double) const, void), asCALL_THISCALL);
 }
 
 // SClippingSprite ------------------------------------------
 
-void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
+SClippingSprite::SClippingSprite(const int w, const int h)
+	: SSynthSprite(w, h)
+	, u1(0), v1(0) , u2(1), v2(1)
+{}
+
+SClippingSprite* SClippingSprite::Clone() const
+{
+	auto clone = new SClippingSprite(width, height);
+	clone->CopyParameterFrom(this);
+
+	if (target) {
+		SClippingSprite* ptr = const_cast<SClippingSprite*>(this);
+		ptr->AddRef();
+		clone->Transfer(ptr);
+	}
+
+	clone->u1 = u1;
+	clone->v1 = v1;
+	clone->u2 = u2;
+	clone->v2 = v2;
+
+	SU_ASSERT(IS_REFCOUNT(clone, 1));
+	return clone;
+}
+
+void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct) const
 {
 	if (!target) return;
+
 	const auto x = SU_TO_INT32(width * u1);
 	const auto y = SU_TO_INT32(height * v1);
 	const auto w = SU_TO_INT32(width * u2);
 	const auto h = SU_TO_INT32(height * v2);
-	SetDrawBright(ct.R, ct.G, ct.B);
+
+	SetDrawBright(255, 255, 255);
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
 	DrawRectRotaGraph3F(
 		tf.X, tf.Y,
@@ -1245,61 +1223,19 @@ void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
 		HasAlpha ? TRUE : FALSE, FALSE);
 }
 
-SClippingSprite::SClippingSprite(const int w, const int h)
-	: SSynthSprite(w, h)
-	, u1(0), v1(0)
-	, u2(1), v2(0)
-{}
-
 void SClippingSprite::SetRange(const double tx, const double ty, const double w, const double h)
 {
-	u1 = tx;
-	v1 = ty;
-	u2 = w;
-	v2 = h;
-}
-
-void SClippingSprite::Draw()
-{
-	DrawBy(Transform, Color);
-}
-
-void SClippingSprite::Draw(const Transform2D & parent, const ColorTint & color)
-{
-	const auto tf = Transform.ApplyFrom(parent);
-	const auto cl = Color.ApplyFrom(color);
-	DrawBy(tf, cl);
-}
-
-SClippingSprite* SClippingSprite::Clone()
-{
-	auto clone = new SClippingSprite(width, height);
-	clone->AddRef();
-
-	clone->CopyParameterFrom(this);
-
-	if (target) {
-		this->AddRef();
-		clone->Transfer(this);
-	}
-
-	clone->u1 = u1;
-	clone->v1 = v1;
-	clone->u2 = u2;
-	clone->v2 = v2;
-
-	SU_ASSERT(clone->GetRefCount() == 1);
-	return clone;
+	u1 = std::max(std::min(tx, 1.0), 0.0);
+	v1 = std::max(std::min(ty, 1.0), 0.0);
+	u2 = std::max(std::min(w, 1.0), 0.0);
+	v2 = std::max(std::min(h, 1.0), 0.0);
 }
 
 SClippingSprite* SClippingSprite::Factory(const int w, const int h)
 {
 	auto result = new SClippingSprite(w, h);
-	result->AddRef();
 
-	result->Clear();
-
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -1313,50 +1249,36 @@ void SClippingSprite::RegisterType(asIScriptEngine * engine)
 	engine->RegisterObjectMethod(SU_IF_CLPSPRITE, "int get_Height()", asMETHOD(SClippingSprite, GetWidth), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_CLPSPRITE, "void Clear()", asMETHOD(SClippingSprite, Clear), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_CLPSPRITE, "void Transfer(" SU_IF_SPRITE "@)", asMETHODPR(SClippingSprite, Transfer, (SSprite*), void), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_CLPSPRITE, "void Transfer(" SU_IF_IMAGE "@, double, double)", asMETHODPR(SClippingSprite, Transfer, (SImage*, double, double), void), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_CLPSPRITE, "void Transfer(" SU_IF_IMAGE "@, double, double)", asMETHODPR(SClippingSprite, Transfer, (SImage*, double, double) const, void), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_CLPSPRITE, "void SetRange(double, double, double, double)", asMETHOD(SClippingSprite, SetRange), asCALL_THISCALL);
 }
 
 // SAnimeSprite -------------------------------------------
-void SAnimeSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
-{
-	const auto at = images->GetCellTime() * images->GetFrameCount() - time;
-	const auto ih = images->GetImageHandleAt(at);
-	if (!ih) return;
-	SetDrawBright(Color.R, Color.G, Color.B);
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA, Color.A);
-	DrawRotaGraph3F(
-		Transform.X, Transform.Y,
-		Transform.OriginX, Transform.OriginY,
-		Transform.ScaleX, Transform.ScaleY,
-		Transform.Angle, ih,
-		HasAlpha ? TRUE : FALSE, FALSE);
-}
 
-SAnimeSprite::SAnimeSprite(SAnimatedImage * img)
+SAnimeSprite::SAnimeSprite(SAnimatedImage* img)
 	: images(img)
 	, loopCount(1)
 	, count(0)
 	, speed(1)
 	, time(img ? (img->GetCellTime() * img->GetFrameCount()) : 0)
-{
-}
+{}
 
 SAnimeSprite::~SAnimeSprite()
 {
 	if (images) images->Release();
 }
 
-void SAnimeSprite::Draw()
+SAnimeSprite* SAnimeSprite::Clone() const
 {
-	DrawBy(Transform, Color);
-}
+	if (images) images->AddRef();
+	auto clone = new SAnimeSprite(images);
+	clone->CopyParameterFrom(this);
 
-void SAnimeSprite::Draw(const Transform2D & parent, const ColorTint & color)
-{
-	const auto tf = Transform.ApplyFrom(parent);
-	const auto cl = Color.ApplyFrom(color);
-	DrawBy(tf, cl);
+	clone->loopCount = loopCount;
+	clone->speed = speed;
+
+	SU_ASSERT(IS_REFCOUNT(clone, 1));
+	return clone;
 }
 
 void SAnimeSprite::Tick(const double delta)
@@ -1369,29 +1291,31 @@ void SAnimeSprite::Tick(const double delta)
 	time = images->GetCellTime() * images->GetFrameCount();
 }
 
-SAnimeSprite* SAnimeSprite::Clone()
+void SAnimeSprite::DrawBy(const Transform2D & tf, const ColorTint & ct) const
 {
-	if (images) images->AddRef();
-	auto clone = new SAnimeSprite(images);
-	clone->AddRef();
+	if (!images) return;
 
-	clone->CopyParameterFrom(this);
+	const auto at = images->GetCellTime() * images->GetFrameCount() - time;
+	const auto ih = images->GetImageHandleAt(at);
+	if (!ih) return;
 
-	clone->loopCount = loopCount;
-	clone->speed = speed;
-
-	SU_ASSERT(clone->GetRefCount() == 1);
-	return clone;
+	SetDrawBright(255, 255, 255);
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA, Color.A);
+	DrawRotaGraph3F(
+		Transform.X, Transform.Y,
+		Transform.OriginX, Transform.OriginY,
+		Transform.ScaleX, Transform.ScaleY,
+		Transform.Angle, ih,
+		HasAlpha ? TRUE : FALSE, FALSE);
 }
 
 SAnimeSprite* SAnimeSprite::Factory(SAnimatedImage * image)
 {
 	if (image) image->AddRef();
 	auto result = new SAnimeSprite(image);
-	result->AddRef();
 
 	if (image) image->Release();
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -1405,26 +1329,22 @@ void SAnimeSprite::RegisterType(asIScriptEngine * engine)
 	engine->RegisterObjectMethod(SU_IF_ANIMESPRITE, "void SetLoopCount(int)", asMETHOD(SAnimeSprite, SetLoopCount), asCALL_THISCALL);
 }
 
-SContainer::SContainer() : SSprite()
-{}
+// SContainer -------------------------------------------
 
 SContainer::~SContainer()
 {
 	for (const auto& s : children) if (s) s->Release();
 }
 
-void SContainer::AddChild(SSprite * child)
+SContainer* SContainer::Clone() const
 {
-	if (!child) return;
-	children.emplace(child);
-}
+	auto clone = new SContainer();
 
-void SContainer::Dismiss()
-{
-	for (const auto& child : children) {
-		child->Dismiss();
-	}
-	SSprite::Dismiss();
+	clone->CopyParameterFrom(this);
+	for (const auto& s : children) if (s) clone->AddChild(s->Clone());
+
+	SU_ASSERT(IS_REFCOUNT(clone, 1));
+	return clone;
 }
 
 void SContainer::Tick(const double delta)
@@ -1433,36 +1353,35 @@ void SContainer::Tick(const double delta)
 	for (const auto& s : children) s->Tick(delta);
 }
 
-void SContainer::Draw()
+void SContainer::Draw() const
 {
 	for (const auto& s : children) s->Draw(Transform, Color);
 }
 
-void SContainer::Draw(const Transform2D & parent, const ColorTint & color)
+void SContainer::Draw(const Transform2D & parent, const ColorTint & color) const
 {
 	const auto tf = Transform.ApplyFrom(parent);
 	const auto cl = Color.ApplyFrom(color);
 	for (const auto& s : children) s->Draw(tf, cl);
 }
 
-SContainer* SContainer::Clone()
+void SContainer::Dismiss()
 {
-	auto clone = new SContainer();
-	clone->AddRef();
+	for (const auto& child : children) child->Dismiss();
+	SSprite::Dismiss();
+}
 
-	clone->CopyParameterFrom(this);
-	for (const auto& s : children) if (s) clone->AddChild(s->Clone());
-
-	SU_ASSERT(clone->GetRefCount() == 1);
-	return clone;
+void SContainer::AddChild(SSprite * child)
+{
+	if (!child) return;
+	children.emplace(child);
 }
 
 SContainer * SContainer::Factory()
 {
 	auto result = new SContainer();
-	result->AddRef();
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 

@@ -139,7 +139,7 @@ void ExecutionManager::Initialize()
 	// AngelScriptインターフェース登録
 	const auto engine = scriptInterface->GetEngine();
 	RegisterScriptResource(this);
-	RegisterScriptSprite(this);
+	RegisterScriptSprite(engine);
 	RegisterScriptScene(this);
 	SkinHolder::RegisterType(engine);
 	RegisterResultTypes(engine);

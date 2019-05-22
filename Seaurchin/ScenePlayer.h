@@ -196,8 +196,8 @@ protected:
 
 	// Slide描画関係
 	int segmentsPerSecond{};                  // Slide分解能
-	std::vector<VERTEX2D> slideVertices;    // Slide描画用頂点座標配列 関数内ローカル変数で頻繁に生成,破棄されるのを嫌って宣言
-	std::vector<uint16_t> slideIndices;     // Slide描画用頂点番号指定配列 同上
+	mutable std::vector<VERTEX2D> slideVertices;    // Slide描画用頂点座標配列 関数内ローカル変数で頻繁に生成,破棄されるのを嫌って宣言
+	mutable std::vector<uint16_t> slideIndices;     // Slide描画用頂点番号指定配列 同上
 
 	const std::shared_ptr<Result> currentResult;
 	DrawableResult previousStatus{}, status{};
@@ -207,7 +207,7 @@ protected:
 	DrawableNotesList data;
 	DrawableNotesList seenData, judgeData;
 	std::unordered_map<std::shared_ptr<SusDrawableNoteData>, SSprite*> slideEffects;
-	NoteCurvesList curveData;
+	mutable NoteCurvesList curveData;
 	double currentTime = 0;
 	double currentSoundTime = 0;
 	double seenDuration = 0.8;
@@ -233,15 +233,15 @@ protected:
 	void DrawShortNotes(const std::shared_ptr<SusDrawableNoteData> & note) const;
 	void DrawAirNotes(const AirDrawQuery & query) const;
 	void DrawHoldNotes(const std::shared_ptr<SusDrawableNoteData> & note) const;
-	void DrawSlideNotes(const std::shared_ptr<SusDrawableNoteData> & note);
+	void DrawSlideNotes(const std::shared_ptr<SusDrawableNoteData> & note) const;
 	void DrawAirActionStart(const AirDrawQuery & query) const;
 	void DrawAirActionStep(const AirDrawQuery & query) const;
 	void DrawAirActionStepBox(const AirDrawQuery & query) const;
-	void DrawAirActionCover(const AirDrawQuery & query);
+	void DrawAirActionCover(const AirDrawQuery & query) const;
 	void DrawTap(float lane, int length, double relpos, int handle) const;
 	void DrawMeasureLine(const std::shared_ptr<SusDrawableNoteData> & note) const;
 	void Prepare3DDrawCall() const;
-	void DrawAerialNotes(const std::vector<std::shared_ptr<SusDrawableNoteData>> & notes);
+	void DrawAerialNotes(const std::vector<std::shared_ptr<SusDrawableNoteData>> & notes) const;
 
 	void ProcessSound();
 	void ProcessSoundQueue();
@@ -259,7 +259,7 @@ public:
 	void SetPlayerResource(const std::string & name, SResource * resource);
 	void SetLaneSprite(SSprite * spriteLane);
 	void Tick(double delta) override;
-	void Draw() override;
+	void Draw() const override;
 	void Finalize();
 
 	void Initialize();

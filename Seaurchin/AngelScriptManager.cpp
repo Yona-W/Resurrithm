@@ -348,9 +348,7 @@ CallbackObject::~CallbackObject()
 {
 	Dispose();
 
-#ifdef _DEBUG
-	SU_ASSERT(GetRefCount() == 0);
-#endif
+	SU_ASSERT(IS_REFCOUNT(this, 0));
 }
 
 void CallbackObject::Dispose()

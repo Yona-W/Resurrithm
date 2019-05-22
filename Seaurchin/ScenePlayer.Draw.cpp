@@ -105,7 +105,7 @@ void ScenePlayer::LoadResources()
 		}
 
 		SShape* pShape = SShape::Factory();
-		pShape->Type = SShapeType::BoxFill;
+		pShape->SetType(SShapeType::BoxFill);
 		pShape->SetColor(255, 255, 255);
 		pShape->SetWidth(1);
 		pShape->SetHeight(laneBufferY * cullingLimit);
@@ -132,7 +132,7 @@ void ScenePlayer::TickGraphics(const double delta)
 	UpdateSlideEffect();
 }
 
-void ScenePlayer::Draw()
+void ScenePlayer::Draw() const
 {
 	if (movieBackground) DrawExtendGraph(0, 0, SU_RES_WIDTH, SU_RES_HEIGHT, movieBackground, FALSE);
 
@@ -189,7 +189,7 @@ void ScenePlayer::Draw()
 	}
 }
 
-void ScenePlayer::DrawAerialNotes(const vector<shared_ptr<SusDrawableNoteData>> & notes)
+void ScenePlayer::DrawAerialNotes(const vector<shared_ptr<SusDrawableNoteData>> & notes) const
 {
 	vector<AirDrawQuery> airdraws, covers;
 	for (const auto& note : seenData) {
@@ -264,8 +264,7 @@ void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData> & targe
 		animeTap->AddRef();
 		auto sp = SAnimeSprite::Factory(animeTap);
 		sp->Apply("origX:128, origY:224");
-		sp->Transform.X = spawnAt.x;
-		sp->Transform.Y = spawnAt.y;
+		sp->SetPosition(spawnAt.x, spawnAt.y);
 		{
 			sp->AddRef();
 			AddSprite(sp);
@@ -279,9 +278,8 @@ void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData> & targe
 		animeExTap->AddRef();
 		auto sp = SAnimeSprite::Factory(animeExTap);
 		sp->Apply("origX:128, origY:256");
-		sp->Transform.X = spawnAt.x;
-		sp->Transform.Y = spawnAt.y;
-		sp->Transform.ScaleX = target->Length / 6.0f;
+		sp->SetPosition(spawnAt.x, spawnAt.y);
+		sp->SetScaleX(target->Length / 6.0);
 		{
 			sp->AddRef();
 			AddSprite(sp);
@@ -295,8 +293,7 @@ void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData> & targe
 		animeSlideTap->AddRef();
 		auto sp = SAnimeSprite::Factory(animeSlideTap);
 		sp->Apply("origX:128, origY:224");
-		sp->Transform.X = spawnAt.x;
-		sp->Transform.Y = spawnAt.y;
+		sp->SetPosition(spawnAt.x, spawnAt.y);
 		{
 			sp->AddRef();
 			AddSprite(sp);
@@ -310,8 +307,7 @@ void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData> & targe
 		animeAirAction->AddRef();
 		auto sp = SAnimeSprite::Factory(animeAirAction);
 		sp->Apply("origX:128, origY:128");
-		sp->Transform.X = spawnAt.x;
-		sp->Transform.Y = spawnAt.y;
+		sp->SetPosition(spawnAt.x, spawnAt.y);
 		{
 			sp->AddRef();
 			AddSprite(sp);
@@ -390,8 +386,7 @@ void ScenePlayer::UpdateSlideEffect()
 				const auto x = glm::mix(get<1>(lastSegmentPosition), get<1>(segmentPosition), t);
 				const auto absx = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, x);
 				const auto at = ConvWorldPosToScreenPos(VGet(absx, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
-				effect->Transform.X = at.x;
-				effect->Transform.Y = at.y;
+				effect->SetPosition(at.x, at.y);
 				comp = true;
 				break;
 			}
@@ -565,7 +560,7 @@ void ScenePlayer::DrawHoldNotes(const shared_ptr<SusDrawableNoteData> & note) co
 	}
 }
 
-void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData> & note)
+void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData> & note) const
 {
 	auto lastStep = note;
 	auto offsetTimeInBlock = 0.0; /* そのslideElementの、不可視中継点のつながり等を考慮した時の先頭位置、的な */
@@ -1004,7 +999,7 @@ void ScenePlayer::DrawAirActionStep(const AirDrawQuery & query) const
 	}
 }
 
-void ScenePlayer::DrawAirActionCover(const AirDrawQuery & query)
+void ScenePlayer::DrawAirActionCover(const AirDrawQuery & query) const
 {
 	const auto slideElement = query.Note;
 	const auto lastStep = query.PreviousNote;

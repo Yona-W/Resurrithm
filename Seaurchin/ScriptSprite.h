@@ -26,6 +26,7 @@ class SSpriteMover;
 class SSprite {
 	INPLEMENT_REF_COUNTER
 
+public:
 	enum class FieldID : unsigned int {
 		// 未定義を表す
 		Undefined = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "unknown"),
@@ -41,11 +42,13 @@ class SSprite {
 		ScaleX = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "scaleX"),
 		ScaleY = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "scaleY"),
 		Alpha = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "alpha"),
+
+		Death = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "death"),
+
+		// Shape, TextSprite
 		R = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "r"),
 		G = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "g"),
 		B = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "b"),
-
-		Death = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "death"),
 
 		// Shape
 		Width = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "width"),
@@ -62,38 +65,45 @@ class SSprite {
 		Speed = crc32_constexpr::Crc32Rec(0xFFFFFFFF, "speed")
 	};
 
-	static FieldID GetFieldId(const std::string& key) { return static_cast<FieldID>(crc32_constexpr::Crc32Rec(0xFFFFFFFF, key.c_str())); }
-	static bool GetField(const SSprite* obj, FieldID id, double& retVal);
-	static bool SetField(SSprite* obj, FieldID id, double value);
-
-private:
-	virtual void DrawBy(const Transform2D& tf, const ColorTint& ct);
+public:
+	//値(CopyParameterFromで一括)
+	Transform2D Transform;
+	ColorTint Color;
+	int32_t ZIndex;
+	bool HasAlpha;
+	bool IsDead;
 
 protected:
 	SSpriteMover* pMover;
 
-	void CopyParameterFrom(SSprite* original);
-
-public:
-	//値(CopyParameterFromで一括)
-	Transform2D Transform;
-	int32_t ZIndex;
-	ColorTint Color;
-	bool IsDead;
-	bool HasAlpha;
-
 	//参照(手動コピー)
 	SImage* Image;
 
+protected:
 	SSprite();
+	SSprite(const SSprite&) = delete;
 	virtual ~SSprite();
+public:
+	virtual SSprite* Clone() const;
 
+public:
+	virtual void Tick(double delta);
+	virtual void Draw() const;
+	virtual void Draw(const Transform2D& parent, const ColorTint& color) const;
+private:
+	virtual void DrawBy(const Transform2D& tf, const ColorTint& ct) const;
+
+protected:
+	void CopyParameterFrom(const SSprite* original);
+
+public:
 	virtual void Dismiss() { IsDead = true; }
-	void Revive() { IsDead = false; }
+	virtual void Revive() { IsDead = false; }
 
 	void SetImage(SImage* img);
 	const SImage* GetImage() const;
 
+public:
 	bool SetPosX(double value) { if (value < -100000 || 100000 < value) return false; Transform.X = SU_TO_FLOAT(value); return true; }
 	bool SetPosY(double value) { if (value < -100000 || 100000 < value) return false; Transform.Y = SU_TO_FLOAT(value); return true; }
 	bool SetZIndex(double value) { if (value < -100000 || 100000 < value) return false; ZIndex = SU_TO_INT32(value); return true; }
@@ -103,33 +113,20 @@ public:
 	bool SetScaleX(double value) { if (value < 0 || 1024 < value) return false; Transform.ScaleX = SU_TO_FLOAT(value); return true; }
 	bool SetScaleY(double value) { if (value < 0 || 1024 < value) return false; Transform.ScaleY = SU_TO_FLOAT(value); return true; }
 	bool SetAlpha(double value) { if (value < 0.0 || 1.0 < value) return false; Color.A = SU_TO_UINT8(value * 255); return true; }
-	bool SetColorR(double value) { if (value < 0.0 || 255 < value) return false;  Color.R = SU_TO_UINT8(value); return true; }
-	bool SetColorG(double value) { if (value < 0.0 || 255 < value) return false;  Color.G = SU_TO_UINT8(value); return true; }
-	bool SetColorB(double value) { if (value < 0.0 || 255 < value) return false;  Color.B = SU_TO_UINT8(value); return true; }
 
-	bool Apply(FieldID id, double value);
-	void Apply(const std::string & dict);
-	void Apply(const CScriptDictionary * dict);
 	bool SetPosition(double x, double y) { return SetPosX(x) && SetPosY(y); }
 	bool SetOrigin(double x, double y) { return SetOriginX(x) && SetOriginY(y); }
 	bool SetScale(double scale) { return SetScaleX(scale) && SetScaleY(scale); }
 	bool SetScale(double scaleX, double scaleY) { return SetScaleX(scaleX) && SetScaleY(scaleY); }
-	bool SetColor(uint8_t r, uint8_t g, uint8_t b) { Color.R = r; Color.G = g; Color.B = b; return true; }
-	bool SetColor(double a, uint8_t r, uint8_t g, uint8_t b) { Color.R = r; Color.G = g; Color.B = b; return SetAlpha(a); }
 
-	void AddMove(const std::string & move);
-	void AddMove(const std::string & key, const CScriptDictionary * dict);
-	void AddMove(const std::string & key, MoverObject * pMoverObj);
+	bool Apply(FieldID id, double value) { return SSprite::SetField(this, id, value); }
+	bool Apply(const std::string& dict);
+	bool Apply(const CScriptDictionary* dict);
+
+	bool AddMove(const std::string& move);
+	bool AddMove(const std::string& key, const CScriptDictionary* dict);
+	bool AddMove(const std::string& key, MoverObject* pMoverObj);
 	void AbortMove(bool terminate);
-
-	virtual void Tick(double delta);
-	virtual void Draw();
-	virtual void Draw(const Transform2D & parent, const ColorTint & color);
-	virtual SSprite* Clone();
-
-	static SSprite* Factory();
-	static SSprite* Factory(SImage * img);
-	static void RegisterType(asIScriptEngine * engine);
 
 	bool operator<(const SSprite& rhs) const {
 		return ZIndex < rhs.ZIndex;
@@ -140,6 +137,15 @@ public:
 			return (lhs && rhs)? *lhs < *rhs : true;
 		}
 	};
+
+public:
+	static FieldID GetFieldId(const std::string& key) { return static_cast<FieldID>(crc32_constexpr::Crc32Rec(0xFFFFFFFF, key.c_str())); }
+	static bool GetField(const SSprite* obj, FieldID id, double& retVal);
+	static bool SetField(SSprite* obj, FieldID id, double value);
+
+	static SSprite* Factory();
+	static SSprite* Factory(SImage* img);
+	static void RegisterType(asIScriptEngine* engine);
 };
 
 enum class SShapeType {
@@ -152,26 +158,38 @@ enum class SShapeType {
 
 //任意の多角形などを表示できる
 class SShape : public SSprite {
+	friend static bool SSprite::GetField(const SSprite*, FieldID id, double&);
+	friend static bool SSprite::SetField(SSprite*, FieldID id, double);
+
 private:
 	typedef SSprite Base;
 
-private:
-	void DrawBy(const Transform2D& tf, const ColorTint& ct) override;
-
-public:
+protected:
 	SShapeType Type;
 	double Width;
 	double Height;
 
+protected:
 	SShape();
+public:
+	SShape* Clone() const override;
 
+private:
+	void DrawBy(const Transform2D& tf, const ColorTint& ct) const override;
+
+public:
+	bool SetColorR(double value) { if (value < 0.0 || 255 < value) return false;  Color.R = SU_TO_UINT8(value); return true; }
+	bool SetColorG(double value) { if (value < 0.0 || 255 < value) return false;  Color.G = SU_TO_UINT8(value); return true; }
+	bool SetColorB(double value) { if (value < 0.0 || 255 < value) return false;  Color.B = SU_TO_UINT8(value); return true; }
+	bool SetType(SShapeType type) { Type = type; return true; }
 	bool SetWidth(double value) { if (value < -100000 || 100000 < value) return false; Width = value; return true; }
 	bool SetHeight(double value) { if (value < -100000 || 100000 < value) return false; Height = value; return true; }
 
-	void Draw() override;
-	void Draw(const Transform2D & parent, const ColorTint & color) override;
-	SShape* Clone() override;
+	bool SetColor(uint8_t r, uint8_t g, uint8_t b) { Color.R = r; Color.G = g; Color.B = b; return true; }
+	bool SetColor(double a, uint8_t r, uint8_t g, uint8_t b) { Color.R = r; Color.G = g; Color.B = b; return SetAlpha(a); }
+	bool SetSize(double width, double height) { return SetWidth(width) && SetHeight(Height); }
 
+public:
 	static SShape* Factory();
 	static void RegisterType(asIScriptEngine * engine);
 };
@@ -199,34 +217,48 @@ protected:
 	double scrollPosition;
 	bool isRich;
 
-	void Refresh();
-	void DrawNormal(const Transform2D& tf, const ColorTint& ct);
-	void DrawScroll(const Transform2D& tf, const ColorTint& ct);
-
 public:
 	SFont* Font;
 	std::string Text;
 
+protected:
+	STextSprite();
+	~STextSprite() override;
+public:
+	STextSprite* Clone() const override;
+
+public:
+	void Tick(double delta) override;
+	void Draw() const override;
+	void Draw(const Transform2D& parent, const ColorTint& color) const override;
+private:
+	void Refresh();
+	void DrawNormal(const Transform2D& tf, const ColorTint& ct) const;
+	void DrawScroll(const Transform2D& tf, const ColorTint& ct) const;
+
+public:
 	void SetFont(SFont* font);
 	void SetText(const std::string& txt);
 	void SetAlignment(STextAlign hori, STextAlign vert);
 	void SetRangeScroll(int width, int margin, double pps);
 	void SetRich(bool enabled);
-	double GetWidth();
-	double GetHeight();
+	bool SetColorR(double value) { if (value < 0.0 || 255 < value) return false;  Color.R = SU_TO_UINT8(value); return true; }
+	bool SetColorG(double value) { if (value < 0.0 || 255 < value) return false;  Color.G = SU_TO_UINT8(value); return true; }
+	bool SetColorB(double value) { if (value < 0.0 || 255 < value) return false;  Color.B = SU_TO_UINT8(value); return true; }
 
-	STextSprite();
-	~STextSprite() override;
-	void Tick(double delta) override;
-	void Draw() override;
-	void Draw(const Transform2D& parent, const ColorTint& color) override;
-	STextSprite* Clone() override;
+	bool SetColor(uint8_t r, uint8_t g, uint8_t b) { Color.R = r; Color.G = g; Color.B = b; return true; }
+	bool SetColor(double a, uint8_t r, uint8_t g, uint8_t b) { Color.R = r; Color.G = g; Color.B = b; return SetAlpha(a); }
 
+	double GetWidth() { return std::get<0>(size); }
+	double GetHeight() { return std::get<1>(size); }
+
+public:
 	static STextSprite* Factory();
 	static STextSprite* Factory(SFont* img, const std::string& str);
 	static void RegisterType(asIScriptEngine* engine);
 };
 
+#if 0
 //文字入力を扱うスプライトです
 //他と違ってDXライブラリのリソースをナマで取得するのであんまりボコボコ使わないでください。
 class STextInput : public SSprite {
@@ -252,6 +284,7 @@ public:
 	static STextInput* Factory(SFont* img);
 	static void RegisterType(asIScriptEngine* engine);
 };
+#endif
 
 //画像を任意のスプライトから合成してウェイできます
 class SSynthSprite : public SSprite {
@@ -260,22 +293,24 @@ protected:
 	int width;
 	int height;
 
-	void DrawBy(const Transform2D& tf, const ColorTint& ct) override;
-
-public:
+protected:
 	SSynthSprite(int w, int h);
 	~SSynthSprite() override;
+public:
+	SSynthSprite* Clone() const override;
 
+private:
+	void DrawBy(const Transform2D& tf, const ColorTint& ct) const override;
+
+public:
 	int GetWidth() const { return width; }
 	int GetHeight() const { return height; }
 
 	void Clear();
 	void Transfer(SSprite* sprite);
-	void Transfer(SImage* image, double x, double y);
-	void Draw() override;
-	void Draw(const Transform2D& parent, const ColorTint& color) override;
-	SSynthSprite* Clone() override;
+	void Transfer(SImage* image, double x, double y) const;
 
+public:
 	static SSynthSprite* Factory(int w, int h);
 	static void RegisterType(asIScriptEngine* engine);
 };
@@ -286,14 +321,17 @@ private:
 	typedef SSynthSprite Base;
 
 protected:
-	double u1, v1;
-	double u2, v2;
+	double u1, v1, u2, v2;
 
-	void DrawBy(const Transform2D& tf, const ColorTint& ct) override;
+protected:
+	SClippingSprite(int w, int h);
+public:
+	SClippingSprite* Clone() const override;
+
+private:
+	void DrawBy(const Transform2D& tf, const ColorTint& ct) const override;
 
 public:
-	SClippingSprite(int w, int h);
-
 	bool SetU1(double value) { if (value < 0 || 1 < value) return false; u1 = value; return true; }
 	bool SetV1(double value) { if (value < 0 || 1 < value) return false; v1 = value; return true; }
 	bool SetU2(double value) { if (value < 0 || 1 < value) return false; u2 = value; return true; }
@@ -305,10 +343,8 @@ public:
 	double GetV2() const { return v2; }
 
 	void SetRange(double tx, double ty, double w, double h);
-	void Draw() override;
-	void Draw(const Transform2D & parent, const ColorTint & color) override;
-	SClippingSprite* Clone() override;
 
+public:
 	static SClippingSprite* Factory(int w, int h);
 	static void RegisterType(asIScriptEngine * engine);
 };
@@ -323,23 +359,25 @@ protected:
 	double speed;
 	double time;
 
-	void DrawBy(const Transform2D& tf, const ColorTint& ct) override;
-
-public:
+protected:
 	SAnimeSprite(SAnimatedImage* img);
 	~SAnimeSprite() override;
+public:
+	SAnimeSprite* Clone() const override;
 
+public:
+	void Tick(double delta) override;
+private:
+	void DrawBy(const Transform2D& tf, const ColorTint& ct) const override;
+
+public:
 	bool SetLoopCount(double value) { if (value < -1 || 10000000 < value) return false; loopCount = SU_TO_INT32(value); return true; }
 	bool SetSpeed(double value) { if (value < 0) return false; speed = value; return true; }
 
 	double GetLoopCount() const { return SU_TO_DOUBLE(loopCount); }
 	double GetSpeed() const { return speed; }
 
-	void Draw() override;
-	void Draw(const Transform2D & parent, const ColorTint & color) override;
-	void Tick(double delta) override;
-	SAnimeSprite* Clone() override;
-
+public:
 	static SAnimeSprite* Factory(SAnimatedImage * image);
 	static void RegisterType(asIScriptEngine * engine);
 };
@@ -355,20 +393,25 @@ class SContainer : public SSprite {
 protected:
 	std::multiset<SSprite*, SSprite::Comparator> children;
 
-public:
-	SContainer();
+protected:
 	~SContainer() override;
+public:
+	SContainer* Clone() const override;
+
+public:
+	void Tick(double delta) override;
+	void Draw() const override;
+	void Draw(const Transform2D& parent, const ColorTint& color) const override;
+
+	void Dismiss() override;
 
 	void AddChild(SSprite* child);
-	void Dismiss() override;
-	void Tick(double delta) override;
-	void Draw() override;
-	void Draw(const Transform2D& parent, const ColorTint& color) override;
-	SContainer* Clone() override;
 
+public:
 	static SContainer* Factory();
 	static void RegisterType(asIScriptEngine* engine);
 };
+
 
 template<typename T>
 void RegisterSpriteBasic(asIScriptEngine* engine, const char* name)
@@ -385,24 +428,19 @@ void RegisterSpriteBasic(asIScriptEngine* engine, const char* name)
 	engine->RegisterObjectMethod(name, "void SetImage(" SU_IF_IMAGE "@)", asMETHOD(T, SetImage), asCALL_THISCALL);
 	//engine->RegisterObjectMethod(name, SU_IF_IMAGE "@ get_Image()", asMETHOD(T, get_Image), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "void Dismiss()", asMETHOD(T, Dismiss), asCALL_THISCALL);
-	engine->RegisterObjectMethod(name, "void Apply(const string &in)", asMETHODPR(T, Apply, (const std::string&), void), asCALL_THISCALL);
-	engine->RegisterObjectMethod(name, "void Apply(const dictionary@)", asMETHODPR(T, Apply, (const CScriptDictionary*), void), asCALL_THISCALL);
+	engine->RegisterObjectMethod(name, "bool Apply(const string &in)", asMETHODPR(T, Apply, (const std::string&), bool), asCALL_THISCALL);
+	engine->RegisterObjectMethod(name, "bool Apply(const dictionary@)", asMETHODPR(T, Apply, (const CScriptDictionary*), bool), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "bool SetPosition(double, double)", asMETHOD(T, SetPosition), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "bool SetOrigin(double, double)", asMETHOD(T, SetOrigin), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "bool SetAngle(double)", asMETHOD(T, SetAngle), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "bool SetScale(double)", asMETHODPR(T, SetScale, (double), bool), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "bool SetScale(double, double)", asMETHODPR(T, SetScale, (double, double), bool), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "bool SetAlpha(double)", asMETHOD(T, SetAlpha), asCALL_THISCALL);
-	engine->RegisterObjectMethod(name, "bool SetColor(uint8, uint8, uint8)", asMETHODPR(T, SetColor, (uint8_t, uint8_t, uint8_t), bool), asCALL_THISCALL);
-	engine->RegisterObjectMethod(name, "bool SetColor(double, uint8, uint8, uint8)", asMETHODPR(T, SetColor, (double, uint8_t, uint8_t, uint8_t), bool), asCALL_THISCALL);
-	engine->RegisterObjectMethod(name, "void AddMove(const string &in)", asMETHODPR(T, AddMove, (const std::string&), void), asCALL_THISCALL);
-	engine->RegisterObjectMethod(name, "void AddMove(const string &in, const dictionary@)", asMETHODPR(T, AddMove, (const std::string&, const CScriptDictionary*), void), asCALL_THISCALL);
-	engine->RegisterObjectMethod(name, "void AddMove(const string &in, " SU_IF_MOVER_OBJECT "@)", asMETHODPR(T, AddMove, (const std::string&, MoverObject*), void), asCALL_THISCALL);
+	engine->RegisterObjectMethod(name, "bool AddMove(const string &in)", asMETHODPR(T, AddMove, (const std::string&), bool), asCALL_THISCALL);
+	engine->RegisterObjectMethod(name, "bool AddMove(const string &in, const dictionary@)", asMETHODPR(T, AddMove, (const std::string&, const CScriptDictionary*), bool), asCALL_THISCALL);
+	engine->RegisterObjectMethod(name, "bool AddMove(const string &in, " SU_IF_MOVER_OBJECT "@)", asMETHODPR(T, AddMove, (const std::string&, MoverObject*), bool), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, "void AbortMove(bool = true)", asMETHOD(T, AbortMove), asCALL_THISCALL);
 	engine->RegisterObjectMethod(name, (std::string(name) + "@ Clone()").c_str(), asMETHOD(T, Clone), asCALL_THISCALL);
 }
 
-
-
-class ExecutionManager;
-void RegisterScriptSprite(ExecutionManager * exm);
+void RegisterScriptSprite(asIScriptEngine* engine);

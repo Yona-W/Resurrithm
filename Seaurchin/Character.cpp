@@ -33,9 +33,7 @@ CharacterImageSet::CharacterImageSet(const shared_ptr<CharacterParameter> param)
 
 CharacterImageSet::~CharacterImageSet()
 {
-#ifdef _DEBUG
-	SU_ASSERT(GetRefCount() == 0);
-#endif
+	SU_ASSERT(IS_REFCOUNT(this, 0));
 
 	imageFull->Release();
 	imageSmall->Release();

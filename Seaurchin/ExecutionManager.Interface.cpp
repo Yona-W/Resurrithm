@@ -38,9 +38,8 @@ void ExecutionManager::WriteLog(ScriptLogSeverity severity, const string & messa
 ScenePlayer* ExecutionManager::CreatePlayer()
 {
 	auto player = new ScenePlayer(this);
-	player->AddRef();
 
-	SU_ASSERT(player->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(player, 1));
 	return player;
 }
 

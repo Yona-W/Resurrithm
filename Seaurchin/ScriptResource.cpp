@@ -13,9 +13,7 @@ SResource::SResource()
 
 SResource::~SResource()
 {
-#ifdef _DEBUG
-	SU_ASSERT(GetRefCount() == 0);
-#endif
+	SU_ASSERT(IS_REFCOUNT(this, 0));
 }
 
 // SImage ----------------------
@@ -51,9 +49,8 @@ int SImage::GetHeight()
 SImage* SImage::CreateBlankImage()
 {
 	auto result = new SImage(0);
-	result->AddRef();
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -65,7 +62,7 @@ SImage* SImage::CreateLoadedImageFromFile(const path & file, const bool async)
 	auto result = new SImage(LoadGraph(ConvertUnicodeToUTF8(file).c_str()));
 	if (async) SetUseASyncLoadFlag(FALSE);
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -78,7 +75,7 @@ SImage* SImage::CreateLoadedImageFromFileName(const string& file, const bool asy
 	auto result = new SImage(LoadGraph(file.c_str()));
 	if (async) SetUseASyncLoadFlag(FALSE);
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -86,7 +83,7 @@ SImage* SImage::CreateLoadedImageFromMemory(void* buffer, const size_t size)
 {
 	auto result = new SImage(CreateGraphFromMem(buffer, size));
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -104,7 +101,7 @@ SRenderTarget* SRenderTarget::CreateBlankTarget(const int w, const int h)
 {
 	auto result = new SRenderTarget(w, h);
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -155,7 +152,7 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFile(const path & file, con
 	LoadDivGraph(ConvertUnicodeToUTF8(file).c_str(), count, xc, yc, w, h, result->images.data());
 	if (async) SetUseASyncLoadFlag(FALSE);
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -171,7 +168,7 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFileName(const string& file
 	LoadDivGraph(file.c_str(), count, xc, yc, w, h, result->images.data());
 	if (async) SetUseASyncLoadFlag(FALSE);
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -182,7 +179,7 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromMemory(void* buffer, const 
 	result->images.resize(count);
 	CreateDivGraphFromMem(buffer, size, count, xc, yc, w, h, result->images.data());
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -367,7 +364,7 @@ SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, 
 	result->thick = thick;
 	result->fontType = fontType;
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -381,7 +378,7 @@ SFont* SFont::CreateLoadedFontFromMem(const void *mem, size_t memsize, int edge,
 	result->thick = thick;
 	result->fontType = fontType;
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -456,7 +453,7 @@ SSound* SSound::CreateSoundFromFile(const path& file, bool async, int loadType)
 	auto result = new SSound();
 	result->handle = handle;
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
@@ -476,7 +473,7 @@ SSound* SSound::CreateSoundFromFileName(const string& file, bool async, int load
 		return nullptr;
 	}
 
-	SU_ASSERT(result->GetRefCount() == 1);
+	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
 }
 
