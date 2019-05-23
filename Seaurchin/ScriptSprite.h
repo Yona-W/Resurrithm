@@ -205,21 +205,21 @@ enum class STextAlign {
 //文字列をスプライトとして扱います
 class STextSprite : public SSprite {
 protected:
+	SFont* Font;
+	std::string Text;
+
 	SRenderTarget* target;
-	SRenderTarget* scrollBuffer;
 	std::tuple<int, int> size;
 	STextAlign horizontalAlignment;
 	STextAlign verticalAlignment;
+
 	bool isScrolling;
 	int scrollWidth;
 	int scrollMargin;
 	double scrollSpeed;
 	double scrollPosition;
-	bool isRich;
 
-public:
-	SFont* Font;
-	std::string Text;
+	bool isRich;
 
 protected:
 	STextSprite();
@@ -229,9 +229,8 @@ public:
 
 public:
 	void Tick(double delta) override;
-	void Draw() const override;
-	void Draw(const Transform2D& parent, const ColorTint& color) const override;
 private:
+	void DrawBy(const Transform2D& tf, const ColorTint& ct) const override;
 	void Refresh();
 	void DrawNormal(const Transform2D& tf, const ColorTint& ct) const;
 	void DrawScroll(const Transform2D& tf, const ColorTint& ct) const;
@@ -254,7 +253,7 @@ public:
 
 public:
 	static STextSprite* Factory();
-	static STextSprite* Factory(SFont* img, const std::string& str);
+	static STextSprite* Factory(SFont* font, const std::string& str);
 	static void RegisterType(asIScriptEngine* engine);
 };
 

@@ -679,6 +679,7 @@ void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct) const
 {
 	const unsigned int clr = GetColor(ct.R, ct.G, ct.B);
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
+	SetDrawBright(255, 255, 255);
 
 	switch (Type) {
 	case SShapeType::Pixel:
@@ -687,10 +688,10 @@ void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct) const
 	case SShapeType::Box:
 	case SShapeType::BoxFill: {
 		const glm::vec2 points[] = {
-			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), tf.Angle),
-			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), tf.Angle),
-			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), tf.Angle),
-			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), tf.Angle)
+			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), -tf.Angle),
+			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), -tf.Angle),
+			glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), -tf.Angle),
+			glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), -tf.Angle)
 		};
 		DrawQuadrangleAA(
 			tf.X + points[0].x, tf.Y - points[0].y,
@@ -775,8 +776,9 @@ void SShape::RegisterType(asIScriptEngine * engine)
 // TextSprite -----------
 
 STextSprite::STextSprite()
-	: target(nullptr)
-	, scrollBuffer(nullptr)
+	: Font(nullptr)
+	, Text("")
+	, target(nullptr)
 	, size(0, 0)
 	, horizontalAlignment(STextAlign::Left)
 	, verticalAlignment(STextAlign::Top)
@@ -786,24 +788,21 @@ STextSprite::STextSprite()
 	, scrollSpeed(0.0)
 	, scrollPosition(0.0)
 	, isRich(false)
-	, Font(nullptr)
-	, Text("")
 {}
 
 STextSprite::~STextSprite()
 {
 	if (Font) Font->Release();
 	if (target) target->Release();
-	if (scrollBuffer) scrollBuffer->Release();
 }
 
 STextSprite* STextSprite::Clone() const
 {
-	//やっぱりコピコンで良くないかこれ
 	auto clone = new STextSprite();
-	clone->AddRef();
-
 	clone->CopyParameterFrom(this);
+
+	clone->SetRangeScroll(scrollWidth, scrollMargin, scrollSpeed);
+	clone->SetRich(isRich);
 
 	if (target) {
 		clone->SetText(Text);
@@ -820,32 +819,19 @@ STextSprite* STextSprite::Clone() const
 void STextSprite::Tick(const double delta)
 {
 	SSprite::Tick(delta);
-	if (isScrolling) scrollPosition += scrollSpeed * delta;
+	const auto w = get<0>(size) + scrollMargin;
+	if (isScrolling) scrollPosition = fmod(fmod(scrollPosition + scrollSpeed * delta, w) + w, w);
 }
 
-void STextSprite::Draw() const
+void STextSprite::DrawBy(const Transform2D& tf, const ColorTint& ct) const
 {
 	if (!target) return;
 
 	if (isScrolling && target->GetWidth() >= scrollWidth) {
-		DrawScroll(Transform, Color);
+		DrawScroll(tf, ct);
 	}
 	else {
-		DrawNormal(Transform, Color);
-	}
-}
-
-void STextSprite::Draw(const Transform2D& parent, const ColorTint& color) const
-{
-	if (!target) return;
-
-	const auto tf = Transform.ApplyFrom(parent);
-	const auto cl = Color.ApplyFrom(color);
-	if (isScrolling && target->GetWidth() >= scrollWidth) {
-		DrawScroll(tf, cl);
-	}
-	else {
-		DrawNormal(tf, cl);
+		DrawNormal(tf, ct);
 	}
 }
 
@@ -853,8 +839,6 @@ void STextSprite::Refresh()
 {
 	if (target) target->Release();
 	target = nullptr;
-	if (scrollBuffer) scrollBuffer->Release();
-	scrollBuffer = nullptr;
 
 	if (!Font) {
 		size = std::make_tuple<int, int>(0, 0);
@@ -862,10 +846,6 @@ void STextSprite::Refresh()
 	}
 
 	size = isRich ? Font->RenderRich(nullptr, Text) : Font->RenderRaw(nullptr, Text);
-	if (isScrolling) {
-		scrollBuffer = new SRenderTarget(scrollWidth, get<1>(size));
-	}
-
 	target = new SRenderTarget(get<0>(size), get<1>(size));
 	if (isRich) {
 		Font->RenderRich(target, Text);
@@ -878,9 +858,14 @@ void STextSprite::Refresh()
 void STextSprite::DrawNormal(const Transform2D & tf, const ColorTint & ct) const
 {
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
-	SetDrawBright(ct.R, ct.G, ct.B);
-	const auto tox = SU_TO_FLOAT(get<0>(size) / 2 * int(horizontalAlignment));
-	const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
+	if (isRich) {
+		SetDrawBright(255, 255, 255);
+	}
+	else {
+		SetDrawBright(ct.R, ct.G, ct.B);
+	}
+	const auto tox = get<0>(size) / 2.0f * int(horizontalAlignment);
+	const auto toy = get<1>(size) / 2.0f * int(verticalAlignment);
 	DrawRotaGraph3F(
 		tf.X, tf.Y,
 		tf.OriginX + tox, tf.OriginY + toy,
@@ -890,47 +875,71 @@ void STextSprite::DrawNormal(const Transform2D & tf, const ColorTint & ct) const
 
 void STextSprite::DrawScroll(const Transform2D & tf, const ColorTint & ct) const
 {
-	const auto pds = GetDrawScreen();
-	SetDrawScreen(scrollBuffer->GetHandle());
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-	SetDrawBright(255, 255, 255);
-	ClearDrawScreen();
-	if (scrollSpeed >= 0) {
-		auto reach = -scrollPosition + int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
-		while (reach < scrollWidth) {
-			DrawRectGraphF(
-				SU_TO_FLOAT(reach), 0,
-				0, 0, get<0>(size), get<1>(size),
-				target->GetHandle(), TRUE, FALSE);
-			reach += get<0>(size) + scrollMargin;
-		}
-	}
-	else {
-		auto reach = -scrollPosition - int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
-		while (reach > 0) {
-			DrawRectGraphF(
-				SU_TO_FLOAT(reach), 0,
-				0, 0, get<0>(size), get<1>(size),
-				target->GetHandle(), TRUE, FALSE);
-			reach -= get<0>(size) + scrollMargin;
-		}
-	}
-	SetDrawScreen(pds);
-
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
 	if (isRich) {
 		SetDrawBright(255, 255, 255);
 	}
 	else {
 		SetDrawBright(ct.R, ct.G, ct.B);
 	}
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
-	const auto tox = SU_TO_FLOAT(scrollWidth / 2 * int(horizontalAlignment));
-	const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
-	DrawRotaGraph3F(
-		tf.X, tf.Y,
-		tf.OriginX + tox, tf.OriginY + toy,
-		tf.ScaleX, tf.ScaleY,
-		tf.Angle, scrollBuffer->GetHandle(), TRUE, FALSE);
+
+	const auto w = get<0>(size);
+	const auto h = get<1>(size);
+	const auto pos = SU_TO_INT32(scrollPosition);
+	if (scrollPosition + scrollWidth <= w) {
+		/* scrollPosition 分ずらして scrollWidth だけ貼り付ける */
+		DrawRectRotaGraph3F(
+			tf.X, tf.Y,
+			pos, 0,
+			scrollWidth, h,
+			scrollWidth / 2.0f * int(horizontalAlignment), h / 2.0f * int(verticalAlignment),
+			tf.ScaleX, tf.ScaleY,
+			tf.Angle, target->GetHandle(),
+			(HasAlpha) ? TRUE : FALSE);
+	}
+	else if (scrollPosition + scrollWidth <= w + scrollMargin) {
+		/* scrollPosition 分ずらして w - scrollPosition だけ貼り付ける */
+		DrawRectRotaGraph3F(
+			tf.X, tf.Y,
+			pos, 0,
+			w - pos, h,
+			scrollWidth / 2.0f * int(horizontalAlignment), h / 2.0f * int(verticalAlignment),
+			tf.ScaleX, tf.ScaleY,
+			tf.Angle, target->GetHandle(),
+			(HasAlpha) ? TRUE : FALSE);
+	}
+	else if (scrollPosition <= w) {
+		/* scrollPosition 分ずらして w - scrollPosition だけ貼り付けて、残りを左に貼り付ける */
+		DrawRectRotaGraph3F(
+			tf.X, tf.Y,
+			pos, 0,
+			w - pos, h,
+			scrollWidth / 2.0f * int(horizontalAlignment), h / 2.0f * int(verticalAlignment),
+			tf.ScaleX, tf.ScaleY,
+			tf.Angle, target->GetHandle(),
+			(HasAlpha) ? TRUE : FALSE);
+		const auto offset = w + scrollMargin - pos;
+		DrawRectRotaGraph3F(
+			tf.X, tf.Y,
+			0, 0,
+			scrollWidth - offset, h,
+			scrollWidth / 2.0f * int(horizontalAlignment) - offset, h / 2.0f * int(verticalAlignment),
+			tf.ScaleX, tf.ScaleY,
+			tf.Angle, target->GetHandle(),
+			(HasAlpha) ? TRUE : FALSE);
+	}
+	else {
+		/* scrollMargin + w - scrollPosition 分飛ばして残りを左に貼り付ける */
+		const auto offset = w + scrollMargin - pos;
+		DrawRectRotaGraph3F(
+			tf.X, tf.Y,
+			0, 0,
+			scrollWidth - offset, h,
+			scrollWidth / 2.0f * int(horizontalAlignment) - offset, h / 2.0f * int(verticalAlignment),
+			tf.ScaleX, tf.ScaleY,
+			tf.Angle, target->GetHandle(),
+			(HasAlpha) ? TRUE : FALSE);
+	}
 }
 
 void STextSprite::SetFont(SFont * font)
@@ -959,7 +968,6 @@ void STextSprite::SetRangeScroll(const int width, const int margin, const double
 	scrollMargin = margin;
 	scrollSpeed = pps;
 	scrollPosition = 0;
-	Refresh();
 }
 
 void STextSprite::SetRich(const bool enabled)
@@ -976,17 +984,17 @@ STextSprite* STextSprite::Factory()
 	return result;
 }
 
-STextSprite* STextSprite::Factory(SFont * img, const string & str)
+STextSprite* STextSprite::Factory(SFont* font, const string & str)
 {
 	auto result = new STextSprite();
 
 	result->SetText(str);
 	{
-		if (img) img->AddRef();
-		result->SetFont(img);
+		if (font) font->AddRef();
+		result->SetFont(font);
 	}
 
-	if (img) img->Release();
+	if (font) font->Release();
 
 	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;

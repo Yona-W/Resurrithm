@@ -223,8 +223,8 @@ tuple<int, int> SFont::RenderRich(SRenderTarget * rt, const string & utf8Str)
 	int cx = 0, cy = 0;
 	int mx = 0, my = 0;
 
-	ColorTint defcol = { 255, 255, 255, 255 };
-	uint8_t cr = 255, cg = 255, cb = 255;
+	ColorTint defcol = { 255, 0, 0, 0 };
+	uint8_t cr = 0, cg = 0, cb = 0;
 	float cw = 1;
 	bool visible = true;
 
@@ -401,7 +401,7 @@ void SSound::SetPosition(double ms) {
 
 	bool needPlay = GetState() == State::Play;
 	if (needPlay) Pause();
-	SetSoundCurrentTime(ms, handle);
+	SetSoundCurrentTime(SU_TO_INT32(ms), handle);
 	if (needPlay) Play();
 }
 
