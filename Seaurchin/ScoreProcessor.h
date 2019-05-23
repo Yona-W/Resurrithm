@@ -10,7 +10,7 @@ enum class NoteAttribute {
 	Activated,
 };
 
-class SusDrawableNoteData;
+struct SusDrawableNoteData;
 class ScoreProcessor {
 public:
 	virtual ~ScoreProcessor() = default;

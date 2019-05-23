@@ -106,7 +106,7 @@ enum class AirDrawType {
 	AirActionCover,
 };
 
-class SusDrawableNoteData;
+struct SusDrawableNoteData;
 struct AirDrawQuery {
 	double Z = 0.0;
 	AirDrawType Type = AirDrawType::Air;
