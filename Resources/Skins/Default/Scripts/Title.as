@@ -137,7 +137,7 @@ class Title : CoroutineScene {
 
     for(int i = 0; i < 3; i++) {
       menu[i].Apply(dictionary = {
-        {"x", 0/*-320*/}, {"y", 400 + 64 * i},
+        {"x", -320}, {"y", 400 + 64 * i},
         {"origX", 160},
         {"r", 0}, {"g", 0}, {"b", 0}
       });
@@ -190,7 +190,7 @@ class Title : CoroutineScene {
       }
       YieldFrame(1);
     }
-    for(int i = 0; i < 3; i++) menu[i].AddMove("x:{@end:720, time:0.25, func:out_sine}");
+    for(int i = 0; i < 3; i++) menu[i].AddMove("x:{@end:1040, time:0.25, func:out_sine}");
     spCursor.AddMove("x:{@end:800, time:0.25, func:out_sine}");
     while(true) {
       if (IsKeyTriggered(Key::INPUT_UP)) {

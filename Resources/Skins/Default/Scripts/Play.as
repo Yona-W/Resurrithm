@@ -7,6 +7,7 @@ class Play : CoroutineScene {
   ScenePlayer@ player;
   CharacterInfo charinfo;
   TextSprite@ txtCombo;
+  Score@ score;
 
   double judgeLineBegin, judgeLineWidth;
   double judgeLineY;
@@ -142,7 +143,16 @@ class Play : CoroutineScene {
     charinfo.InitInfo(player);
     player.Apply("z:5");
     AddSprite(player);
-    player.Load(GetStringData("Player:FilePath"));
+    int scoreIndex = GetIntData("Player::ScoreIndex");
+    Category@ cat = GetMusicManager().GetCategory(GetIntData("Player::CatIndex"));
+    Music@ mus = (cat is null)? null : cat.GetMusic(GetIntData("Player::MusIndex"));
+    @score = (mus is null)? null : mus.GetScore(GetIntData("Player::ScoreIndex"));
+    if (score is null) {
+      WriteLog(Severity::Critical, "譜面データの取得に失敗しました");
+      Fire("Player:Exit");
+      return;
+    }
+    player.Load(score.Path);
     while(!player.IsLoadCompleted()) YieldFrame(1);
     if (player.IsScoreLoaded()) {
       SetMusicInfo();
@@ -151,17 +161,19 @@ class Play : CoroutineScene {
       YieldTime(5);
       player.Play();
     } else {
-      WriteLog(Severity::Error, "譜面のロードに失敗");
+      WriteLog(Severity::Error, "譜面のロードに失敗しました");
+      Fire("Player:Exit");
+      return;
     }
   }
 
   Sprite@ spTopCover, spBack, spCustomBack;
   array<Sprite@> spGaugeCounts(10);
-  Sprite@ spBarBack, spBarFront;
+  Sprite@ spBarBack, spBarFront, spJacket;
   ClipSprite@ spBarFill;
   TextSprite@ txtScore, txtMaxCombo, txtScoreInfo, txtMaxComboInfo;
   TextSprite@ txtTitle, txtArtist, txtLevel;
-  SynthSprite@ spJudges, spJacket;
+  SynthSprite@ spJudges;
   void Main() {
     @spBack = Sprite(skin.GetImage("TitleBack"));
     @spTopCover = Sprite(skin.GetImage("PlayerTopCover"));
@@ -182,19 +194,20 @@ class Play : CoroutineScene {
     txtScoreInfo.Apply("x:650, y:10, scaleX: 0.5, scaleY: 0.5, z:15");
 
     @txtLevel = TextSprite(font64, "");
-    txtLevel.Apply("x:1276, y: -8, z: 15");
+    txtLevel.Apply("x:1276, y: 4, z: 15");
     txtLevel.SetAlignment(TextAlign::Right, TextAlign::Top);
 
     @txtTitle = TextSprite(font64, "");
-    txtTitle.Apply("x:1008, y: 26, z: 151");
-    txtTitle.SetRangeScroll(240, 20, 32);
+    txtTitle.Apply("x:1008, y: 14, z: 15");
+    txtTitle.SetRangeScroll(210, 20, 32);
 
     @txtArtist = TextSprite(font32, "");
     txtArtist.Apply("x: 1008, y: 74, z: 15");
-    txtArtist.SetRangeScroll(240, 20, 32);
+    txtArtist.SetRangeScroll(210, 20, 32);
 
-    @spJacket = SynthSprite(640, 640);
-    spJacket.Apply("x: 908, y: 4, z: 15, scaleX: 0.15, scaleY: 0.15");
+    @spJacket = Sprite();
+    spJacket.Apply("x: 908, y: 4, z: 15");
+    spJacket.HasAlpha = false;
 
     @spJudges = SynthSprite(768, 24);
     spJudges.Transfer(skin.GetImage("JudgeJC"), 0, 0);
@@ -284,11 +297,19 @@ class Play : CoroutineScene {
   }
 
   void SetMusicInfo() {
-    Image@ jacket = Image(GetStringData("Player:Jacket"));
-    spJacket.Transfer(jacket, 0, 0);
-    txtTitle.SetText(GetStringData("Player:Title"));
-    txtArtist.SetText(GetStringData("Player:Artist"));
-    txtLevel.SetText("" + GetIntData("Player:Level"));
+    if (score is null) return;
+    
+    Image@ imgJacket = Image(score.JacketPath);
+    if (imgJacket !is null) {
+        int w = imgJacket.Width, h = imgJacket.Height;
+        if (w > 0 && h > 0) {
+          spJacket.SetScale(98.0 / w, 98.0 / h);
+        }
+    }
+    spJacket.SetImage(imgJacket);
+    txtTitle.SetText(score.Title);
+    txtArtist.SetText(score.Artist);
+    txtLevel.SetText("" + score.Level);
   }
 
   bool isPausing;
@@ -335,6 +356,9 @@ class Play : CoroutineScene {
       spBack.AddMove("alpha:{begin:1, end:0, time:1}");
       spCustomBack.AddMove("alpha:{begin:0, end:1, time:1}");
       spBack.AddMove("death:{wait:1}");
+    } else if (event == "Player:Exit") {
+      Execute("Select.as");
+      Disappear();
     }
   }
 

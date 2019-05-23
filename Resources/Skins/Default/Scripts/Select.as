@@ -122,7 +122,9 @@ class Select : CoroutineScene {
           Score@ score = mus.GetScore(currentScoreIndex);
           if (score is null) return;
 
-          SetData("Player:FilePath", score.Path);
+          SetData("Player::CatIndex", currentCategoryIndex);
+          SetData("Player::MusIndex", currentMusicIndex);
+          SetData("Player::ScoreIndex", currentScoreIndex);
           if (Execute("Play.as")) {
             Fire("Select:End");
             Disappear();
@@ -231,6 +233,7 @@ class MusicItem {
     
     @jacket = Sprite();
     jacket.Apply("x:-160, y:-260");
+    jacket.HasAlpha = false;
     
     @title = TextSprite(font64, "");
     title.Apply("y:108, r:0, g:0, b:0");
