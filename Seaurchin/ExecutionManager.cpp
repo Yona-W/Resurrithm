@@ -91,10 +91,11 @@ ExecutionManager::ExecutionManager(SettingTree* setting)
 
 ExecutionManager::~ExecutionManager()
 {
-	for (auto& scene : scenes) scene->Disappear();
-	scenes.clear();
-	for (auto& scene : scenesPending) scene->Disappear();
+	for (auto& scene : scenesPending) scene->Dispose();
 	scenesPending.clear();
+	for (auto& scene : scenes) scene->Dispose();
+	scenes.clear();
+	scriptInterface->GetEngine()->GarbageCollect(asGC_FULL_CYCLE);
 
 	if (skin) skin->Terminate();
 
