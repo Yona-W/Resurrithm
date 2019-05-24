@@ -171,7 +171,6 @@ static bool GetNode(MoverFunctionExpressionSharedPtr& ret, const char* expressio
 
 bool GetExpression(MoverFunctionExpressionSharedPtr& ret, const char* expression, const char** seeked)
 {
-	std::cout << expression << std::endl;
 	ret.reset();
 
 	MoverFunctionExpressionSharedPtr op;
@@ -295,6 +294,13 @@ bool GetNode(MoverFunctionExpressionSharedPtr & ret, const char* expression, con
 	if (*p == '\0') return false;
 
 	SKIP_SP();
+
+	if (*p == '(') {
+		const char* next = p;
+		if (!GetExpression(ret, p, &next)) return false;
+		*seeked = next;
+		return true;
+	}
 
 	bool isPositive = false, isNegative = false;
 	if (*p == '+') {

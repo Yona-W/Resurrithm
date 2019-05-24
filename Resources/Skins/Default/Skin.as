@@ -53,7 +53,7 @@ void InitializeSkin(Skin@ skin) {
   skin.LoadFont("Normal32", "ＭＳ ゴシック", 28, 1, FontType::AntiAliasing);
   skin.LoadFont("Normal64", "ＭＳ ゴシック", 62, 1, FontType::AntiAliasing);
   skin.LoadFont("Latin128", "ＭＳ ゴシック", 96, 1, FontType::AntiAliasing);
-  skin.LoadFont("Combo192", "ＭＳ ゴシック", 380, 1, FontType::AntiAliasing);
+  skin.LoadFont("Combo192", "ＭＳ ゴシック", 192, 1, FontType::AntiAliasing);
   
   skin.LoadAnime("*Anime-Tap", "Effect-Tap.png", 8, 8, 256, 256, 60, 0.0166);
   skin.LoadAnime("*Anime-ExTap", "Effect-ExTap.png", 8, 4, 256, 256, 30, 0.0166);
