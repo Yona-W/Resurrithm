@@ -173,7 +173,7 @@ void ScenePlayer::LoadWorker(const path& file)
 
 		// 動画・音声の読み込み
 		const auto soundfile = file.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
-		soundBGM = SSound::CreateSoundFromFile(soundfile, false, DX_SOUNDDATATYPE_FILE);
+		soundBGM = SSound::CreateSoundFromFile(soundfile, false, (soundfile.extension() == ".mp3")? DX_SOUNDDATATYPE_MEMNOPRESS : DX_SOUNDDATATYPE_FILE);
 		if (!soundBGM) {
 			spdlog::get("main")->warn(u8"音声ファイル {0} の読み込みに失敗しました。", ConvertUnicodeToUTF8(soundfile));
 		}
@@ -518,12 +518,12 @@ void ScenePlayer::MovePositionBySecond(const double sec)
 	if (state < PlayingState::BothOngoing && state != PlayingState::Paused) return;
 	if (hasEnded) return;
 	const auto gap = analyzer->SharedMetaData.WaveOffset - soundBufferingLatency;
-	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() * 1000.0 : 0.0;
+	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() / 1000.0 : 0.0;
 	const auto oldTime = currentTime;
 	const auto newTime = oldTime + sec;
 	auto newBgmPos = oldBgmPos + (newTime - oldTime);
 	newBgmPos = max(0.0, newBgmPos);
-	if (soundBGM) soundBGM->SetPosition(newBgmPos);
+	if (soundBGM) soundBGM->SetPosition(newBgmPos * 1000.0);
 	currentTime = newBgmPos + gap;
 	processor->MovePosition(currentTime - oldTime);
 	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
@@ -534,14 +534,14 @@ void ScenePlayer::MovePositionByMeasure(const int meas)
 	if (state < PlayingState::BothOngoing && state != PlayingState::Paused) return;
 	if (hasEnded) return;
 	const auto gap = analyzer->SharedMetaData.WaveOffset - soundBufferingLatency;
-	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() * 1000.0 : 0.0;
+	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() / 1000.0 : 0.0;
 	const auto oldTime = currentTime;
 	const int oldMeas = get<0>(analyzer->GetRelativeTime(currentTime));
 	auto newTime = analyzer->GetAbsoluteTime(max(0, oldMeas + meas), 0);
 	if (fabs(newTime - oldTime) <= 0.005) newTime = analyzer->GetAbsoluteTime(max(0, oldMeas + meas + (meas > 0 ? 1 : -1)), 0);
 	auto newBgmPos = oldBgmPos + (newTime - oldTime);
 	newBgmPos = max(0.0, newBgmPos);
-	if (soundBGM) soundBGM->SetPosition(newBgmPos);
+	if (soundBGM) soundBGM->SetPosition(newBgmPos * 1000.0);
 	currentTime = newBgmPos + gap;
 	processor->MovePosition(currentTime - oldTime);
 	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));

@@ -412,7 +412,7 @@ void SSound::Play()
 		SetSoundCurrentTime(0, handle);
 	}
 
-	PlaySoundMem(handle, (isLoop) ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK);
+	PlaySoundMem(handle, (isLoop) ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK, FALSE);
 	state = State::Play;
 }
 

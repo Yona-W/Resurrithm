@@ -136,7 +136,7 @@ public:
 	void Pause() { StopSoundMem(handle); state = State::Pause; }
 	void Stop() { StopSoundMem(handle); state = State::Stop; SetPosition(0.0); }
 	State GetState();
-	double GetPosition() const { return GetSoundCurrentTime(handle) / 1000.0; }
+	double GetPosition() const { return GetSoundCurrentTime(handle) * 1.0; }
 
 	static SSound* CreateSoundFromFile(const std::filesystem::path& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 	static SSound* CreateSoundFromFileName(const std::string& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
