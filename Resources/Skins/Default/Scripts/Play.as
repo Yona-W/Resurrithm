@@ -316,7 +316,7 @@ class Play : CoroutineScene {
   void KeyInput() {
     while(true) {
       if (IsKeyTriggered(Key::INPUT_ESCAPE)) {
-        if (Execute("Select.as")) {
+        if (Execute("Scripts\\Select.as")) {
           Fire("Player:End");
           Disappear();
         }
@@ -357,7 +357,7 @@ class Play : CoroutineScene {
       spCustomBack.AddMove("alpha:{begin:0, end:1, time:1}");
       spBack.AddMove("death:{wait:1}");
     } else if (event == "Player:Exit") {
-      Execute("Select.as");
+      Execute("Scripts\\Select.as");
       Disappear();
     }
   }

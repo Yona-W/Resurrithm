@@ -1,0 +1,8 @@
+Name = "高森藍子"
+Image = "aiko.png"
+
+[Metric]
+WholeScale = 0.5
+Face = [ 401, 355 ]
+SmallRange = [ 0, 90, 800, 485 ]
+FaceRange = [ 228, 93, 360, 360 ]

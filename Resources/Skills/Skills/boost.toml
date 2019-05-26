@@ -1,0 +1,10 @@
+Name = "ゲージブースト"
+Icon = "Icons\\boost.png"
+
+[[Detail]]
+Level = 0
+Description = '''
+${reset}ゲージボーナス ${blue}${bold}(175%)
+'''
+Ability = { Type = "Boost", Arguments = { bonus = 0.75 } }
+Indicator = { Boost = "Icons\\boost.png" }

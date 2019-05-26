@@ -28,13 +28,6 @@ struct CoroutineWait {
 	}
 };
 
-class SImage;
-class SFont;
-class SSound;
-
 void YieldTime(double time);
 void YieldFrames(int64_t frames);
-SImage* LoadSystemImage(const std::string& file, bool async);
-SFont* LoadSystemFont(const std::string& file, bool async);
-SSound* LoadSystemSound(const std::string& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 void EnumerateInstalledFonts();

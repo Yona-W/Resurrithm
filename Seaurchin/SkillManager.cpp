@@ -18,14 +18,13 @@ namespace {
 	/*!
 	 * @brief スキル定義ファイルへのパスをもとにスキルをロードします。
 	 * @param[in] engine スクリプトエンジン。
-	 * @param[in] file スキル定義ファイルへのパス。Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR に対する相対パスです。
+	 * @param[in] file スキル定義ファイルへのパス。絶対パスです。
 	 * @return スキル情報を返します。ロード、パースに失敗した場合はnullを返します。
 	 */
 	shared_ptr<SkillParameter> LoadFromToml(asIScriptEngine* engine, path file)
 	{
 		auto log = spdlog::get("main");
 		auto result = make_shared<SkillParameter>();
-		const auto iconRoot = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
 
 		ifstream ifs(file, ios::in);
 		auto pr = toml::parse(ifs);
@@ -38,7 +37,7 @@ namespace {
 
 		try {
 			result->Name = root.get<string>("Name");
-			result->IconPath = ConvertUnicodeToUTF8(iconRoot / ConvertUTF8ToUnicode(root.get<string>("Icon")));
+			result->IconPath = ConvertUnicodeToUTF8(file.parent_path() / ConvertUTF8ToUnicode(root.get<string>("Icon")));
 			result->Details.clear();
 			result->CurrentLevel = 0;
 			result->MaxLevel = 0;
@@ -85,7 +84,7 @@ namespace {
 					switch (p.second.type()) {
 					case toml::Value::STRING_TYPE:
 					{
-						auto avalue = ConvertUnicodeToUTF8(iconRoot / ConvertUTF8ToUnicode(p.second.as<string>()));
+						auto avalue = ConvertUnicodeToUTF8(file.parent_path() / ConvertUTF8ToUnicode(p.second.as<string>()));
 						sdt->Indicators->Set(p.first, &avalue, engine->GetTypeIdByDecl("string"));
 						break;
 					}

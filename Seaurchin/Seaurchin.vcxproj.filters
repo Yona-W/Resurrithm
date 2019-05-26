@@ -321,7 +321,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Resources\Images\Seaurchin.ico">
+    <Image Include="..\Resources\Images\seaurchin.ico">
       <Filter>リソース ファイル</Filter>
     </Image>
   </ItemGroup>

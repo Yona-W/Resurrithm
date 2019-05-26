@@ -1,0 +1,23 @@
+Name = "AIRブースト"
+Icon = "Icons\\air_up.png"
+
+[[Detail]]
+Level = 0
+Description = '''
+${reset}AIRボーナス ${blue}${bold}(+200)
+${reset}AIR-ACTボーナス ${blue}${bold}(+500)
+${reset}それ以外ペナルティ ${red}${bold}(-10)
+'''
+Ability = { Type = "AirBoost", Arguments = { air = 200, airact = 500, other = -10 } }
+Indicator = { Boost = "Icons\\boost.png", Damage = "Icons\\death.png" }
+
+
+[[Detail]]
+Level = 1
+Description = '''
+${reset}AIRボーナス ${blue}${bold}(+500)
+${reset}AIR-ACTボーナス ${blue}${bold}(+1500)
+${reset}それ以外ペナルティ ${red}${bold}(-150)
+'''
+Ability = { Type = "AirBoost", Arguments = { air = 500, airact = 1500, other = -150 } }
+Indicator = { Boost = "Icons\\boost.png", Damage = "Icons\\death.png" }

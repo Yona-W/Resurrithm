@@ -210,10 +210,10 @@ class Title : CoroutineScene {
       if (IsKeyTriggered(Key::INPUT_RETURN)) {
         switch(mcur) {
           case 0:
-            if (Execute("Select.as")) Disappear();
+            if (Execute("Scripts\\Select.as")) Disappear();
             break;
           case 1:
-            if (Execute("Setting.as")) Disappear();
+            if (Execute("Scripts\\Setting.as")) Disappear();
             break;
           case 2:
             ExitApplication();

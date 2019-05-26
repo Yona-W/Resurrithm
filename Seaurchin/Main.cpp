@@ -41,7 +41,7 @@ void PreInitialize(HINSTANCE hInstance)
 	logger->Initialize();
 	logger->LogDebug(u8"ロガー起動");
 
-	auto setting = make_unique<SettingTree>(hInstance, "config.toml");
+	auto setting = make_unique<SettingTree>(hInstance, SU_SETTING_FILE);
 	setting->Load();
 	const auto vs = setting->ReadValue<bool>("Graphic", "WaitVSync", false);
 	const auto fs = setting->ReadValue<bool>("Graphic", "Fullscreen", false);

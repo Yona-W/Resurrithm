@@ -1,0 +1,30 @@
+# Name (String)
+# 必須。キャラクター名を指定します。
+Name = "比那名居天子"
+
+# Image (String)
+# 必須。キャラクターの画像パスを相対パスで指定します。
+Image = "tenshi.png"
+
+# Metric
+# 画像上のキャラクターの情報
+[Metric]
+# WholeScale (Float)
+# 全体を表示する際のスケールを指定します。
+WholeScale = 1.0
+
+# Face (Integer[])
+# 画像上の顔の中心座標を指定します。
+Face = [ 224, 275 ]
+
+# SmallRange (Integer[])
+# バストアップ表示時の範囲を指定します。
+# 左上, 右上, 幅, 高さ
+# 280x170にスケールされます
+SmallRange = [ 0, 101, 500, 303 ]
+
+# FaceSize (Integer[])
+# 顔アップ表示時の顔の範囲を指定します。
+# 左上, 右上, 幅, 高さ
+# 128x128にスケールされます。
+FaceRange = [ 133, 160, 180, 180 ]

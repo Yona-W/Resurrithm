@@ -1,0 +1,10 @@
+Name = "スキル無し"
+Icon = "Icons\\none.png"
+
+[[Detail]]
+Level = 0
+Description = '''
+効果なし
+'''
+Ability = { Type = "None", Arguments = { } }
+Indicator = { }

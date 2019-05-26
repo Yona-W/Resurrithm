@@ -93,14 +93,14 @@ class Select : CoroutineScene {
           SetData("Player::CatIndex", categoryManager.GetIndex());
           SetData("Player::MusIndex", currentCategory.GetIndex());
           SetData("Player::ScoreIndex", currentCategory.GetSubIndex());
-          if (Execute("Play.as")) {
+          if (Execute("Scripts\\Play.as")) {
             Fire("Select:End");
             Disappear();
           }
         }
       } else if (IsKeyTriggered(Key::INPUT_ESCAPE)) {
         if (currentCategory is null) {
-          if (Execute("Title.as")) {
+          if (Execute("Scripts\\Title.as")) {
             Fire("Select:End");
             Disappear();
           }

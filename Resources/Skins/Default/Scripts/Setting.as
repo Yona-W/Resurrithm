@@ -166,7 +166,7 @@ class SettingScene : CoroutineScene {
         }
       }
       if (IsKeyTriggered(Key::INPUT_ESCAPE)) {
-        if (Execute("Title.as")) Disappear();
+        if (Execute("Scripts\\Title.as")) Disappear();
       }
       YieldFrame(1);
     }

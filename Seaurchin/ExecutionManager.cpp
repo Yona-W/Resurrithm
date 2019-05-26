@@ -29,10 +29,6 @@ namespace {
 	bool CheckSkinStructure(const path& root)
 	{
 		if (!exists(root / SU_SKIN_MAIN_FILE)) return false;
-		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_TITLE_FILE)) return false;
-		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_SELECT_FILE)) return false;
-		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_PLAY_FILE)) return false;
-		if (!exists(root / SU_SCRIPT_DIR / SU_SKIN_RESULT_FILE)) return false;
 		return true;
 	}
 
@@ -113,7 +109,7 @@ void ExecutionManager::Initialize()
 	auto log = spdlog::get("main");
 
 	// ルートのSettingList読み込み
-	const auto slpath = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SETTING_DEFINITION_FILE;
+	const auto slpath = SettingManager::GetRootDirectory() / SU_SKIN_DIR / SU_SETTING_DEFINITION_FILE;
 	settingManager->LoadItemsFromToml(slpath);
 	settingManager->RetrieveAllValues();
 
@@ -357,7 +353,7 @@ void ExecutionManager::EnumerateSkins()
 {
 	auto log = spdlog::get("main");
 
-	const auto sepath = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR;
+	const auto sepath = SettingManager::GetRootDirectory() / SU_SKIN_DIR;
 
 	skinNames.clear();
 	if (exists(sepath)) {
@@ -380,7 +376,7 @@ bool ExecutionManager::ExecuteSkin()
 		log->error(u8"スキン \"{0}\"が見つかりませんでした", skinName);
 		return false;
 	}
-	const auto skincfg = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / sn / SU_SETTING_DEFINITION_FILE;
+	const auto skincfg = SettingManager::GetRootDirectory() / SU_SKIN_DIR / sn / SU_SETTING_DEFINITION_FILE;
 	if (exists(skincfg)) {
 		log->info(u8"スキンの設定定義ファイルが有効です");
 		settingManager->LoadItemsFromToml(skincfg);

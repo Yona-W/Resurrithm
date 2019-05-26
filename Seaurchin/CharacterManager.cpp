@@ -36,7 +36,7 @@ namespace {
 
 		try {
 			result->Name = root.get<string>("Name");
-			const auto imgpath = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR / ConvertUTF8ToUnicode(root.get<string>("Image"));
+			const auto imgpath = file.parent_path() / ConvertUTF8ToUnicode(root.get<string>("Image"));
 			result->ImagePath = ConvertUnicodeToUTF8(imgpath);
 
 			const auto ws = root.find("Metric.WholeScale");
@@ -98,12 +98,12 @@ CharacterManager::CharacterManager()
 
 /*!
  * @brief キャラクター一覧を生成します。
- * @details 読み込む対象は Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR 直下にある *.toml です。
+ * @details 読み込む対象は Setting::GetRootDirectory() / SU_CHARACTER_DIR 直下にある *.toml です。
  * @todo 非同期動作ができた方がベター
  */
 void CharacterManager::LoadAllCharacters()
 {
-	const auto sepath = SettingManager::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR;
+	const auto sepath = SettingManager::GetRootDirectory() / SU_CHARACTER_DIR;
 
 	if (filesystem::exists(sepath)) {
 		for (const auto& fdata : directory_iterator(sepath)) {

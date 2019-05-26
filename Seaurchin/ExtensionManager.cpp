@@ -23,12 +23,12 @@ ExtensionManager::~ExtensionManager()
 
 /*!
  * @brief エクステンションを列挙しロードします。
- * @details 読み込む対象は Setting::GetRootDirectory() / SU_DATA_DIR / SU_EXTENSION_DIR 内の *.dll です。
+ * @details 読み込む対象は Setting::GetRootDirectory() / SU_EXTENSION_DIR 内の *.dll です。
  */
 void ExtensionManager::LoadExtensions()
 {
 	using namespace std::filesystem;
-	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_EXTENSION_DIR;
+	const auto root = SettingManager::GetRootDirectory() / SU_EXTENSION_DIR;
 	for (const auto& fdata : directory_iterator(root)) {
 		if (is_directory(fdata)) continue;
 		if (fdata.path().extension() != ".dll") continue;

@@ -79,7 +79,11 @@
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)Resources" "$(TargetDir)Data" /I /E /D /Y</Command>
+      <Command>xcopy "$(SolutionDir)Resources\Music" "$(TargetDir)Music" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Characters" "$(TargetDir)Characters" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Skills" "$(TargetDir)Skills" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Extensions" "$(TargetDir)Extensions" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Skins" "$(TargetDir)Skins" /I /E /D /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -116,7 +120,11 @@
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)Resources" "$(TargetDir)Data" /I /E /D /Y</Command>
+      <Command>xcopy "$(SolutionDir)Resources\Music" "$(TargetDir)Music" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Characters" "$(TargetDir)Characters" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Skills" "$(TargetDir)Skills" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Extensions" "$(TargetDir)Extensions" /I /E /D /Y
+xcopy "$(SolutionDir)Resources\Skins" "$(TargetDir)Skins" /I /E /D /Y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -218,7 +226,7 @@
     <ResourceCompile Include="Seaurchin.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Resources\Images\Seaurchin.ico" />
+    <Image Include="..\Resources\Images\seaurchin.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

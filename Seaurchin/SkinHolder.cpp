@@ -9,7 +9,7 @@ using namespace std::filesystem;
 
 SkinHolder* SkinHolder::Create(const shared_ptr<AngelScript>& script, const wstring& name)
 {
-	const auto root = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / name;
+	const auto root = SettingManager::GetRootDirectory() / SU_SKIN_DIR / name;
 	if (!exists(root)) return nullptr;
 
 	return new SkinHolder(script, root);
@@ -67,7 +67,7 @@ asIScriptObject * SkinHolder::ExecuteSkinScript(const path& file, const bool for
 {
 	auto log = spdlog::get("main");
 
-	const auto obj = scriptInterface->ExecuteScriptAsObject(skinRoot, SU_SCRIPT_DIR / file, forceReload);
+	const auto obj = scriptInterface->ExecuteScriptAsObject(skinRoot, file, forceReload);
 	if (!obj) return nullptr;
 
 	obj->SetUserData(this, SU_UDTYPE_SKIN);
@@ -82,7 +82,7 @@ bool SkinHolder::LoadSkinImage(const string & key, const string & filename, bool
 		it->second = nullptr;
 	}
 
-	const auto ptr = SImage::CreateLoadedImageFromFile(skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename), async);
+	const auto ptr = SImage::CreateLoadedImageFromFile(skinRoot / ConvertUTF8ToUnicode(filename), async);
 	if (ptr) images[key] = ptr;
 	return !!ptr;
 }
@@ -135,7 +135,7 @@ bool SkinHolder::LoadSkinSound(const std::string & key, const std::string & file
 		it->second = nullptr;
 	}
 
-	const auto ptr = SSound::CreateSoundFromFile(skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename), async, loadType);
+	const auto ptr = SSound::CreateSoundFromFile(skinRoot / ConvertUTF8ToUnicode(filename), async, loadType);
 	if (ptr) sounds[key] = ptr;
 	return !!ptr;
 }
@@ -162,7 +162,7 @@ bool SkinHolder::LoadSkinAnime(const std::string & key, const std::string & file
 		it->second = nullptr;
 	}
 
-	const auto ptr = SAnimatedImage::CreateLoadedImageFromFile(skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename), x, y, w, h, c, time, async);
+	const auto ptr = SAnimatedImage::CreateLoadedImageFromFile(skinRoot / ConvertUTF8ToUnicode(filename), x, y, w, h, c, time, async);
 	if (ptr) animatedImages[key] = ptr;
 	return !!ptr;
 }

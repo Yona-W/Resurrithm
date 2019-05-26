@@ -1,0 +1,182 @@
+[[SettingItems]]
+Group = "Graphic"
+Key = "WaitVSync"
+Description = "垂直同期(要再起動)"
+Type = "Boolean"
+Values = [ "待機する", "待機しない" ]
+Default = false
+
+[[SettingItems]]
+Group = "Graphic"
+Key = "Fullscreen"
+Description = "フルスクリーン(要再起動)"
+Type = "Boolean"
+Values = [ "有効", "無効" ]
+Default = false
+
+[[SettingItems]]
+Group = "Graphic"
+Key = "DivisionLine"
+Description = "レーン分割数"
+Type = "IntegerSelect"
+Values = [ 1, 2, 4, 8, 16 ]
+Default = 8
+
+[[SettingItems]]
+Group = "Graphic"
+Key = "ShowSlideLine"
+Description = "スライド中心線"
+Type = "Boolean"
+Values = [ "表示する", "表示しない" ]
+Default = true
+
+[[SettingItems]]
+Group = "Graphic"
+Key = "SlideLineThickness"
+Description = "スライド中心線幅"
+Type = "Float"
+Range = [ 0.0, 32.0 ]
+Step = 0.5
+Default = 16.0
+
+[[SettingItems]]
+Group = "Graphic"
+Key = "ShowAirActionJudgeLine"
+Description = "エアー入力線"
+Type = "Boolean"
+Values = [ "表示する", "表示しない" ]
+Default = true
+
+[[SettingItems]]
+Group = "Play"
+Key = "EnableAutoPlay"
+Description = "オートプレイ"
+Type = "Boolean"
+Values = [ "有効", "無効" ]
+Default = true
+
+[[SettingItems]]
+Group = "Play"
+Key = "Hispeed"
+Description = "ハイスピード(1.0～30.0, 0.2刻み)"
+Type = "Float"
+Range = [ 1.0, 30.0 ]
+Step = 0.2
+Default = 6.0
+
+[[SettingItems]]
+Group = "Play"
+Key = "AirRollMultiplier"
+Description = "Air流速調整(倍)"
+Type = "Float"
+Range = [ 0.5, 4.0 ]
+Step = 0.1
+Default = 1.5
+
+[[SettingItems]]
+Group = "Play"
+Key = "JudgeAdjustSlider"
+Description = "スライダー判定位置調整(ms)"
+Type = "Integer"
+Range = [ -100, 100 ]
+Step = 1
+Default = 0
+
+[[SettingItems]]
+Group = "Play"
+Key = "JudgeMultiplierSlider"
+Description = "スライダー判定拡張(倍)"
+Type = "Float"
+Range = [ 1.0, 10.0 ]
+Step = 0.1
+Default = 1.0
+
+[[SettingItems]]
+Group = "Play"
+Key = "JudgeAdjustAirString"
+Description = "エアストリング判定位置調整(ms)"
+Type = "Integer"
+Range = [ -1000, 1000 ]
+Step = 1
+Default = 50
+
+[[SettingItems]]
+Group = "Play"
+Key = "JudgeMultiplierAirString"
+Description = "エアストリング判定拡張(倍)"
+Type = "Float"
+Range = [ 1.0, 20.0 ]
+Step = 0.1
+Default = 4.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "BufferLatency"
+Description = "バッファ遅延(ms)"
+Type = "Integer"
+Range = [ -500, 500 ]
+Step = 1
+Default = 30
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeTap"
+Description = "Tap音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeExTap"
+Description = "ExTap音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeFlick"
+Description = "Flick音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeAir"
+Description = "Air音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeAirAction"
+Description = "AirAction音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeHold"
+Description = "Hold音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeSlide"
+Description = "Slide音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0

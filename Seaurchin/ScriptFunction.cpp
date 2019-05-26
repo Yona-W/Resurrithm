@@ -1,6 +1,4 @@
 ﻿#include "ScriptFunction.h"
-#include "ScriptResource.h"
-#include "SettingManager.h"
 
 using namespace std;
 using namespace std::filesystem;
@@ -38,23 +36,6 @@ void YieldFrames(const int64_t frames)
 	pcw->Type = WaitType::Frame;
 	pcw->Frames = frames;
 	ctx->Suspend();
-}
-
-SImage* LoadSystemImage(const string& file, bool async)
-{
-	auto p = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_IMAGE_DIR / ConvertUTF8ToUnicode(file);
-	return SImage::CreateLoadedImageFromFile(p, async);
-}
-
-SFont* LoadSystemFont(const std::string& file, bool async)
-{
-	return nullptr;
-}
-
-SSound * LoadSystemSound(const std::string & file, bool async, int loadType)
-{
-	auto p = SettingManager::GetRootDirectory() / SU_DATA_DIR / SU_SOUND_DIR / ConvertUTF8ToUnicode(file);
-	return SSound::CreateSoundFromFile(p, async, loadType);
 }
 
 void EnumerateInstalledFonts()
