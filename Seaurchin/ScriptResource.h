@@ -123,6 +123,9 @@ public:
 private:
 	State state;
 	bool isLoop;
+	int freq;
+	int sampleCount;
+	int sampleBytes;
 
 public:
 	SSound();
@@ -130,13 +133,15 @@ public:
 
 	void SetLoop(bool looping) { isLoop = looping; }
 	void SetVolume(double vol) { if (vol < 0.0) vol = 0.0; SetVolumeSoundMem(SU_TO_INT32(std::max(vol * 100, 10000.0)), handle); }
-	void SetPosition(double ms);
+	void SetPosition(int sample);
+	void SetTime(double ms);
 	void Play();
-	void Play(double ms) { SetPosition(ms); Play(); }
+	void Play(double ms) { SetTime(ms); Play(); }
 	void Pause() { StopSoundMem(handle); state = State::Pause; }
-	void Stop() { StopSoundMem(handle); state = State::Stop; SetPosition(0.0); }
+	void Stop() { StopSoundMem(handle); state = State::Stop; SetTime(0.0); }
 	State GetState();
-	double GetPosition() const { return GetSoundCurrentTime(handle) * 1.0; }
+	double GetTime() const { return GetPosition() / SU_TO_DOUBLE(freq * sampleBytes) * 1000.0; }
+	int GetPosition() const { return GetSoundCurrentPosition(handle); }
 
 	static SSound* CreateSoundFromFile(const std::filesystem::path& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 	static SSound* CreateSoundFromFileName(const std::string& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);

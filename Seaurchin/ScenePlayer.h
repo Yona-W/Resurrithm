@@ -269,6 +269,7 @@ public:
 	void GetReady();
 	void Play();
 	double GetPlayingTime() const;
+	int GetPlayingPosition() const;
 	void GetCurrentResult(DrawableResult * result) const;
 	void MovePositionBySecond(double sec);
 	void MovePositionByMeasure(int meas);

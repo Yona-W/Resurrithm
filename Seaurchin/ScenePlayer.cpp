@@ -45,6 +45,7 @@ void RegisterPlayerScene(ExecutionManager* manager)
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Reload()", asMETHOD(ScenePlayer, Reload), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetFirstNoteTime()", asMETHOD(ScenePlayer, GetFirstNoteTime), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetCurrentTime()", asMETHOD(ScenePlayer, GetPlayingTime), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "int GetCurrentPosition()", asMETHOD(ScenePlayer, GetPlayingPosition), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "double GetLastNoteTime()", asMETHOD(ScenePlayer, GetLastNoteTime), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void MovePositionBySecond(double)", asMETHOD(ScenePlayer, MovePositionBySecond), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void MovePositionByMeasure(int)", asMETHOD(ScenePlayer, MovePositionByMeasure), asCALL_THISCALL);
@@ -173,7 +174,7 @@ void ScenePlayer::LoadWorker(const path& file)
 
 		// 動画・音声の読み込み
 		const auto soundfile = file.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
-		soundBGM = SSound::CreateSoundFromFile(soundfile, false, (soundfile.extension() == ".mp3")? DX_SOUNDDATATYPE_MEMNOPRESS : DX_SOUNDDATATYPE_FILE);
+		soundBGM = SSound::CreateSoundFromFile(soundfile, false, DX_SOUNDDATATYPE_FILE);
 		if (!soundBGM) {
 			spdlog::get("main")->warn(u8"音声ファイル {0} の読み込みに失敗しました。", ConvertUnicodeToUTF8(soundfile));
 		}
@@ -507,6 +508,11 @@ double ScenePlayer::GetPlayingTime() const
 	return currentTime;
 }
 
+int ScenePlayer::GetPlayingPosition() const
+{
+	return (soundBGM) ? soundBGM->GetPosition() : 0;
+}
+
 void ScenePlayer::GetCurrentResult(DrawableResult * result) const
 {
 	currentResult->GetCurrentResult(result);
@@ -518,13 +524,13 @@ void ScenePlayer::MovePositionBySecond(const double sec)
 	if (state < PlayingState::BothOngoing && state != PlayingState::Paused) return;
 	if (hasEnded) return;
 	const auto gap = analyzer->SharedMetaData.WaveOffset - soundBufferingLatency;
-	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() / 1000.0 : 0.0;
+	const auto oldBgmPos = (soundBGM) ? soundBGM->GetTime() / 1000.0 : 0.0;
 	const auto oldTime = currentTime;
 	const auto newTime = oldTime + sec;
 	auto newBgmPos = oldBgmPos + (newTime - oldTime);
 	newBgmPos = max(0.0, newBgmPos);
-	if (soundBGM) soundBGM->SetPosition(newBgmPos * 1000.0);
-	currentTime = newBgmPos + gap;
+	if (soundBGM) soundBGM->SetTime(newBgmPos * 1000.0);
+	currentTime = newTime;
 	processor->MovePosition(currentTime - oldTime);
 	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
 }
@@ -534,15 +540,15 @@ void ScenePlayer::MovePositionByMeasure(const int meas)
 	if (state < PlayingState::BothOngoing && state != PlayingState::Paused) return;
 	if (hasEnded) return;
 	const auto gap = analyzer->SharedMetaData.WaveOffset - soundBufferingLatency;
-	const auto oldBgmPos = (soundBGM) ? soundBGM->GetPosition() / 1000.0 : 0.0;
+	const auto oldBgmPos = (soundBGM) ? soundBGM->GetTime() / 1000.0 : 0.0;
 	const auto oldTime = currentTime;
 	const int oldMeas = get<0>(analyzer->GetRelativeTime(currentTime));
 	auto newTime = analyzer->GetAbsoluteTime(max(0, oldMeas + meas), 0);
 	if (fabs(newTime - oldTime) <= 0.005) newTime = analyzer->GetAbsoluteTime(max(0, oldMeas + meas + (meas > 0 ? 1 : -1)), 0);
 	auto newBgmPos = oldBgmPos + (newTime - oldTime);
 	newBgmPos = max(0.0, newBgmPos);
-	if (soundBGM) soundBGM->SetPosition(newBgmPos * 1000.0);
-	currentTime = newBgmPos + gap;
+	if (soundBGM) soundBGM->SetTime(newBgmPos * 1000.0);
+	currentTime = newTime;
 	processor->MovePosition(currentTime - oldTime);
 	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
 }

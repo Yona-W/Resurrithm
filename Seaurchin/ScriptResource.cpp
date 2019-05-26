@@ -6,6 +6,92 @@
 using namespace std;
 using namespace filesystem;
 
+namespace {
+	class WaveRIFF {
+	public:
+		char id[4];
+		int32_t size;
+		char type[4];
+
+	public:
+		WaveRIFF()
+			: id()
+			, size(0)
+			, type()
+		{}
+
+	public:
+		bool IsValid()
+		{
+			return strncmp(id, "RIFF", 4) == 0 && strncmp(type, "WAVE", 4) == 0;
+		}
+	};
+
+	class WaveFormat {
+	public:
+		char id[4];
+		int32_t size;
+		int16_t type;
+		int16_t channel;
+		int32_t samplingrate;
+		int32_t blockbytes;
+		int16_t sizepersample;
+		int16_t bit;
+
+	public:
+		WaveFormat()
+			: id()
+			, size(0)
+			, type(0)
+			, channel(0)
+			, samplingrate(0)
+			, blockbytes(0)
+			, sizepersample(0)
+			, bit(0)
+		{}
+
+	public:
+		bool IsValid()
+		{
+			return strncmp(id, "fmt ", 4) == 0 && type == 1;
+		}
+	};
+
+	bool LoadWavFormat(const path& file, WaveFormat& fmt)
+	{
+		WaveRIFF riff;
+		ifstream fin(file, ios::in | ios::binary);
+		if (!fin) return false;
+
+		try {
+			fin.read(reinterpret_cast<char*>(&riff.id), sizeof(riff.id));
+			fin.read(reinterpret_cast<char*>(&riff.size), sizeof(riff.size));
+			fin.read(reinterpret_cast<char*>(&riff.type), sizeof(riff.type));
+		}
+		catch(exception e) {
+			return  false;
+		}
+		if (!riff.IsValid()) return false;
+
+		try {
+			fin.read(reinterpret_cast<char*>(&fmt.id), sizeof(fmt.id));
+			fin.read(reinterpret_cast<char*>(&fmt.size), sizeof(fmt.size));
+			fin.read(reinterpret_cast<char*>(&fmt.type), sizeof(fmt.type));
+			fin.read(reinterpret_cast<char*>(&fmt.channel), sizeof(fmt.channel));
+			fin.read(reinterpret_cast<char*>(&fmt.samplingrate), sizeof(fmt.samplingrate));
+			fin.read(reinterpret_cast<char*>(&fmt.blockbytes), sizeof(fmt.blockbytes));
+			fin.read(reinterpret_cast<char*>(&fmt.sizepersample), sizeof(fmt.sizepersample));
+			fin.read(reinterpret_cast<char*>(&fmt.bit), sizeof(fmt.bit));
+		}
+		catch (exception e) {
+			return false;
+		}
+
+		return true;
+	}
+}
+
+
 SResource::SResource()
 	: refcount(1)
 	, handle(0)
@@ -387,6 +473,8 @@ SFont* SFont::CreateLoadedFontFromMem(const void *mem, size_t memsize, int edge,
 SSound::SSound()
 	: state(State::Stop)
 	, isLoop(false)
+	, freq(44100)
+	, sampleCount(0)
 {
 }
 
@@ -396,13 +484,18 @@ SSound::~SSound()
 	if (handle) DeleteSoundMem(handle);
 }
 
-void SSound::SetPosition(double ms) {
+void SSound::SetPosition(int sample) {
 	if (!handle) return;
 
 	bool needPlay = GetState() == State::Play;
 	if (needPlay) Pause();
-	SetSoundCurrentTime(SU_TO_INT32(ms), handle);
+	SetSoundCurrentPosition(sample, handle);
 	if (needPlay) Play();
+}
+
+void SSound::SetTime(double ms) {
+	int newPos = min(SU_TO_INT32(ms / 1000.0 * SU_TO_DOUBLE(freq * sampleBytes)), sampleCount);
+	SetPosition(newPos);
 }
 
 void SSound::Play()
@@ -452,6 +545,16 @@ SSound* SSound::CreateSoundFromFile(const path& file, bool async, int loadType)
 
 	auto result = new SSound();
 	result->handle = handle;
+	result->freq = GetFrequencySoundMem(handle);
+	result->sampleCount = GetSoundTotalSample(handle);
+
+	WaveFormat fmt;
+	if (LoadWavFormat(file, fmt)) {
+		result->sampleBytes = SU_TO_INT32(fmt.sizepersample);
+	}
+	else {
+		result->sampleBytes = (16 / 8) * 2; // NOTE: デフォルトは (量子化ビット数16 / 8bitで1バイト) * 2ch => 4 とする
+	}
 
 	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
@@ -462,15 +565,24 @@ SSound* SSound::CreateSoundFromFileName(const string& file, bool async, int load
 	const path path = ConvertUTF8ToUnicode(file);
 	if (!is_regular_file(path) || !exists(path)) return nullptr;
 
-	auto result = new SSound();
-
 	SetCreateSoundDataType(loadType);
 	if (async) SetUseASyncLoadFlag(TRUE);
-	result->handle = LoadSoundMem(file.c_str(), 16);
+	const auto handle = LoadSoundMem(file.c_str(), 16);
 	if (async) SetUseASyncLoadFlag(FALSE);
-	if (result->handle == -1) {
-		result->Release();
-		return nullptr;
+
+	if (handle == -1) return nullptr;
+
+	auto result = new SSound();
+	result->handle = handle;
+	result->freq = GetFrequencySoundMem(handle);
+	result->sampleCount = GetSoundTotalSample(handle);
+
+	WaveFormat fmt;
+	if (LoadWavFormat(file, fmt)) {
+		result->sampleBytes = SU_TO_INT32(fmt.sizepersample);
+	}
+	else {
+		result->sampleBytes = (16 / 8) * 2; // NOTE: デフォルトは (量子化ビット数16 / 8bitで1バイト) * 2ch => 4 とする
 	}
 
 	SU_ASSERT(IS_REFCOUNT(result, 1));
@@ -551,12 +663,14 @@ void RegisterScriptResource(ExecutionManager * exm)
 	engine->RegisterObjectBehaviour(SU_IF_SOUND, asBEHAVE_RELEASE, "void f()", asMETHOD(SSound, Release), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetLoop(bool)", asMETHOD(SSound, SetLoop), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetVolume(double)", asMETHOD(SSound, SetVolume), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetPosition(double)", asMETHOD(SSound, SetPosition), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetTime(double)", asMETHOD(SSound, SetTime), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "void SetPosition(int)", asMETHOD(SSound, SetPosition), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void Play()", asMETHODPR(SSound, Play, (), void), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void Play(double)", asMETHODPR(SSound, Play, (double), void), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "void Pause()", asMETHOD(SSound, Pause), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, SU_IF_SOUND_STATE " GetState()", asMETHOD(SSound, GetState), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SOUND, "double GetPosition()", asMETHOD(SSound, GetPosition), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "double GetTime()", asMETHOD(SSound, GetTime), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SOUND, "int GetPosition()", asMETHOD(SSound, GetPosition), asCALL_THISCALL);
 
 	// TODO: Imageを継承させる
 	engine->RegisterObjectType(SU_IF_ANIMEIMAGE, 0, asOBJ_REF);
