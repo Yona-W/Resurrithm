@@ -69,8 +69,7 @@ public:
 	void Tick(double delta) override;
 };
 
-class ExecutionManager;
-void RegisterScriptScene(ExecutionManager* exm);
+void RegisterScriptScene(asIScriptEngine* engine);
 
 int ScriptSceneGetIndex();
 void ScriptSceneSetIndex(int index);

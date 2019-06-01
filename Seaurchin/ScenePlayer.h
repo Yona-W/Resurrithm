@@ -283,4 +283,4 @@ public:
 	double GetLastNoteTime() const;
 };
 
-void RegisterPlayerScene(ExecutionManager* exm);
+void RegisterPlayerScene(asIScriptEngine* engine);

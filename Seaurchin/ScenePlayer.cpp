@@ -14,10 +14,8 @@
 using namespace std;
 using namespace std::filesystem;
 
-void RegisterPlayerScene(ExecutionManager* manager)
+void RegisterPlayerScene(asIScriptEngine* engine)
 {
-	auto engine = manager->GetScriptInterfaceUnsafe()->GetEngine();
-
 	engine->RegisterObjectType(SU_IF_SCENE_PLAYER_METRICS, sizeof(ScenePlayerMetrics), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<ScenePlayerMetrics>());
 	engine->RegisterObjectProperty(SU_IF_SCENE_PLAYER_METRICS, "double JudgeLineLeftX", asOFFSET(ScenePlayerMetrics, JudgeLineLeftX));
 	engine->RegisterObjectProperty(SU_IF_SCENE_PLAYER_METRICS, "double JudgeLineLeftY", asOFFSET(ScenePlayerMetrics, JudgeLineLeftY));

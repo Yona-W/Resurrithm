@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "ScriptSpriteMisc.h"
-
 #define SU_IF_IMAGE "Image"
 #define SU_IF_FONT "Font"
 #define SU_IF_FONT_TYPE "FontType"
@@ -163,5 +161,4 @@ public:
 	std::string GetDescription() const;
 };
 
-class ExecutionManager;
-void RegisterScriptResource(ExecutionManager* exm);
+void RegisterScriptResource(asIScriptEngine* engine);

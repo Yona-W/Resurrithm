@@ -243,10 +243,8 @@ void ScriptCoroutineScene::Tick(const double delta)
 	if (mainMethod->ExecuteAsSuspendable() != asEXECUTION_SUSPENDED) Disappear();
 }
 
-void RegisterScriptScene(ExecutionManager * exm)
+void RegisterScriptScene(asIScriptEngine* engine)
 {
-	auto engine = exm->GetScriptInterfaceUnsafe()->GetEngine();
-
 	engine->RegisterFuncdef("void " SU_IF_COROUTINE "()");
 
 	engine->RegisterInterface(SU_IF_SCENE);

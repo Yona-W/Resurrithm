@@ -136,16 +136,16 @@ void ExecutionManager::Initialize()
 
 	// AngelScriptインターフェース登録
 	const auto engine = scriptInterface->GetEngine();
-	RegisterScriptResource(this);
+	RegisterScriptResource(engine);
 	RegisterScriptSprite(engine);
-	RegisterScriptScene(this);
+	RegisterScriptScene(engine);
 	SkinHolder::RegisterType(engine);
 	RegisterResultTypes(engine);
 	SkillManager::RegisterType(engine);
 	CharacterManager::RegisterType(engine);
 	engine->RegisterFuncdef("void " SU_IF_SKILL_CALLBACK "(const string &in)");
 	engine->RegisterFuncdef("void " SU_IF_JUDGE_CALLBACK "(" SU_IF_JUDGE_DATA ", const string &in)");
-	RegisterPlayerScene(this);
+	RegisterPlayerScene(engine);
 	RegisterGlobalManagementFunction();
 	extensions->RegisterInterfaces();
 

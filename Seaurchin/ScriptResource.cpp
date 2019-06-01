@@ -1,6 +1,5 @@
 ﻿#include "ScriptResource.h"
-#include "ExecutionManager.h"
-#include "AngelScriptManager.h"
+#include "ScriptSpriteMisc.h"
 #include "Setting.h"
 
 using namespace std;
@@ -626,10 +625,8 @@ std::string SSettingItem::GetDescription() const
 }
 
 
-void RegisterScriptResource(ExecutionManager * exm)
+void RegisterScriptResource(asIScriptEngine* engine)
 {
-	auto engine = exm->GetScriptInterfaceUnsafe()->GetEngine();
-
 	engine->RegisterObjectType(SU_IF_IMAGE, 0, asOBJ_REF);
 	engine->RegisterObjectBehaviour(SU_IF_IMAGE, asBEHAVE_FACTORY, SU_IF_IMAGE "@ f(const string &in, bool = false)", asFUNCTION(SImage::CreateLoadedImageFromFileName), asCALL_CDECL);
 	engine->RegisterObjectBehaviour(SU_IF_IMAGE, asBEHAVE_ADDREF, "void f()", asMETHOD(SImage, AddRef), asCALL_THISCALL);
