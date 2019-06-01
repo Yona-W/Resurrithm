@@ -214,7 +214,7 @@ SAnimatedImage* SkinHolder::GetSkinAnime(const std::string & key)
 
 void SkinHolder::RegisterType(asIScriptEngine* engine)
 {
-#ifdef _WIN64
+#ifdef WIN64
 	engine->RegisterTypedef(SU_IF_SIZE, "uint64");
 	engine->RegisterTypedef(SU_IF_VOID_PTR, "uint64");
 #else

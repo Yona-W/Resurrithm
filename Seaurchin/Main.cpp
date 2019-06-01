@@ -70,8 +70,8 @@ bool Initialize()
 	//WndProc差し替え
 	{
 		const HWND hDxlibWnd = GetMainWindowHandle();
-		dxlibWndProc = WNDPROC(GetWindowLong(hDxlibWnd, GWL_WNDPROC));
-		SetWindowLong(hDxlibWnd, GWL_WNDPROC, LONG(CustomWindowProc));
+		dxlibWndProc = (WNDPROC)GetWindowLongPtr(hDxlibWnd, GWLP_WNDPROC);
+		SetWindowLongPtr(hDxlibWnd, GWLP_WNDPROC, (LONG_PTR)CustomWindowProc);
 	}
 
 	//D3D設定
