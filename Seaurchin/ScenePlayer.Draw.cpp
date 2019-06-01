@@ -539,19 +539,21 @@ void ScenePlayer::DrawHoldNotes(const shared_ptr<SusDrawableNoteData> & note) co
 
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 
-	for (int i = note->ExtraData.size() - 1; i >= 0; --i) {
-		const auto& ex = note->ExtraData[i];
+	if (note->ExtraData.size() > 0) {
+		for (int i = SU_TO_INT(note->ExtraData.size()) - 1; i >= 0; --i) {
+			const auto& ex = note->ExtraData[i];
 
-		if (ex->Type.test(size_t(SusNoteType::Injection))) continue;
-		if (ex->OnTheFlyData[size_t(NoteAttribute::Finished)]/* && ノーツがAttack以上の判定*/) continue;
+			if (ex->Type.test(size_t(SusNoteType::Injection))) continue;
+			if (ex->OnTheFlyData[size_t(NoteAttribute::Finished)]/* && ノーツがAttack以上の判定*/) continue;
 
-		const auto relendpos = 1.0 - ex->ModifiedPosition / seenDuration;
-		const int len = SU_TO_INT32(length);
-		if (ex->Type.test(size_t(SusNoteType::Start))) {
-			DrawTap(slane, len, relendpos, imageHold->GetHandle());
-		}
-		else {
-			DrawTap(slane, len, relendpos, imageHoldStep->GetHandle());
+			const auto relendpos = 1.0 - ex->ModifiedPosition / seenDuration;
+			const int len = SU_TO_INT32(length);
+			if (ex->Type.test(size_t(SusNoteType::Start))) {
+				DrawTap(slane, len, relendpos, imageHold->GetHandle());
+			}
+			else {
+				DrawTap(slane, len, relendpos, imageHoldStep->GetHandle());
+			}
 		}
 	}
 	if (!(note->OnTheFlyData[size_t(NoteAttribute::Finished)]/* && ノーツがAttack以上の判定*/)) {
@@ -616,14 +618,16 @@ void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData> & note) c
 			++i;
 		}
 
-		for (i = exData.size() - 1; i > 0; --i) {
-			/* 自分自身の直前の何かが開始時刻を共有している */
-			if (exData[i - 1][0] == exData[i][0]) {
-				/* 終了時刻も共有したい */
-				exData[i - 1][1] = exData[i][1];
-			}
-			else {
-				/* 終了時刻は既にexData[i - 1][1]に入っているはず(本当か?) */
+		if (exData.size() > 0) {
+			for (int i = SU_TO_INT(exData.size()) - 1; i > 0; --i) {
+				/* 自分自身の直前の何かが開始時刻を共有している */
+				if (exData[i - 1][0] == exData[i][0]) {
+					/* 終了時刻も共有したい */
+					exData[i - 1][1] = exData[i][1];
+				}
+				else {
+					/* 終了時刻は既にexData[i - 1][1]に入っているはず(本当か?) */
+				}
 			}
 		}
 	}
@@ -749,7 +753,7 @@ void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData> & note) c
 	}
 
 	SetUseBackCulling(FALSE);
-	DrawPolygonIndexed2D(slideVertices.data(), slideVertices.size(), slideIndices.data(), drawcount, imageSlideStrut->GetHandle(), TRUE);
+	DrawPolygonIndexed2D(slideVertices.data(), SU_TO_INT(slideVertices.size()), slideIndices.data(), drawcount, imageSlideStrut->GetHandle(), TRUE);
 
 	// 中心線
 	if (showSlideLine) {
@@ -826,21 +830,23 @@ void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData> & note) c
 
 	// Tap
 	SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-	for (int si = note->ExtraData.size() - 1; si >= 0; --si) {
-		const auto& slideElement = note->ExtraData[si];
-		if (slideElement->Type.test(size_t(SusNoteType::Control))) continue;
-		if (slideElement->Type.test(size_t(SusNoteType::Injection))) continue;
-		if (slideElement->Type.test(size_t(SusNoteType::Invisible))) continue;
-		if (slideElement->OnTheFlyData[size_t(NoteAttribute::Finished)]/* && ノーツがAttack以上の判定*/) continue;
+	if (note->ExtraData.size() > 0) {
+		for (int si = SU_TO_INT(note->ExtraData.size()) - 1; si >= 0; --si) {
+			const auto& slideElement = note->ExtraData[si];
+			if (slideElement->Type.test(size_t(SusNoteType::Control))) continue;
+			if (slideElement->Type.test(size_t(SusNoteType::Injection))) continue;
+			if (slideElement->Type.test(size_t(SusNoteType::Invisible))) continue;
+			if (slideElement->OnTheFlyData[size_t(NoteAttribute::Finished)]/* && ノーツがAttack以上の判定*/) continue;
 
-		const auto currentStepRelativeY = 1.0 - slideElement->ModifiedPosition / seenDuration;
-		if (currentStepRelativeY >= 0 && currentStepRelativeY < cullingLimit) {
-			const int length = SU_TO_INT32(slideElement->Length);
-			if (slideElement->Type.test(size_t(SusNoteType::Start))) {
-				DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlide->GetHandle());
-			}
-			else {
-				DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlideStep->GetHandle());
+			const auto currentStepRelativeY = 1.0 - slideElement->ModifiedPosition / seenDuration;
+			if (currentStepRelativeY >= 0 && currentStepRelativeY < cullingLimit) {
+				const int length = SU_TO_INT32(slideElement->Length);
+				if (slideElement->Type.test(size_t(SusNoteType::Start))) {
+					DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlide->GetHandle());
+				}
+				else {
+					DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlideStep->GetHandle());
+				}
 			}
 		}
 	}

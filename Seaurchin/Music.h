@@ -56,12 +56,16 @@ class MusicParameter;
 class CategoryParameter final {
 	INPLEMENT_REF_COUNTER
 
+public:
+	static constexpr size_t MaxItemCount = 1000000;	//!< 保持できる最大楽曲数
+
 private:
 	std::string name;					//!< カテゴリ名
 	std::vector<MusicParameter*> music;	//!< 楽曲情報の配列
 
 private:
 	CategoryParameter();
+	CategoryParameter(const CategoryParameter&) = delete;
 	~CategoryParameter();
 
 private:
@@ -69,7 +73,7 @@ private:
 
 public:
 	std::string GetName() const { return name; }
-	uint32_t GetMusicCount() const { return music.size(); }
+	uint32_t GetMusicCount() const { return SU_TO_UINT32(music.size()); }
 	MusicParameter* GetMusic(uint32_t index) const;
 	MusicParameter* GetMusic(const std::string& songId) const;
 
@@ -83,6 +87,9 @@ class MusicParameter final {
 	INPLEMENT_REF_COUNTER
 
 public:
+	static constexpr size_t MaxItemCount = 1000000;	//!< 保持できる最大譜面数
+
+public:
 	friend MusicParameter* CategoryParameter::GetMusic(const std::string& songId) const;
 
 private:
@@ -91,6 +98,7 @@ private:
 
 private:
 	MusicParameter();
+	MusicParameter(const MusicParameter&) = delete;
 	~MusicParameter();
 
 public:
@@ -98,7 +106,7 @@ public:
 
 public:
 	std::string GetSongId() const { return songId; }
-	uint32_t GetScoreCount() const { return scores.size(); }
+	uint32_t GetScoreCount() const { return SU_TO_UINT32(scores.size()); }
 	ScoreParameter* GetScore(uint32_t index) const;
 
 public:

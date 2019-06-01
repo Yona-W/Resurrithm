@@ -461,8 +461,13 @@ void SusAnalyzer::ProcessData(const std::smatch & result, const uint32_t line)
 	 4. #---[234]*. (Long)
 	*/
 
-	const auto noteCount = pattern.length() / 2;
-	const auto step = uint32_t(ticksPerBeat * GetBeatsAt(GetMeasureCount(ConvertInteger(meas)))) / (!noteCount ? 1 : noteCount);
+	if (pattern.length() > 1U << 17) {
+		spdlog::get("main")->error(u8"行{0}:解析可能長を超えています。", line);
+		return;
+	}
+
+	const auto noteCount = SU_TO_UINT32(pattern.length() / 2);
+	const auto step = uint32_t(ticksPerBeat * GetBeatsAt(GetMeasureCount(ConvertUnsignedInteger(meas)))) / (!noteCount ? 1 : noteCount);
 
 	if (!regex_match(meas, allNumeric)) {
 		// コマンドデータ
@@ -505,7 +510,7 @@ void SusAnalyzer::ProcessData(const std::smatch & result, const uint32_t line)
 		switch (lane[1]) {
 		case '2':
 			// 小節長
-			beatsDefinitions[GetMeasureCount(ConvertInteger(meas))] = ConvertFloat(pattern);
+			beatsDefinitions[GetMeasureCount(ConvertUnsignedInteger(meas))] = ConvertFloat(pattern);
 			break;
 		case '8': {
 			// BPM
@@ -517,7 +522,7 @@ void SusAnalyzer::ProcessData(const std::smatch & result, const uint32_t line)
 				noteData.DefinitionNumber = ConvertHexatridecimal(note);
 				if (!noteData.DefinitionNumber) continue;
 
-				const SusRelativeNoteTime time = { GetMeasureCount(ConvertInteger(meas)), step * i };
+				const SusRelativeNoteTime time = { GetMeasureCount(ConvertUnsignedInteger(meas)), step * i };
 				notes.emplace_back(time, noteData);
 			}
 			break;
@@ -1125,11 +1130,13 @@ void SusAnalyzer::CalculateCurves(const shared_ptr<SusDrawableNoteData> & note, 
 			const auto relativeTimeInBlock = j / double(segmentPoints - 1);
 			bezierBuffer.clear();
 			copy(controlPoints.begin(), controlPoints.end(), back_inserter(bezierBuffer));
-			for (int k = controlPoints.size() - 1; k >= 0; k--) {
-				for (auto l = 0; l < k; l++) {
-					auto derivedTime = glm::mix(get<0>(bezierBuffer[l]), get<0>(bezierBuffer[l + 1]), relativeTimeInBlock);
-					auto derivedPosition = glm::mix(get<1>(bezierBuffer[l]), get<1>(bezierBuffer[l + 1]), relativeTimeInBlock);
-					bezierBuffer[l] = make_tuple(derivedTime, derivedPosition);
+			if (controlPoints.size() > 0) {
+				for (int k = SU_TO_INT(controlPoints.size()) - 1; k >= 0; k--) {
+					for (int l = 0; l < k; l++) {
+						auto derivedTime = glm::mix(get<0>(bezierBuffer[l]), get<0>(bezierBuffer[l + 1]), relativeTimeInBlock);
+						auto derivedPosition = glm::mix(get<1>(bezierBuffer[l]), get<1>(bezierBuffer[l + 1]), relativeTimeInBlock);
+						bezierBuffer[l] = make_tuple(derivedTime, derivedPosition);
+					}
 				}
 			}
 			segmentPositions.push_back(bezierBuffer[0]);

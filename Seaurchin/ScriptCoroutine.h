@@ -79,6 +79,7 @@ public:
 			if (time > 0.0) time -= delta;
 			return time > 0.0;
 		}
+		return false;
 	}
 };
 

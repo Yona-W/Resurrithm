@@ -94,8 +94,6 @@ ExecutionManager::~ExecutionManager()
 	scenes.clear();
 	scriptInterface->GetEngine()->GarbageCollect(asGC_FULL_CYCLE);
 
-	if (skin) skin->Terminate();
-
 	settingManager->SaveAllValues();
 	sharedControlState->Terminate();
 
@@ -392,7 +390,6 @@ bool ExecutionManager::ExecuteSkin()
 	skin.reset(ptr);
 	if (!ptr->Initialize()) {
 		log->error(u8"スキンの開始に失敗しました。");
-		skin->Terminate();
 		skin.reset(nullptr);
 		return false;
 	}

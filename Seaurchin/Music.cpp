@@ -104,6 +104,10 @@ CategoryParameter::~CategoryParameter()
 bool CategoryParameter::AddMusic(MusicParameter* pMusic)
 {
 	if (!pMusic) return false;
+	if (music.size() >= MaxItemCount) {
+		spdlog::get("main")->warn(u8"保持可能最大楽曲数に到達したため、楽曲の登録に失敗しました。");
+		return false;
+	}
 
 	music.push_back(pMusic);
 
@@ -153,15 +157,23 @@ CategoryParameter* CategoryParameter::Create(SusAnalyzer* analyzer, const std::f
 				music = MusicParameter::Create(ptr->SongId);
 				if (!music) {
 					ptr->Release();
+					spdlog::get("main")->critical(u8"楽曲情報の構成に失敗しました。");
 					continue;
 				}
 
 				music->AddRef();
-				category->AddMusic(music);
+				if (!category->AddMusic(music)) {
+					ptr->Release();
+					break;
+				}
 			}
 
 			ptr->AddRef();
-			music->AddScore(ptr);
+			if (!music->AddScore(ptr)) {
+				music->Release();
+				ptr->Release();
+				break;
+			}
 
 			music->Release();
 			ptr->Release();
@@ -207,6 +219,10 @@ MusicParameter::~MusicParameter()
 bool MusicParameter::AddScore(ScoreParameter* pScore)
 {
 	if (!pScore) return false;
+	if (scores.size() >= MaxItemCount) {
+		spdlog::get("main")->warn(u8"保持可能最大譜面数に到達したため、譜面の登録に失敗しました。");
+		return false;
+	}
 
 	scores.push_back(pScore);
 

@@ -313,6 +313,8 @@ public:
  */
 template<typename T>
 class SelectSettingItem final : public SettingItem {
+public:
+	static constexpr size_t MaxItemCount = 10000000;	//!< 保持可能な最大項目数
 private:
 	T value;				//!< 現在の値
 	T defaultValue;			//!< 初期値
@@ -335,10 +337,10 @@ public:
 	std::string GetItemString() override { return fmt::format("{0}", value); }
 
 	//! @brief 設定値を次の値へ変更します。
-	void MoveNext() override { value = values[selected = (selected + 1) % values.size()]; }
+	void MoveNext() override { value = values[selected = (selected + 1) % SU_TO_INT(values.size())]; }
 
 	//! @brief 設定値を前の値へ変更します。
-	void MovePrevious() override { value = values[selected = (selected + values.size() - 1) % values.size()]; }
+	void MovePrevious() override { value = values[selected = (selected + SU_TO_INT(values.size()) - 1) % SU_TO_INT(values.size())]; }
 
 	//! @brief 設定値を反映します。
 	//! @note 設定ファイルへ保存するのではなく、設定値管理クラスへ反映するのみです。
@@ -357,7 +359,13 @@ public:
 		const auto r = table.find("Values");
 		if (r && r->is<vector<T>>()) {
 			auto v = r->as<vector<T>>();
-			for (const auto& val : v) values.push_back(val);
+			for (const auto& val : v) {
+				values.push_back(val);
+				if (values.size() >= MaxItemCount) {
+					spdlog::get("main")->warn(u8"保持可能最大項目数に達したため、解析を終了します。");
+					break;
+				}
+			}
 		}
 		const auto d = table.find("Default");
 		if (d && d->is<T>()) {

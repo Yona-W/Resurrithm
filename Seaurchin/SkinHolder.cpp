@@ -21,18 +21,27 @@ SkinHolder::SkinHolder(const shared_ptr<AngelScript>& script, const path& root)
 {}
 
 SkinHolder::~SkinHolder()
-= default;
+{
+	for (const auto& it : images) SU_ASSERT(IS_REFCOUNT(it.second, 1));
+	for (const auto& it : sounds) SU_ASSERT(IS_REFCOUNT(it.second, 1));
+	for (const auto& it : fonts) SU_ASSERT(IS_REFCOUNT(it.second, 1));
+	for (const auto& it : animatedImages) SU_ASSERT(IS_REFCOUNT(it.second, 1));
+
+	for (const auto& it : images) it.second->Release();
+	for (const auto& it : sounds) it.second->Release();
+	for (const auto& it : fonts) it.second->Release();
+	for (const auto& it : animatedImages) it.second->Release();
+}
 
 bool SkinHolder::Initialize()
 {
-	auto log = spdlog::get("main");
-
 	const bool forceReload = true;
 	const auto func = scriptInterface->ExecuteScriptAsFunction(skinRoot, SU_SKIN_MAIN_FILE, forceReload);
 	if (!func) return false;
 
 	func->AddRef();
 	const auto funcObj = FunctionObject::Create(func);
+	func->Release();
 	if (!funcObj) return false;
 
 	bool result = true;
@@ -46,21 +55,7 @@ bool SkinHolder::Initialize()
 	}
 	delete funcObj;
 
-	func->Release();
 	return result;
-}
-
-void SkinHolder::Terminate()
-{
-	for (const auto& it : images) SU_ASSERT(IS_REFCOUNT(it.second, 1));
-	for (const auto& it : sounds) SU_ASSERT(IS_REFCOUNT(it.second, 1));
-	for (const auto& it : fonts) SU_ASSERT(IS_REFCOUNT(it.second, 1));
-	for (const auto& it : animatedImages) SU_ASSERT(IS_REFCOUNT(it.second, 1));
-
-	for (const auto& it : images) it.second->Release();
-	for (const auto& it : sounds) it.second->Release();
-	for (const auto& it : fonts) it.second->Release();
-	for (const auto& it : animatedImages) it.second->Release();
 }
 
 asIScriptObject * SkinHolder::ExecuteSkinScript(const path& file, const bool forceReload)

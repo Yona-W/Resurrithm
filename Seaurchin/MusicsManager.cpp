@@ -38,6 +38,9 @@ void MusicsManager::CreateMusicCache()
 		if (!category) continue;
 
 		categories.push_back(category);
+		if (categories.size() >= MaxItemCount) {
+			spdlog::get("main")->warn(u8"保持可能最大譜カテゴリ数に到達したため、譜面解析を終了します。");
+		}
 	}
 
 	{

@@ -4,6 +4,8 @@ using namespace std;
 using namespace filesystem;
 
 namespace {
+	//! @brief AngelScriptのエンジンに登録する、メッセージ用コールバック。
+	//! @param[in] message メッセージ。
 	void ScriptMessageCallback(const asSMessageInfo* message)
 	{
 		auto log = spdlog::get("main");
@@ -98,7 +100,7 @@ asIScriptObject* AngelScript::ExecuteScriptAsObject(const path& root, const path
 			break;
 		}
 		else if (strcmp(builder.GetMetadataStringForType(cti->GetTypeId()), "EntryPoint") == 0) {
-			cti->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
+			cti->SetUserData(reinterpret_cast<void*>(-1), SU_UDTYPE_ENTRYPOINT);
 			type = cti;
 			break;
 		}
@@ -134,7 +136,7 @@ asIScriptFunction* AngelScript::ExecuteScriptAsFunction(const path& root, const 
 			break;
 		}
 		else if (strcmp(builder.GetMetadataStringForFunc(f), "EntryPoint") == 0) {
-			f->SetUserData(reinterpret_cast<void*>(0xFFFFFFFF), SU_UDTYPE_ENTRYPOINT);
+			f->SetUserData(reinterpret_cast<void*>(-1), SU_UDTYPE_ENTRYPOINT);
 			func = f;
 			break;
 		}

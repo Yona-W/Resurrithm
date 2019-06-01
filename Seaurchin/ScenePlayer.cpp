@@ -609,7 +609,7 @@ void ScenePlayer::Reload()
 	SetMainWindowText(SU_APP_NAME u8" " SU_APP_VERSION);
 
 	const auto bgmMeantToBePlayedAt = prevBgmPos - (analyzer->SharedMetaData.WaveOffset - prevOffset);
-	if (soundBGM) soundBGM->SetPosition(bgmMeantToBePlayedAt);
+	if (soundBGM) soundBGM->SetTime(bgmMeantToBePlayedAt);
 	currentTime = prevCurrentTime;
 	state = PlayingState::Paused;
 }

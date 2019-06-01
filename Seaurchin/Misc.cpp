@@ -84,10 +84,10 @@ bool ConvertBoolean(const string & input)
 
 void SplitProps(const string & source, PropList & vec)
 {
-	auto now = 0;
+	size_t now = 0;
 	string pset;
 	while (true) {
-		const int end = source.find(',', now);
+		const auto end = source.find(',', now);
 		if (end == string::npos) break;
 
 		pset = source.substr(now, end - now);

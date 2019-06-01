@@ -20,6 +20,9 @@ class CategoryParameter;
  * Enterで決定していくことで譜面を選択していきます。
  */
 class MusicsManager final {
+public:
+	static constexpr size_t MaxItemCount = 1000000;	//!< 保持できる最大カテゴリ数
+
 private:
 	bool loading;								//!< 譜面一覧更新中か否か (排他制御してください)
 	mutable std::mutex flagMutex;				//!< 譜面一覧更新中か否かのフラグの排他制御に用いるミューテックス
@@ -58,7 +61,7 @@ public:
 	//! @brief 総カテゴリ数を返します。
 	//! @return 総カテゴリ数。
 	//! @details 再読み込み中は0が返ります。
-	uint32_t GetCategorySize() const { return IsReloading() ? 0 : categories.size(); }
+	uint32_t GetCategorySize() const { return IsReloading() ? 0 : SU_TO_UINT32(categories.size()); }
 
 public:
 	//! @brief ミュージックカーソルクラスをスキンに登録します。

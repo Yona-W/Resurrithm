@@ -57,6 +57,6 @@ void StandardOutputUnicodeSink::_sink_it(const spdlog::details::log_msg& msg)
 	auto u16Msg = ConvertUTF8ToUnicode(msg.formatted.str());
 	DWORD written;
 	SetConsoleTextAttribute(hStdout, color);
-	WriteConsoleW(hStdout, u16Msg.c_str(), u16Msg.length(), &written, nullptr);
+	WriteConsoleW(hStdout, u16Msg.c_str(), SU_TO_DWORD(u16Msg.length()), &written, nullptr);
 	SetConsoleTextAttribute(hStdout, 0);
 }

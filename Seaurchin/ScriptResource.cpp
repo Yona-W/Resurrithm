@@ -166,7 +166,9 @@ SImage* SImage::CreateLoadedImageFromFileName(const string& file, const bool asy
 
 SImage* SImage::CreateLoadedImageFromMemory(void* buffer, const size_t size)
 {
-	auto result = new SImage(CreateGraphFromMem(buffer, size));
+	if (size > SU_TO_UINT(SU_INT_MAX)) return nullptr;
+
+	auto result = new SImage(CreateGraphFromMem(buffer, SU_TO_INT(size)));
 
 	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
@@ -259,10 +261,12 @@ SAnimatedImage* SAnimatedImage::CreateLoadedImageFromFileName(const string& file
 
 SAnimatedImage* SAnimatedImage::CreateLoadedImageFromMemory(void* buffer, const size_t size, const int xc, const int yc, const int w, const int h, const int count, const double time)
 {
+	if (size > SU_TO_UINT(SU_INT_MAX)) return nullptr;
+
 	auto result = new SAnimatedImage(w, h, count, time);
 
 	result->images.resize(count);
-	CreateDivGraphFromMem(buffer, size, count, xc, yc, w, h, result->images.data());
+	CreateDivGraphFromMem(buffer, SU_TO_INT(size), count, xc, yc, w, h, result->images.data());
 
 	SU_ASSERT(IS_REFCOUNT(result, 1));
 	return result;
@@ -286,6 +290,10 @@ SFont::~SFont()
 tuple<int, int> SFont::RenderRaw(SRenderTarget * rt, const string & utf8Str)
 {
 	const TCHAR* str = utf8Str.c_str();
+	const size_t size = strlen(str);
+
+	if (size > SU_TO_UINT(SU_INT_MAX)) return make_tuple(0, 0);
+
 	if (rt) {
 		BEGIN_DRAW_TRANSACTION(rt->GetHandle());
 		ClearDrawScreen();
@@ -296,7 +304,7 @@ tuple<int, int> SFont::RenderRaw(SRenderTarget * rt, const string & utf8Str)
 	}
 
 	int sx = 0, sy = 0, lc = 0;
-	GetDrawStringSizeToHandle(&sx, &sy, &lc, str, strlen(str), handle);
+	GetDrawStringSizeToHandle(&sx, &sy, &lc, str, SU_TO_INT(strlen(str)), handle);
 	return make_tuple(sx, sy);
 }
 
@@ -341,15 +349,17 @@ tuple<int, int> SFont::RenderRich(SRenderTarget * rt, const string & utf8Str)
 				if (begin != cur) {
 					auto str = string(begin, cur);
 					auto cstr = str.c_str();
-					auto lstr = strlen(cstr);
-					if (rt) {
-						DrawExtendStringToHandle(cx, my, cw, 1.0, cstr, GetColor(cr, cg, cb), handle);
-					}
+					size_t lstr = strlen(cstr);
+					if (lstr <= SU_TO_UINT(SU_INT_MAX)) {
+						if (rt) {
+							DrawExtendStringToHandle(cx, my, cw, 1.0, cstr, GetColor(cr, cg, cb), handle);
+						}
 
-					int sx = 0, sy = 0;
-					GetDrawExtendStringSizeToHandle(&sx, &sy, nullptr, cw, 1.0, cstr, lstr, handle);
-					cx += sx;
-					cy = max(cy, sy);
+						int sx = 0, sy = 0;
+						GetDrawExtendStringSizeToHandle(&sx, &sy, nullptr, cw, 1.0, cstr, SU_TO_INT(lstr), handle);
+						cx += sx;
+						cy = max(cy, sy);
+					}
 				}
 
 				if (cur == end) break;
@@ -455,9 +465,11 @@ SFont* SFont::CreateLoadedFontFromFont(const string& name, int size, int thick, 
 
 SFont* SFont::CreateLoadedFontFromMem(const void *mem, size_t memsize, int edge, int size, int thick, int fontType)
 {
+	if (memsize > SU_TO_UINT(SU_INT_MAX)) return nullptr;
+
 	auto result = new SFont();
 
-	int handle = LoadFontDataFromMemToHandle(mem, memsize, edge);
+	int handle = LoadFontDataFromMemToHandle(mem, SU_TO_INT(memsize), edge);
 	result->handle = handle;
 	result->size = size;
 	result->thick = thick;
