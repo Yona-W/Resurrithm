@@ -1,5 +1,6 @@
 ﻿#include "ScriptScene.h"
 #include "ScriptSprite.h"
+#include "ScriptCoroutine.h"
 #include "ExecutionManager.h"
 #include "AngelScriptManager.h"
 #include "Controller.h"
@@ -168,51 +169,13 @@ void ScriptScene::TickCoroutine(const double delta)
 
 	auto i = coroutines.begin();
 	while (i != coroutines.end()) {
-		auto c = *i;
-
-		if (c->Tick(delta)) {
-			++i;
-			continue;
-		}
-
-		const auto result = c->Execute();
-
-		/*
-		asEXECUTION_FINISHED      = 0, // The context has successfully completed the execution.
-		asEXECUTION_SUSPENDED     = 1, // The execution is suspended and can be resumed.
-		asEXECUTION_ABORTED       = 2, // The execution was aborted by the application.
-		asEXECUTION_EXCEPTION     = 3, // The execution was terminated by an unhandled script exception.
-		asEXECUTION_PREPARED      = 4, // The context has been prepared for a new execution.
-		asEXECUTION_UNINITIALIZED = 5, // The context is not initialized.
-		asEXECUTION_ACTIVE        = 6, // The context is currently executing a function call.
-		asEXECUTION_ERROR         = 7  // The context has encountered an error and must be reinitialized.
-		*/
-
-		switch (result) {
-		case asEXECUTION_FINISHED: // 正常終了
-		case asEXECUTION_SUSPENDED: // 中断
-			break;
-		case asEXECUTION_ABORTED: // Abort Coroutineでは現状起こりえない
-			spdlog::get("main")->error(u8"期待しない動作 : 関数実行が強制終了しました。");
-			break;
-		case asEXECUTION_EXCEPTION:
-		{
-			int col;
-			const char* at;
-			const auto row = c->GetContext()->GetExceptionLineNumber(&col, &at);
-			spdlog::get("main")->error(u8"{0} ({1:d}行{2:d}列) にて例外を検出しました : {3}", at, row, col, c->GetContext()->GetExceptionString());
-			break;
-		}
-		default:
-			spdlog::get("main")->error(u8"期待しない動作 : result as {0}.", result);
-			break;
-		}
+		const auto result = (*i)->Tick(delta);
 
 		if (result == asEXECUTION_SUSPENDED) {
 			++i;
 		}
 		else {
-			delete c;
+			delete *i;
 			i = coroutines.erase(i);
 		}
 	}
@@ -246,18 +209,20 @@ void ScriptScene::DrawSprite()
 
 ScriptCoroutineScene::ScriptCoroutineScene(asIScriptObject * scene)
 	: Base(scene)
-	, wait(CoroutineWait{ WaitType::Time, 0 })
+	, wait(new CoroutineWait(0ull))
 {}
 
 ScriptCoroutineScene::~ScriptCoroutineScene()
-{}
+{
+	delete wait;
+}
 
 void ScriptCoroutineScene::Initialize()
 {
 	Base::Initialize();
 
 	if (mainMethod) {
-		mainMethod->SetUserData(&wait, SU_UDTYPE_WAIT);
+		mainMethod->SetUserData(wait, SU_UDTYPE_WAIT);
 		mainMethod->Prepare();
 	}
 }
@@ -268,7 +233,7 @@ void ScriptCoroutineScene::Tick(const double delta)
 	TickCoroutine(delta);
 
 	//Run()
-	if (wait.Tick(delta)) return;
+	if (wait->Tick(delta)) return;
 
 	if (!mainMethod) {
 		Disappear();
@@ -374,7 +339,7 @@ void ScriptSceneRunCoroutine(asIScriptFunction * cofunc, const string & name)
 	}
 	else {
 		cofunc->AddRef();
-		psc->AddCoroutine(new Coroutine(name, cofunc, ctx->GetEngine()));
+		psc->AddCoroutine(new Coroutine(name, cofunc));
 	}
 
 	cofunc->Release();
@@ -402,34 +367,26 @@ void ScriptSceneDisappear()
 	psc->Disappear();
 }
 
-
-Coroutine::Coroutine(const std::string & name, const asIScriptFunction * cofunc, asIScriptEngine * engine)
-	: context(engine->CreateContext())
-	, object(static_cast<asIScriptObject*>(cofunc->GetDelegateObject()))
-	, function(cofunc->GetDelegateFunction())
-	, type(cofunc->GetDelegateObjectType())
-	, Name(name)
-	, Wait(CoroutineWait{ WaitType::Time, 0 })
+void ScriptSceneYieldFrame(uint64_t frames)
 {
-	SU_ASSERT(cofunc->GetFuncType() == asFUNC_DELEGATE);
-
-	function->AddRef();
-	object->AddRef();
-	type->AddRef();
-
-	Prepare();
-	SetUserData(&Wait, SU_UDTYPE_WAIT);
-
-	cofunc->Release();
+	auto ctx = asGetActiveContext();
+	auto pcw = static_cast<CoroutineWait*>(ctx->GetUserData(SU_UDTYPE_WAIT));
+	if (!pcw) {
+		ScriptSceneWarnOutOf("YieldFrame", "Coroutine Scene Class or Coroutine", ctx);
+		return;
+	}
+	pcw->WaitFrame(frames);
+	ctx->Suspend();
 }
 
-Coroutine::~Coroutine()
+void ScriptSceneYieldTime(double time)
 {
-	Unprepare();
-
-	auto e = context->GetEngine();
-	context->Release();
-	function->Release();
-	e->ReleaseScriptObject(object, type);
-	type->Release();
+	auto ctx = asGetActiveContext();
+	auto pcw = static_cast<CoroutineWait*>(ctx->GetUserData(SU_UDTYPE_WAIT));
+	if (!pcw) {
+		ScriptSceneWarnOutOf("YieldTime", "Coroutine Scene Class or Coroutine", ctx);
+		return;
+	}
+	pcw->WaitTime(time);
+	ctx->Suspend();
 }

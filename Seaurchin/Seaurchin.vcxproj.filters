@@ -84,9 +84,6 @@
     <ClCompile Include="SkinHolder.cpp">
       <Filter>インターフェース\AngelScript</Filter>
     </ClCompile>
-    <ClCompile Include="ScriptFunction.cpp">
-      <Filter>インターフェース\AngelScript</Filter>
-    </ClCompile>
     <ClCompile Include="SusAnalyzer.cpp">
       <Filter>インターフェース\C++</Filter>
     </ClCompile>
@@ -174,6 +171,9 @@
     <ClCompile Include="Music.cpp">
       <Filter>インターフェース\キャラクター</Filter>
     </ClCompile>
+    <ClCompile Include="ScriptCoroutine.cpp">
+      <Filter>インターフェース\AngelScript</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Main.h">
@@ -204,9 +204,6 @@
       <Filter>インターフェース\AngelScript</Filter>
     </ClInclude>
     <ClInclude Include="SkinHolder.h">
-      <Filter>インターフェース\AngelScript</Filter>
-    </ClInclude>
-    <ClInclude Include="ScriptFunction.h">
       <Filter>インターフェース\AngelScript</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -313,6 +310,9 @@
     </ClInclude>
     <ClInclude Include="Music.h">
       <Filter>インターフェース\キャラクター</Filter>
+    </ClInclude>
+    <ClInclude Include="ScriptCoroutine.h">
+      <Filter>インターフェース\AngelScript</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

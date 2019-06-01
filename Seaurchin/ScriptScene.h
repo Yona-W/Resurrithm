@@ -1,47 +1,13 @@
 ﻿#pragma once
 
 #include "Scene.h"
-#include "ScriptFunction.h"
 #include "ScriptSprite.h"
 
 #define SU_IF_SCENE "Scene"
 #define SU_IF_COSCENE "CoroutineScene"
-#define SU_IF_COROUTINE "Coroutine"
 
-class Coroutine {
-private:
-	asIScriptContext* context;
-	asIScriptObject* object;
-	asIScriptFunction* function;
-	asITypeInfo* type;
-
-public:
-	std::string Name;
-	CoroutineWait Wait;
-
-public:
-	Coroutine(const std::string& name, const asIScriptFunction* cofunc, asIScriptEngine* engine);
-	~Coroutine();
-
-	asIScriptContext* GetContext() const { return context; }
-
-	void* SetUserData(void* data, asPWORD type) { return context->SetUserData(data, type); }
-
-	int Execute() { return context->Execute(); }
-
-private:
-	int Prepare()
-	{
-		const auto r1 = context->Prepare(function);
-		if (r1 != asSUCCESS) return r1;
-		return context->SetObject(object);
-	}
-	int Unprepare() { return context->Unprepare(); }
-
-public:
-	bool Tick(double delta) { return Wait.Tick(delta); }
-};
-
+class Coroutine;
+class CoroutineWait;
 class MethodObject;
 class CallbackObject;
 
@@ -90,7 +56,7 @@ public:
 class ScriptCoroutineScene : public ScriptScene {
 	typedef ScriptScene Base;
 protected:
-	CoroutineWait wait;
+	CoroutineWait* const wait;
 
 public:
 	ScriptCoroutineScene(asIScriptObject* scene);
@@ -114,3 +80,13 @@ void ScriptSceneAddSprite(SSprite* sprite);
 void ScriptSceneRunCoroutine(asIScriptFunction* cofunc, const std::string& name);
 void ScriptSceneKillCoroutine(const std::string& name);
 void ScriptSceneDisappear();
+
+//! @breif 指定フレーム数関数実行を待機します。
+//! @param[in] frames 待機フレーム数
+//! @note 実行中のコンテキストにSU_UDTYPE_WAITが紐づいていない場合(これを呼び出した関数がsuspendする前提の関数でない場合)、失敗します。
+void ScriptSceneYieldFrame(uint64_t frames);
+
+//! @breif 指定時間関数実行を待機します。
+//! @param[in] tiime 待機時間
+//! @note 実行中のコンテキストにSU_UDTYPE_WAITが紐づいていない場合(これを呼び出した関数がsuspendする前提の関数でない場合)、失敗します。
+void ScriptSceneYieldTime(double time);

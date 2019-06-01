@@ -10,6 +10,7 @@
 #include "ScriptResource.h"
 #include "ScriptScene.h"
 #include "ScriptSprite.h"
+#include "ScriptCoroutine.h"
 #include "SkinHolder.h"
 #include "MusicsManager.h"
 #include "Music.h"
@@ -344,8 +345,8 @@ void ExecutionManager::RegisterGlobalManagementFunction()
 	engine->RegisterGlobalFunction("void KillCoroutine(const string &in)", asFUNCTION(ScriptSceneKillCoroutine), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void Disappear()", asFUNCTION(ScriptSceneDisappear), asCALL_CDECL);
 	engine->RegisterGlobalFunction("void AddSprite(" SU_IF_SPRITE "@)", asFUNCTION(ScriptSceneAddSprite), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void YieldTime(double)", asFUNCTION(YieldTime), asCALL_CDECL);
-	engine->RegisterGlobalFunction("void YieldFrame(int64)", asFUNCTION(YieldFrames), asCALL_CDECL);
+	engine->RegisterGlobalFunction("void YieldTime(double)", asFUNCTION(ScriptSceneYieldTime), asCALL_CDECL);
+	engine->RegisterGlobalFunction("void YieldFrame(uint64)", asFUNCTION(ScriptSceneYieldFrame), asCALL_CDECL);
 }
 
 

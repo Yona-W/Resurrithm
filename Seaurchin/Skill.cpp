@@ -3,7 +3,6 @@
 #include "SettingManager.h"
 #include "ExecutionManager.h"
 #include "ScriptSprite.h"
-#include "ScriptScene.h"
 #include "AngelScriptManager.h"
 
 using namespace std;

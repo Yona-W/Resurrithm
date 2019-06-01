@@ -169,7 +169,7 @@ xcopy "$(SolutionDir)Resources\Skins" "$(TargetDir)Skins" /I /E /D /Y</Command>
     <ClCompile Include="Skill.cpp" />
     <ClCompile Include="SkillManager.cpp" />
     <ClCompile Include="SkinHolder.cpp" />
-    <ClCompile Include="ScriptFunction.cpp" />
+    <ClCompile Include="ScriptCoroutine.cpp" />
     <ClCompile Include="MoverFunctionExpression.cpp" />
     <ClCompile Include="SusAnalyzer.cpp" />
     <ClCompile Include="wscriptbuilder.cpp" />
@@ -216,7 +216,7 @@ xcopy "$(SolutionDir)Resources\Skins" "$(TargetDir)Skins" /I /E /D /Y</Command>
     <ClInclude Include="Skill.h" />
     <ClInclude Include="SkillManager.h" />
     <ClInclude Include="SkinHolder.h" />
-    <ClInclude Include="ScriptFunction.h" />
+    <ClInclude Include="ScriptCoroutine.h" />
     <ClInclude Include="ScriptSpriteMisc.h" />
     <ClInclude Include="MoverFunctionExpression.h" />
     <ClInclude Include="SusAnalyzer.h" />
