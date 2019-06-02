@@ -388,7 +388,8 @@ class CharacterSelect : CoroutineScene {
   SkillManager@ sm;
   Skill@ sk;
 
-  Sprite@ spBack, spImage, spIcon;
+  Shape@ spBack;
+  Sprite@ spImage, spIcon;
   TextSprite@ spTitle, spInfo, spName, spSkill, spDescription;
   Container@ container;
 
@@ -398,8 +399,8 @@ class CharacterSelect : CoroutineScene {
     @sm = GetSkillManager();
     @container = Container();
 
-    @spBack = Sprite(skin.GetImage("White"));
-    spBack.Apply("r:0, g:0, b:0, alpha:0.8");
+    @spBack = Shape();
+    spBack.Apply("x:640, y:360, width:1280, height:720, r:100, g:100, b:100, alpha:0.8");
 
     @spTitle = TextSprite(skin.GetFont("Normal64"), "キャラクター・スキル設定");
     spTitle.SetAlignment(TextAlign::Center, TextAlign::Top);
