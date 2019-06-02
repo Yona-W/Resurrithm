@@ -35,28 +35,28 @@ public:
 		: type(WaitType::Frame)
 		, frames(0)
 	{};
-	//! @breif 待機フレーム数を指定して初期化
+	//! @brief 待機フレーム数を指定して初期化
 	//! @param[in] frames 待機フレーム数
 	explicit CoroutineWait(const uint64_t frames)
 		: type(WaitType::Frame)
 		, frames(frames)
 	{};
-	//! @breif 待機時間を指定して初期化
+	//! @brief 待機時間を指定して初期化
 	//! @param[in] tiime 待機時間
 	explicit CoroutineWait(const double tiime)
 		: type(WaitType::Frame)
 		, time(time)
 	{};
 
-	//! @breif 待機フレーム数を設定します。
+	//! @brief 待機フレーム数を設定します。
 	//! @param[in] frames 待機フレーム数
 	void WaitFrame(const uint64_t frames)
 	{
 		type = WaitType::Frame;
 		this->frames = frames;
 	}
-	//! @breif 待機時間を設定します。
-	//! @param[in] tiime 待機時間
+	//! @brief 待機時間を設定します。
+	//! @param[in] time 待機時間
 	//! @note 非正数値を与えた場合は無効です。(パラメータの更新を行わない)
 	void WaitTime(const double time)
 	{
@@ -66,7 +66,7 @@ public:
 		this->time = time;
 	}
 
-	//! @breif 待機フレーム数/待機時間を更新し、実行を中断する必要があるかを返します。
+	//! @brief 待機フレーム数/待機時間を更新し、実行を中断する必要があるかを返します。
 	//! @param[in] delta 前フレームからの経過時間
 	//! @return 実行を中断する必要があればtrueを返します。
 	bool Tick(const double delta)
@@ -113,7 +113,7 @@ public:
 	//! @return typeに今まで登録されていたデータ。
 	void* SetUserData(void* data, asPWORD type) { return context->SetUserData(data, type); }
 
-	//! @breif 待機フレーム数/待機時間を更新し、必要があれば関数を実行します。
+	//! @brief 待機フレーム数/待機時間を更新し、必要があれば関数を実行します。
 	//! @param[in] delta 前フレームからの経過時間
 	//! @return 実行結果。asEXECUTION_FINISHED以外ならおそらく失敗しています。
 	//! @note 実行結果が意図しないものだった場合は関数内部でログを吐きます。

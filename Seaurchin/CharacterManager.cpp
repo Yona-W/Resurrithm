@@ -96,11 +96,6 @@ CharacterManager::CharacterManager()
 	: selected(-1)
 {}
 
-/*!
- * @brief キャラクター一覧を生成します。
- * @details 読み込む対象は Setting::GetRootDirectory() / SU_CHARACTER_DIR 直下にある *.toml です。
- * @todo 非同期動作ができた方がベター
- */
 void CharacterManager::LoadAllCharacters()
 {
 	const auto sepath = SettingManager::GetRootDirectory() / SU_CHARACTER_DIR;
@@ -119,9 +114,6 @@ void CharacterManager::LoadAllCharacters()
 	selected = (size == 0) ? -1 : 0;
 }
 
-/*!
- * @brief 選択キャラクターを次のキャラクターに切り替えます。
- */
 void CharacterManager::Next()
 {
 	const auto size = GetSize();
@@ -130,9 +122,6 @@ void CharacterManager::Next()
 	selected = (selected + 1) % size;
 }
 
-/*!
- * @brief 選択キャラクターを前のキャラクターに切り替えます。
- */
 void CharacterManager::Previous()
 {
 	const auto size = GetSize();
@@ -141,11 +130,6 @@ void CharacterManager::Previous()
 	selected = (selected + size - 1) % size;
 }
 
-/*!
- * @brief 相対位置を指定してキャラクター情報の生ポインタを取得します。
- * @param[in] relative 選択中のキャラクターに対する相対キャラクター数。
- * @return 該当するキャラクター情報の生ポインタ。該当するキャラクターがいない場合nullが返ります。
- */
 CharacterParameter * CharacterManager::GetCharacterParameterUnsafe(const int relative)
 {
 	const auto size = GetSize();
@@ -156,11 +140,6 @@ CharacterParameter * CharacterManager::GetCharacterParameterUnsafe(const int rel
 	return characters[ri % size].get();
 }
 
-/*!
- * @brief 相対位置を指定してキャラクター情報のスマートポインタを取得します。
- * @param[in] relative 選択中のキャラクターに対する相対キャラクター数。
- * @return 該当するキャラクター情報のスマートポインタ。該当するキャラクターがいない場合nullが返ります。
- */
 shared_ptr<CharacterParameter> CharacterManager::GetCharacterParameterSafe(const int relative)
 {
 	const auto size = GetSize();
@@ -171,11 +150,6 @@ shared_ptr<CharacterParameter> CharacterManager::GetCharacterParameterSafe(const
 	return characters[ri % size];
 }
 
-/*!
- * @brief 相対位置を指定してキャラクターの画像情報を生成します。
- * @param[in] relative 選択中のキャラクターに対する相対キャラクター数。
- * @return 該当するキャラクターの画像情報の生ポインタ。該当するキャラクターがいない場合nullが返ります。
- */
 CharacterImageSet* CharacterManager::CreateCharacterImages(const int relative)
 {
 	const auto size = GetSize();
@@ -187,11 +161,6 @@ CharacterImageSet* CharacterManager::CreateCharacterImages(const int relative)
 	return CharacterImageSet::CreateImageSet(cp);
 }
 
-/*!
- * @brief スキンにキャラクターマネージャーを登録します。
- * @param[in] engine スクリプトエンジン。
- * @details 関連クラス(ImageSet,ImageMetric,Parameter)の登録も行います。
- */
 void CharacterManager::RegisterType(asIScriptEngine* engine)
 {
 	CharacterImageSet::RegisterType(engine);

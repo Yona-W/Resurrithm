@@ -1,4 +1,12 @@
-﻿#include "Music.h"
+﻿/*!
+ * @file Music.cpp
+ * @brief 譜面や楽曲に関する情報を保持するクラス ScoreParameter, MusicParameter, CategoryParameter の定義
+ * @author amenoshita-429
+ * @date 2019/06/02
+ * @details 譜面情報や楽曲情報、カテゴリ情報をまとめるクラスを提供します。
+ */
+
+#include "Music.h"
 #include "SusAnalyzer.h"
 #include "SettingManager.h"
 
@@ -90,6 +98,64 @@ bool ScoreParameter::RegisterTypes(asIScriptEngine* engine)
 
 
 
+MusicParameter::MusicParameter()
+	:refcount(1)
+{}
+
+MusicParameter::~MusicParameter()
+{
+	SU_ASSERT(IS_REFCOUNT(this, 0));
+
+	for (auto& p : scores) p->Release();
+}
+
+bool MusicParameter::AddScore(ScoreParameter* pScore)
+{
+	if (!pScore) return false;
+	if (scores.size() >= MaxItemCount) {
+		spdlog::get("main")->warn(u8"保持可能最大譜面数に到達したため、譜面の登録に失敗しました。");
+		return false;
+	}
+
+	scores.push_back(pScore);
+
+	return true;
+}
+
+ScoreParameter* MusicParameter::GetScore(uint32_t index) const
+{
+	const auto size = GetScoreCount();
+	if (size == 0) return nullptr;
+
+	auto ptr = scores[index % size];
+	if (ptr) ptr->AddRef();
+	return ptr;
+}
+
+MusicParameter* MusicParameter::Create(const string& songID)
+{
+	auto ptr = new MusicParameter();
+	if (!ptr) return nullptr;
+
+	ptr->songId = songID;
+
+	return ptr;
+}
+
+bool MusicParameter::RegisterTypes(asIScriptEngine * engine)
+{
+	bool result = true;
+	result = (result && 0 <= engine->RegisterObjectType(SU_IF_MUSIC, 0, asOBJ_REF));
+	result = (result && 0 <= engine->RegisterObjectBehaviour(SU_IF_MUSIC, asBEHAVE_ADDREF, "void f()", asMETHOD(MusicParameter, AddRef), asCALL_THISCALL));
+	result = (result && 0 <= engine->RegisterObjectBehaviour(SU_IF_MUSIC, asBEHAVE_RELEASE, "void f()", asMETHOD(MusicParameter, Release), asCALL_THISCALL));
+	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, "string get_Id()", asMETHOD(MusicParameter, GetSongId), asCALL_THISCALL));
+	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, "uint get_ScoreCount()", asMETHOD(MusicParameter, GetScoreCount), asCALL_THISCALL));
+	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, SU_IF_SCORE "@ GetScore(uint)", asMETHOD(MusicParameter, GetScore), asCALL_THISCALL));
+	return result;
+}
+
+
+
 CategoryParameter::CategoryParameter()
 	: refcount(1)
 {}
@@ -128,7 +194,7 @@ MusicParameter* CategoryParameter::GetMusic(const std::string& songId) const
 {
 	// TODO: musicをMapか何かにして検索時間を減らす
 	for (const auto p : music) {
-		if (p && p->songId == songId) {
+		if (p && p->IsSongId(songId)) {
 			p->AddRef();
 			return p;
 		}
@@ -201,62 +267,5 @@ bool CategoryParameter::RegisterTypes(asIScriptEngine* engine)
 	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, "uint get_MusicCount()", asMETHOD(CategoryParameter, GetMusicCount), asCALL_THISCALL));
 	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, SU_IF_MUSIC "@ GetMusic(uint)", asMETHODPR(CategoryParameter, GetMusic, (uint32_t) const, MusicParameter*), asCALL_THISCALL));
 	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, SU_IF_MUSIC "@ GetMusic(string)", asMETHODPR(CategoryParameter, GetMusic, (const string&) const, MusicParameter*), asCALL_THISCALL));
-	return result;
-}
-
-
-MusicParameter::MusicParameter()
-	:refcount(1)
-{}
-
-MusicParameter::~MusicParameter()
-{
-	SU_ASSERT(IS_REFCOUNT(this, 0));
-
-	for (auto& p : scores) p->Release();
-}
-
-bool MusicParameter::AddScore(ScoreParameter* pScore)
-{
-	if (!pScore) return false;
-	if (scores.size() >= MaxItemCount) {
-		spdlog::get("main")->warn(u8"保持可能最大譜面数に到達したため、譜面の登録に失敗しました。");
-		return false;
-	}
-
-	scores.push_back(pScore);
-
-	return true;
-}
-
-ScoreParameter* MusicParameter::GetScore(uint32_t index) const
-{
-	const auto size = GetScoreCount();
-	if (size == 0) return nullptr;
-
-	auto ptr = scores[index % size];
-	if (ptr) ptr->AddRef();
-	return ptr;
-}
-
-MusicParameter* MusicParameter::Create(const string& songID)
-{
-	auto ptr = new MusicParameter();
-	if (!ptr) return nullptr;
-
-	ptr->songId = songID;
-
-	return ptr;
-}
-
-bool MusicParameter::RegisterTypes(asIScriptEngine * engine)
-{
-	bool result = true;
-	result = (result && 0 <= engine->RegisterObjectType(SU_IF_MUSIC, 0, asOBJ_REF));
-	result = (result && 0 <= engine->RegisterObjectBehaviour(SU_IF_MUSIC, asBEHAVE_ADDREF, "void f()", asMETHOD(MusicParameter, AddRef), asCALL_THISCALL));
-	result = (result && 0 <= engine->RegisterObjectBehaviour(SU_IF_MUSIC, asBEHAVE_RELEASE, "void f()", asMETHOD(MusicParameter, Release), asCALL_THISCALL));
-	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, "string get_Id()", asMETHOD(MusicParameter, GetSongId), asCALL_THISCALL));
-	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, "uint get_ScoreCount()", asMETHOD(MusicParameter, GetScoreCount), asCALL_THISCALL));
-	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, SU_IF_SCORE "@ GetScore(uint)", asMETHOD(MusicParameter, GetScore), asCALL_THISCALL));
 	return result;
 }

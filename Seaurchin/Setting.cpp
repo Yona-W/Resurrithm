@@ -1,4 +1,12 @@
-﻿#include "Setting.h"
+﻿/*!
+ * @file Setting.cpp
+ * @brief 設定項目の操作を行うクラス SettingItem と関連クラスの定義
+ * @author kb10uy
+ * @date 2019/04/29
+ * @details 設定項目定義ファイルの読み込み、パース、設定項目取得を行うインターフェースを提供します。
+ */
+
+#include "Setting.h"
 #include "SettingManager.h"
 
 using namespace std;

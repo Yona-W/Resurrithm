@@ -80,12 +80,12 @@ void ScriptSceneRunCoroutine(asIScriptFunction* cofunc, const std::string& name)
 void ScriptSceneKillCoroutine(const std::string& name);
 void ScriptSceneDisappear();
 
-//! @breif 指定フレーム数関数実行を待機します。
+//! @brief 指定フレーム数関数実行を待機します。
 //! @param[in] frames 待機フレーム数
 //! @note 実行中のコンテキストにSU_UDTYPE_WAITが紐づいていない場合(これを呼び出した関数がsuspendする前提の関数でない場合)、失敗します。
 void ScriptSceneYieldFrame(uint64_t frames);
 
-//! @breif 指定時間関数実行を待機します。
-//! @param[in] tiime 待機時間
+//! @brief 指定時間関数実行を待機します。
+//! @param[in] time 待機時間
 //! @note 実行中のコンテキストにSU_UDTYPE_WAITが紐づいていない場合(これを呼び出した関数がsuspendする前提の関数でない場合)、失敗します。
 void ScriptSceneYieldTime(double time);

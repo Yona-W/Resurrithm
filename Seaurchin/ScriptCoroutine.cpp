@@ -1,4 +1,12 @@
-﻿#include "ScriptCoroutine.h"
+﻿/*!
+ * @file ScriptCoroutine.cpp
+ * @brief スキンで用いるコルーチン関係のクラスの定義
+ * @author kb10uy
+ * @date 2019/05/30
+ * @details コルーチン処理を行うためのインターフェースを提供します。
+ */
+
+#include "ScriptCoroutine.h"
 
 using namespace std;
 using namespace std::filesystem;

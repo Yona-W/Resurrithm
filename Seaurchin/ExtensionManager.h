@@ -17,13 +17,28 @@ class ExtensionManager final {
 private:
 	std::vector<HINSTANCE> dllInstances;	//!< ロードしたdllの実体の配列
 
+public:
+	ExtensionManager();
+
+	//! @note ロードされたdllの破棄も行います。
+	~ExtensionManager();
+
+private:
+	//! @brief dllをロードします。
+	//! @param[in] path ロードするdllのパス。絶対パスを想定しています。
+	//! @return bool ロードに失敗した場合falseを返します。
 	bool LoadDll(const std::filesystem::path& path);
 
 public:
-	ExtensionManager();
-	~ExtensionManager();
-
+	//! @brief エクステンションを列挙しロードします。
+	//! @note 読み込む対象は Setting::GetRootDirectory() / SU_EXTENSION_DIR 内の *.dll です。
 	void LoadExtensions();
+
+	//! @brief エクステンションの初期化を行います。
+	//! @param[in] engine スクリプトエンジン。
 	void Initialize(asIScriptEngine* engine);
+
+	//! @brief エクステンションの登録を行います。
+	//! @details このメソッドの呼び出し以降、エクステンションで提供される機能が利用できるようになります。
 	void RegisterInterfaces();
 };

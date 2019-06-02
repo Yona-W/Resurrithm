@@ -1,4 +1,12 @@
-﻿#include "AngelScriptManager.h"
+﻿/*!
+ * @file AngelScriptManager.cpp
+ * @brief AngelScriptの管理を行うクラス AngelScriptManager の定義
+ * @author kb10uy
+ * @date 2019/05/08
+ * @details スクリプトのロード、実行を行うインターフェースを提供します。
+ */
+
+#include "AngelScriptManager.h"
 
 using namespace std;
 using namespace filesystem;

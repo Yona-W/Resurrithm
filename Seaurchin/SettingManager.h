@@ -31,12 +31,26 @@ public:
 	//! @brief アプリケーションのワーキングディレクトリへの絶対パスを取得します。
 	static std::filesystem::path GetRootDirectory() { return rootDirectory; }
 
+
+	//! @brief 指定された設定項目定義ファイルをもとに設定項目一覧を生成します。
+	//! @param[in] file 設定項目定義ファイルへのパス。絶対パスを想定しています。
+	//! @details この関数の呼び出しでは設定項目は上書きではなく追加されます。
+	//! @todo 非同期動作ができた方がベター
 	void LoadItemsFromToml(const std::filesystem::path& file);
+
+	//! @brief 現在保持しているすべての設定項目について、値の再読み込みを行います。
 	void RetrieveAllValues();
+
+	//! @brief 現在保持しているすべての設定項目について、値の保存を行います。
+	//! @note この関数を呼び出してもファイルへの書き出しは行われません。
 	void SaveAllValues();
+
 
 	//! @brief 設定値集合のスマートポインタを取得します。
 	SettingTree* GetSettingInstanceUnsafe() { return setting.get(); }
 
+	//! @brief グループ名とキー名をもとに設定項目を取得します。
+	//! @param[in] group 設定項目のグループ名
+	//! @param[in] key 設定項目のキー名
 	std::shared_ptr<SettingItem> GetSettingItem(const std::string& group, const std::string& key);
 };
