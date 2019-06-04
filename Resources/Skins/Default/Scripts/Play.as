@@ -8,6 +8,9 @@ class Play : CoroutineScene {
   CharacterInfo charinfo;
   TextSprite@ txtCombo;
   Score@ score;
+  Sprite@ spBack;
+  MovieSprite@ spMovie;
+  double movieoffset = 0.0;
 
   double judgeLineBegin, judgeLineWidth;
   double judgeLineY;
@@ -152,6 +155,9 @@ class Play : CoroutineScene {
       Fire("Player:Exit");
       return;
     }
+
+    SetBackgroundSprite(score);
+
     player.Load(score.Path);
     while(!player.IsLoadCompleted()) YieldFrame(1);
     if (player.IsScoreLoaded()) {
@@ -167,7 +173,7 @@ class Play : CoroutineScene {
     }
   }
 
-  Sprite@ spTopCover, spBack, spCustomBack;
+  Sprite@ spTopCover, spCustomBack;
   array<Sprite@> spGaugeCounts(10);
   Sprite@ spBarBack, spBarFront, spJacket;
   ClipSprite@ spBarFill;
@@ -175,7 +181,6 @@ class Play : CoroutineScene {
   TextSprite@ txtTitle, txtArtist, txtLevel;
   SynthSprite@ spJudges;
   void Main() {
-    @spBack = Sprite(skin.GetImage("TitleBack"));
     @spTopCover = Sprite(skin.GetImage("PlayerTopCover"));
     spTopCover.Apply("z:10");
     // スコアなど
@@ -241,7 +246,6 @@ class Play : CoroutineScene {
     spBarFill.Apply("x:384, y:40, z:16, scaleY: 0.75");
     spBarFront.Apply("x:384, y:40, z:17, scaleY: 0.75");
 
-    AddSprite(spBack);
     AddSprite(spTopCover);
     AddSprite(txtMaxCombo);
     AddSprite(txtScore);
@@ -253,7 +257,6 @@ class Play : CoroutineScene {
     AddSprite(spJacket);
     AddSprite(spJudges);
     for(int i = 0; i < 4; i++) AddSprite(spCounts[i]);
-    AddSprite(spBack);
     AddSprite(spBarBack);
     AddSprite(spBarFill);
     AddSprite(spBarFront);
@@ -343,20 +346,58 @@ class Play : CoroutineScene {
     }
   }
 
-  void OnEvent(const string &in event) {
-    if (event == "Player:Ready") {
-      // 背景があればそっと差し替える
-      auto path = GetStringData("Player:Background");
-      if (path == "") return;
-      WriteLog(Severity::Info, "カスタム背景: " + path);
-      @spCustomBack = Sprite(Image(path));
-      spCustomBack.Apply("z:-29");
+  void SetBackgroundSprite(Score@ score) {
+    if (score !is null) {
+      if (score.MoviePath != "") {
+        Movie@ movie = Movie(score.MoviePath);
+        if (movie !is null && movie.Width > 0 && movie.Height > 0) {
+          WriteLog(Severity::Info, "カスタム背景動画: " + score.MoviePath);
+          @spMovie = MovieSprite(movie);
+          movieoffset = score.MovieOffset;
+          spMovie.Apply("z:-29");
+          spMovie.SetScale(1280.0 / movie.Width, 720.0 / movie.Height);
+          AddSprite(spMovie);
 
-      AddSprite(spCustomBack);
-      spBack.AddMove("alpha:{begin:1, end:0, time:1}");
-      spCustomBack.AddMove("alpha:{begin:0, end:1, time:1}");
-      spBack.AddMove("death:{wait:1}");
-    } else if (event == "Player:Exit") {
+          // TODO: このやり方は不適切 譜面再生と同期するようにする
+          RunCoroutine(Coroutine(PlayBackgroundMovie), "Player:PlayBackgroundMovie");
+
+          return;
+        }
+      }
+
+      if (score.BackgroundPath != "") {
+        Image@ imgBack = Image(score.BackgroundPath);
+        if (imgBack !is null && imgBack.Width > 0 && imgBack.Height > 0) {
+          WriteLog(Severity::Info, "カスタム背景画像: " + score.BackgroundPath);
+          @spBack = Sprite(imgBack);
+          spBack.Apply("z:-29");
+          spBack.SetScale(1280.0 / imgBack.Width, 720.0 / imgBack.Height);
+          AddSprite(spBack);
+
+          return;
+        }
+      }
+    }
+
+    @spBack = Sprite(imgWhite);
+    spBack.Apply("z:-29");
+    spBack.SetScale(1280.0 / imgWhite.Width, 720.0 / imgWhite.Height);
+    AddSprite(spBack);
+  }
+
+  void PlayBackgroundMovie() {
+    if (spMovie is null) return;
+
+    if (movieoffset < 0.0) {
+      spMovie.SetTime(-movieoffset);
+    } else if (movieoffset > 0.0) {
+      YieldTime(-movieoffset / 1000.0);
+    }
+    spMovie.Play();
+  }
+
+  void OnEvent(const string &in event) {
+    if (event == "Player:Exit") {
       Execute("Scripts\\Select.as");
       Disappear();
     }

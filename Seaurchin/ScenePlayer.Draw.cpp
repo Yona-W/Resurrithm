@@ -134,8 +134,6 @@ void ScenePlayer::TickGraphics(const double delta)
 
 void ScenePlayer::Draw() const
 {
-	if (movieBackground) DrawExtendGraph(0, 0, SU_RES_WIDTH, SU_RES_HEIGHT, movieBackground, FALSE);
-
 	BEGIN_DRAW_TRANSACTION(hGroundBuffer);
 	ClearDrawScreen();
 

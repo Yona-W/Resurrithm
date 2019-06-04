@@ -127,7 +127,6 @@ void ScenePlayer::Finalize()
 	delete processor;
 
 	DeleteGraph(hGroundBuffer);
-	if (movieBackground) DeleteGraph(movieBackground);
 	judgeSoundQueue.Dispose(JudgeSoundType::Disposing);
 	judgeSoundThread.join();
 }
@@ -177,10 +176,6 @@ void ScenePlayer::LoadWorker(const path& file)
 			spdlog::get("main")->warn(u8"音声ファイル {0} の読み込みに失敗しました。", ConvertUnicodeToUTF8(soundfile));
 		}
 		state = PlayingState::ReadyToStart;
-
-		if (!analyzer->SharedMetaData.UMovieFileName.empty()) {
-			movieFileName = file.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName);
-		}
 
 		// 前カウントの計算
 		// WaveOffsetが1小節分より長いとめんどくさそうなので差し引いてく
@@ -365,15 +360,6 @@ void ScenePlayer::ProcessSound()
 		break;
 	default: break;
 	}
-
-	if (moviePlaying) {
-		movieCurrentPosition = TellMovieToGraph(movieBackground) / 1000.0;
-		return;
-	}
-	if (currentTime >= -movieCurrentPosition) {
-		PlayMovieToGraph(movieBackground);
-		moviePlaying = true;
-	}
 }
 
 void ScenePlayer::ProcessSoundQueue()
@@ -460,21 +446,6 @@ void ScenePlayer::GetReady()
 {
 	if (!isLoadCompleted || isReady) return;
 
-	// これはUIスレッドでやる必要あり マジかよ
-	if (!movieFileName.empty()) {
-		movieBackground = LoadGraph(ConvertUnicodeToUTF8(movieFileName).c_str());
-		const auto offset = analyzer->SharedMetaData.MovieOffset;
-		if (offset < 0) {
-			// 先にシークして0.0から再生開始
-			SeekMovieToGraph(movieBackground, int(-offset * 1000));
-			movieCurrentPosition = 0;
-		}
-		else {
-			// offset待って再生開始
-			movieCurrentPosition = -offset;
-		}
-	}
-
 	isReady = true;
 	ability->OnStart(currentResult.get());
 }
@@ -530,7 +501,6 @@ void ScenePlayer::MovePositionBySecond(const double sec)
 	if (soundBGM) soundBGM->SetTime(newBgmPos * 1000.0);
 	currentTime = newTime;
 	processor->MovePosition(currentTime - oldTime);
-	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
 }
 
 void ScenePlayer::MovePositionByMeasure(const int meas)
@@ -548,7 +518,6 @@ void ScenePlayer::MovePositionByMeasure(const int meas)
 	if (soundBGM) soundBGM->SetTime(newBgmPos * 1000.0);
 	currentTime = newTime;
 	processor->MovePosition(currentTime - oldTime);
-	SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
 }
 
 void ScenePlayer::SetAbility(SkillDetail* detail) {
@@ -581,7 +550,6 @@ void ScenePlayer::Pause()
 	lastState = state;
 	state = PlayingState::Paused;
 	if (soundBGM) soundBGM->Pause();
-	PauseMovieToGraph(movieBackground);
 }
 
 void ScenePlayer::Resume()
@@ -589,7 +557,6 @@ void ScenePlayer::Resume()
 	if (state != PlayingState::Paused) return;
 	state = lastState;
 	if (soundBGM) soundBGM->Play();
-	PlayMovieToGraph(movieBackground);
 }
 
 void ScenePlayer::Reload()

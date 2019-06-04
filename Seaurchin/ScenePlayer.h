@@ -188,12 +188,6 @@ protected:
 	bool showSlideLine{}, showAirActionJudge{};                     // Slide中心線/Air入力線が有効でtrue
 	double slideLineThickness{};                                  // Slide中心線太さ
 
-	// 背景映像関係
-	int movieBackground = 0;            // ハンドル
-	double movieCurrentPosition = 0.0;  // 再生位置
-	bool moviePlaying = false;          // 一時停止中はtrue
-	std::wstring movieFileName = L"";   // ファイル名
-
 	// Slide描画関係
 	int segmentsPerSecond{};                  // Slide分解能
 	mutable std::vector<VERTEX2D> slideVertices;    // Slide描画用頂点座標配列 関数内ローカル変数で頻繁に生成,破棄されるのを嫌って宣言
