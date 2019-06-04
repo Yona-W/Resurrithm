@@ -52,6 +52,9 @@ static auto convertRawString = [](const string & input) -> string {
 			++it;
 			if (it == input.end()) return "";
 			switch (*it) {
+			case '\\':
+				result << "\\";
+				break;
 			case '"':
 				result << "\"";
 				break;
