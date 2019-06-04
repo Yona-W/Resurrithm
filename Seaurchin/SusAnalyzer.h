@@ -142,11 +142,11 @@ struct SusMetaData {
 
 	void Reset()
 	{
-		USongId = "";
+		USongId = u8"";
 		UTitle = USubTitle = u8"";
 		UArtist = UDesigner = u8"";
-		UJacketFileName = UWaveFileName = UBackgroundFileName = "";
-		WaveOffset = 0;
+		UJacketFileName = UWaveFileName = UBackgroundFileName = UMovieFileName = u8"";
+		WaveOffset = MovieOffset = 0;
 		BaseBpm = 0;
 		Level = 0;
 		ShowBpm = -1;
