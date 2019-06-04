@@ -337,6 +337,7 @@ void RegisterScriptSprite(asIScriptEngine* engine)
 	SSynthSprite::RegisterType(engine);
 	SClippingSprite::RegisterType(engine);
 	SAnimeSprite::RegisterType(engine);
+	SMovieSprite::RegisterType(engine);
 	SContainer::RegisterType(engine);
 }
 
@@ -1335,6 +1336,61 @@ void SAnimeSprite::RegisterType(asIScriptEngine * engine)
 	engine->RegisterObjectMethod(SU_IF_ANIMESPRITE, SU_IF_SPRITE "@ opImplCast()", asFUNCTION((CastReferenceType<SAnimeSprite, SSprite>)), asCALL_CDECL_OBJLAST);
 	engine->RegisterObjectMethod(SU_IF_ANIMESPRITE, "void SetSpeed(double)", asMETHOD(SAnimeSprite, SetSpeed), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_ANIMESPRITE, "void SetLoopCount(int)", asMETHOD(SAnimeSprite, SetLoopCount), asCALL_THISCALL);
+}
+
+// SMovieSprite -------------------------------------------
+
+SMovieSprite::SMovieSprite(SMovie* movie)
+	: movie(movie)
+{}
+
+SMovieSprite::~SMovieSprite()
+{
+	if (movie) movie->Release();
+}
+
+void SMovieSprite::Tick(const double delta)
+{
+	if (!movie) return;
+
+	pMover->Tick(delta);
+}
+
+void SMovieSprite::DrawBy(const Transform2D & tf, const ColorTint & ct) const
+{
+	if (!movie) return;
+
+	SetDrawBright(255, 255, 255);
+	SetDrawBlendMode(DX_BLENDMODE_ALPHA, Color.A);
+	DrawRotaGraph3F(
+		Transform.X, Transform.Y,
+		Transform.OriginX, Transform.OriginY,
+		Transform.ScaleX, Transform.ScaleY,
+		Transform.Angle, movie->GetHandle(),
+		HasAlpha ? TRUE : FALSE, FALSE);
+}
+
+SMovieSprite* SMovieSprite::Factory(SMovie* movie)
+{
+	if (movie) movie->AddRef();
+	auto result = new SMovieSprite(movie);
+
+	if (movie) movie->Release();
+	SU_ASSERT(IS_REFCOUNT(result, 1));
+	return result;
+}
+
+void SMovieSprite::RegisterType(asIScriptEngine * engine)
+{
+	RegisterSpriteBasic<SMovieSprite>(engine, SU_IF_MOVIESPRITE);
+	engine->RegisterObjectBehaviour(SU_IF_MOVIESPRITE, asBEHAVE_FACTORY, SU_IF_MOVIESPRITE "@ f(" SU_IF_MOVIE "@)", asFUNCTIONPR(SMovieSprite::Factory, (SMovie*), SMovieSprite*), asCALL_CDECL);
+	engine->RegisterObjectMethod(SU_IF_SPRITE, SU_IF_MOVIESPRITE "@ opCast()", asFUNCTION((CastReferenceType<SSprite, SMovieSprite>)), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectMethod(SU_IF_MOVIESPRITE, SU_IF_SPRITE "@ opImplCast()", asFUNCTION((CastReferenceType<SMovieSprite, SSprite>)), asCALL_CDECL_OBJLAST);
+	engine->RegisterObjectMethod(SU_IF_MOVIESPRITE, "void SetTime(double)", asMETHOD(SMovieSprite, SetTime), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MOVIESPRITE, "double GetTime()", asMETHOD(SMovieSprite, GetTime), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MOVIESPRITE, "void Play()", asMETHOD(SMovieSprite, Play), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MOVIESPRITE, "void Pause()", asMETHOD(SMovieSprite, Pause), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MOVIESPRITE, "void Stop()", asMETHOD(SMovieSprite, Stop), asCALL_THISCALL);
 }
 
 // SContainer -------------------------------------------

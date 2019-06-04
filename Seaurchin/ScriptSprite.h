@@ -17,6 +17,7 @@
 #define SU_IF_SYHSPRITE "SynthSprite"
 #define SU_IF_CLPSPRITE "ClipSprite"
 #define SU_IF_ANIMESPRITE "AnimeSprite"
+#define SU_IF_MOVIESPRITE "MovieSprite"
 #define SU_IF_CONTAINER "Container"
 
 class MoverObject;
@@ -386,6 +387,36 @@ enum NinePatchType : uint32_t {
 	StretchByPixel,
 	Repeat,
 	RepeatAndStretch,
+};
+
+class SMovieSprite : public SSprite {
+private:
+	typedef SSprite Base;
+
+protected:
+	SMovie* movie;
+
+protected:
+	SMovieSprite(SMovie* movie);
+	~SMovieSprite() override;
+public:
+	SMovieSprite* Clone() const override { return nullptr; };
+
+public:
+	void Tick(double delta) override;
+private:
+	void DrawBy(const Transform2D& tf, const ColorTint& ct) const override;
+
+public:
+	void SetTime(double ms) { if (movie) movie->SetTime(ms); }
+	double GetTime() { return (movie) ? movie->GetTime() : 0.0; }
+	void Play() { if (movie) movie->Play(); }
+	void Pause() { if (movie) movie->Pause(); }
+	void Stop() { if (movie) movie->Stop(); }
+
+public:
+	static SMovieSprite* Factory(SMovie* movie);
+	static void RegisterType(asIScriptEngine* engine);
 };
 
 class SContainer : public SSprite {

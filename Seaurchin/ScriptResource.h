@@ -7,6 +7,8 @@
 #define SU_IF_SOUND "Sound"
 #define SU_IF_SOUND_STATE "SoundState"
 #define SU_IF_ANIMEIMAGE "AnimatedImage"
+#define SU_IF_MOVIE "Movie"
+#define SU_IF_MOVIE_STATE "MovieState"
 #define SU_IF_SETTING_ITEM "SettingItem"
 
 //リソース基底クラス
@@ -143,6 +145,45 @@ public:
 
 	static SSound* CreateSoundFromFile(const std::filesystem::path& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
 	static SSound* CreateSoundFromFileName(const std::string& file, bool async, int loadType = DX_SOUNDDATATYPE_MEMNOPRESS);
+};
+
+class SMovie : public SResource {
+public:
+	enum class State {
+		Stop,
+		Play,
+		Pause
+	};
+
+private:
+	State state;
+	bool isLoop;
+	int width, height;
+
+public:
+	SMovie();
+	~SMovie() override;
+
+private:
+	void ObtainSize() { GetGraphSize(handle, &width, &height); }
+
+public:
+	int GetWidth() { if (!width) ObtainSize(); return width; }
+	int GetHeight() { if (!height) ObtainSize(); return height; }
+
+	void SetLoop(bool looping) { isLoop = looping; }
+	void SetTime(double ms);
+
+	void Play();
+	void Play(double ms) { SetTime(ms); Play(); }
+	void Pause() { PauseMovieToGraph(handle); state = State::Pause; }
+	void Stop() { PauseMovieToGraph(handle); state = State::Stop; SetTime(0.0); }
+	State GetState();
+	double GetTime() const { return SU_TO_DOUBLE(TellMovieToGraph(handle)); }
+
+	static SMovie* CreateMovieFromFile(const std::filesystem::path& file, bool async);
+	static SMovie* CreateMovieFromFileName(const std::string& file, bool async);
+	static SMovie* CreateMovieFromMemory(void* buffer, size_t size);
 };
 
 class SettingItem;

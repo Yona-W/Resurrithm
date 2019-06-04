@@ -600,6 +600,113 @@ SSound* SSound::CreateSoundFromFileName(const string& file, bool async, int load
 	return result;
 }
 
+// SMovie --------------------------------------------
+SMovie::SMovie()
+	: state(State::Stop)
+	, isLoop(false)
+	, width(0)
+	, height(0)
+{}
+
+SMovie::~SMovie()
+{
+	Stop();
+	if (handle) DeleteGraph(handle);
+}
+
+void SMovie::SetTime(double ms) {
+	if (state == State::Play) PauseMovieToGraph(handle);
+
+	// TODO: 設定可能な範囲内かどうか確認する
+	SeekMovieToGraph(handle, SU_TO_INT(ms));
+
+	if (state == State::Play) PlayMovieToGraph(handle, (isLoop) ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK);
+}
+
+void SMovie::Play()
+{
+	if (GetState() == State::Play) {
+		Stop();
+		SeekMovieToGraph(handle, 0);
+	}
+
+	PlayMovieToGraph(handle, (isLoop) ? DX_PLAYTYPE_LOOP : DX_PLAYTYPE_BACK);
+	state = State::Play;
+}
+
+SMovie::State SMovie::GetState()
+{
+	if (!handle) return state;
+
+	if (GetMovieStateToGraph(handle) == 1) { // 1: 再生中
+		switch (state)
+		{
+		case State::Stop: SU_ASSERT(false); state = State::Play; break;
+		case State::Play: break;
+		case State::Pause: SU_ASSERT(false); state = State::Play; break;
+		}
+	}
+	else { // 0 :停止している, -1 :エラー
+		switch (state)
+		{
+		case State::Stop: break;
+		case State::Play: Stop(); break;
+		case State::Pause: break;
+		}
+	}
+	return state;
+}
+
+SMovie* SMovie::CreateMovieFromFile(const path & file, bool async)
+{
+	if (!is_regular_file(file) || !exists(file)) return nullptr;
+
+	if (async) SetUseASyncLoadFlag(TRUE);
+	const auto handle = LoadGraph(ConvertUnicodeToUTF8(file).c_str());
+	if (async) SetUseASyncLoadFlag(FALSE);
+
+	if (handle == -1) return nullptr;
+
+	auto result = new SMovie();
+	result->handle = handle;
+
+	SU_ASSERT(IS_REFCOUNT(result, 1));
+	return result;
+}
+
+SMovie* SMovie::CreateMovieFromFileName(const string & file, bool async)
+{
+	const path path = ConvertUTF8ToUnicode(file);
+	if (!is_regular_file(path) || !exists(path)) return nullptr;
+
+	if (async) SetUseASyncLoadFlag(TRUE);
+	const auto handle = LoadGraph(file.c_str());
+	if (async) SetUseASyncLoadFlag(FALSE);
+
+	if (handle == -1) return nullptr;
+
+	auto result = new SMovie();
+	result->handle = handle;
+
+	SU_ASSERT(IS_REFCOUNT(result, 1));
+	return result;
+}
+
+SMovie* SMovie::CreateMovieFromMemory(void* buffer, const size_t size)
+{
+	if (size > SU_TO_UINT(SU_INT_MAX)) return nullptr;
+
+	const auto handle = CreateGraphFromMem(buffer, SU_TO_INT(size));
+
+	if (handle == -1) return nullptr;
+
+	auto result = new SMovie();
+	result->handle = handle;
+
+	SU_ASSERT(IS_REFCOUNT(result, 1));
+	return result;
+}
+
 // SSettingItem --------------------------------------------
 
 SSettingItem::SSettingItem(const shared_ptr<SettingItem> s)
@@ -680,6 +787,19 @@ void RegisterScriptResource(asIScriptEngine* engine)
 	engine->RegisterObjectMethod(SU_IF_SOUND, SU_IF_SOUND_STATE " GetState()", asMETHOD(SSound, GetState), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "double GetTime()", asMETHOD(SSound, GetTime), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SOUND, "int GetPosition()", asMETHOD(SSound, GetPosition), asCALL_THISCALL);
+
+	engine->RegisterEnum(SU_IF_MOVIE_STATE);
+	engine->RegisterEnumValue(SU_IF_MOVIE_STATE, "Stop", SU_TO_INT32(SMovie::State::Stop));
+	engine->RegisterEnumValue(SU_IF_MOVIE_STATE, "Play", SU_TO_INT32(SMovie::State::Play));
+	engine->RegisterEnumValue(SU_IF_MOVIE_STATE, "Pause", SU_TO_INT32(SMovie::State::Pause));
+
+	engine->RegisterObjectType(SU_IF_MOVIE, 0, asOBJ_REF);
+	engine->RegisterObjectBehaviour(SU_IF_MOVIE, asBEHAVE_FACTORY, SU_IF_MOVIE "@ f(const string &in, bool = false, int = 0)", asFUNCTION(SMovie::CreateMovieFromFileName), asCALL_CDECL);
+	engine->RegisterObjectBehaviour(SU_IF_MOVIE, asBEHAVE_ADDREF, "void f()", asMETHOD(SMovie, AddRef), asCALL_THISCALL);
+	engine->RegisterObjectBehaviour(SU_IF_MOVIE, asBEHAVE_RELEASE, "void f()", asMETHOD(SMovie, Release), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MOVIE, "int get_Width()", asMETHOD(SMovie, GetWidth), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MOVIE, "int get_Height()", asMETHOD(SMovie, GetHeight), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MOVIE, SU_IF_MOVIE_STATE " get_State()", asMETHOD(SMovie, GetState), asCALL_THISCALL);
 
 	// TODO: Imageを継承させる
 	engine->RegisterObjectType(SU_IF_ANIMEIMAGE, 0, asOBJ_REF);
