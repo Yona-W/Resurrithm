@@ -63,11 +63,12 @@ ScoreParameter* ScoreParameter::Create(SusAnalyzer* analyzer, const path& cpath)
 	ptr->DifficultyName = meta.UExtraDifficulty;
 	ptr->Bpm = meta.ShowBpm;
 
-	ptr->JacketPath = ConvertUnicodeToUTF8(root / ConvertUTF8ToUnicode(meta.UJacketFileName));
-	ptr->WavePath = ConvertUnicodeToUTF8(root / ConvertUTF8ToUnicode(meta.UWaveFileName));
+	ptr->JacketPath = (meta.UJacketFileName.empty()) ? u8"" : ConvertUnicodeToUTF8(root / ConvertUTF8ToUnicode(meta.UJacketFileName));
+	ptr->WavePath = (meta.UWaveFileName.empty()) ? u8"" : ConvertUnicodeToUTF8(root / ConvertUTF8ToUnicode(meta.UWaveFileName));
 	ptr->WaveOffset = meta.WaveOffset;
-	ptr->BackgroundPath = ConvertUnicodeToUTF8(root / ConvertUTF8ToUnicode(meta.UBackgroundFileName));
-	ptr->BackgroundOffset = meta.MovieOffset;
+	ptr->BackgroundPath = (meta.UBackgroundFileName.empty()) ? u8"" : ConvertUnicodeToUTF8(root / ConvertUTF8ToUnicode(meta.UBackgroundFileName));
+	ptr->MoviePath = (meta.UMovieFileName.empty()) ? u8"" : ConvertUnicodeToUTF8(root / ConvertUTF8ToUnicode(meta.UMovieFileName));
+	ptr->MovieOffset = meta.MovieOffset;
 
 	return ptr;
 }
@@ -92,7 +93,8 @@ bool ScoreParameter::RegisterTypes(asIScriptEngine* engine)
 	result = (result && 0 <= engine->RegisterObjectProperty(SU_IF_SCORE, "string WavePath", asOFFSET(ScoreParameter, WavePath)));
 	result = (result && 0 <= engine->RegisterObjectProperty(SU_IF_SCORE, "double WaveOffset", asOFFSET(ScoreParameter, WaveOffset)));
 	result = (result && 0 <= engine->RegisterObjectProperty(SU_IF_SCORE, "string BackgroundPath", asOFFSET(ScoreParameter, BackgroundPath)));
-	result = (result && 0 <= engine->RegisterObjectProperty(SU_IF_SCORE, "double BackgroundOffset", asOFFSET(ScoreParameter, BackgroundOffset)));
+	result = (result && 0 <= engine->RegisterObjectProperty(SU_IF_SCORE, "string MoviePath", asOFFSET(ScoreParameter, MoviePath)));
+	result = (result && 0 <= engine->RegisterObjectProperty(SU_IF_SCORE, "double MovieOffset", asOFFSET(ScoreParameter, MovieOffset)));
 	return result;
 }
 

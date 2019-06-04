@@ -54,8 +54,9 @@ public:
 	std::string JacketPath;		//!< ジャケット画像ファイルへのパス (絶対パスを想定しています)
 	std::string WavePath;		//!< 譜面が用いる音楽ファイルへのパス (絶対パスを想定しています)
 	double WaveOffset;			//!< 譜面が用いる音楽ファイルのオフセット(秒単位)
-	std::string BackgroundPath;	//!< 背景で再生する動画ファイルへのパス (絶対パスを想定しています)
-	double BackgroundOffset;	//!< 背景で再生する動画のオフセット(秒単位)
+	std::string BackgroundPath;	//!< 背景に表示する画像ファイルへのパス (絶対パスを想定しています)
+	std::string MoviePath;		//!< 背景で再生する動画ファイルへのパス (絶対パスを想定しています)
+	double MovieOffset;			//!< 背景で再生する動画のオフセット(秒単位)
 
 private:
 	ScoreParameter();
