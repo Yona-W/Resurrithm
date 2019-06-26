@@ -54,11 +54,8 @@ bool MusicsManager::Reload(const bool async)
 	if (IsReloading()) return false;
 
 	if (async) {
-		// NOTE: detachでロジック的には問題ないはずだが、保険のためjoinで同期
 		if (loadWorker.joinable()) loadWorker.join();
-
-		thread loadthread([this] { CreateMusicCache(); });
-		loadWorker.swap(loadthread);
+		loadWorker = thread(&MusicsManager::CreateMusicCache, this);
 	}
 	else {
 		CreateMusicCache();

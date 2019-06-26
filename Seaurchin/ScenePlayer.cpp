@@ -79,7 +79,7 @@ ScenePlayer::ScenePlayer(ExecutionManager * exm)
 	, soundBufferingLatency(manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<int>("Sound", "BufferLatency", 30) / 1000.0)
 	, airRollSpeed(manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe()->ReadValue<double>("Play", "AirRollMultiplier", 1.5))
 {
-	judgeSoundThread = thread([this]() { ProcessSoundQueue(); });
+	judgeSoundThread = thread(&ScenePlayer::ProcessSoundQueue, this);
 
 	auto setting = manager->GetSettingManagerUnsafe()->GetSettingInstanceUnsafe();
 	const auto jas = setting->ReadValue<int>("Play", "JudgeAdjustSlider", 0) / 1000.0;
@@ -426,8 +426,7 @@ void ScenePlayer::Load(const string& fileName)
 	}
 
 	const path file = ConvertUTF8ToUnicode(fileName);
-	thread loadThread([this, file] { LoadWorker(file); });
-	loadWorkerThread.swap(loadThread);
+	loadWorkerThread = thread(&ScenePlayer::LoadWorker, this, file);
 }
 
 bool ScenePlayer::IsScoreLoaded()
