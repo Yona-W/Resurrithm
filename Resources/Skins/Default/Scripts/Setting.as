@@ -26,10 +26,15 @@ class SettingScene : CoroutineScene {
       GetSettingItem("Sound", "VolumeTap"),
       GetSettingItem("Sound", "VolumeExTap"),
       GetSettingItem("Sound", "VolumeFlick"),
-      GetSettingItem("Sound", "VolumeHold"),
-      GetSettingItem("Sound", "VolumeSlide"),
       GetSettingItem("Sound", "VolumeAir"),
-      GetSettingItem("Sound", "VolumeAirAction")
+      GetSettingItem("Sound", "VolumeAirDown"),
+      GetSettingItem("Sound", "VolumeAirAction"),
+      GetSettingItem("Sound", "VolumeAirHoldLoop"),
+      GetSettingItem("Sound", "VolumeHoldStep"),
+      GetSettingItem("Sound", "VolumeHoldLoop"),
+      GetSettingItem("Sound", "VolumeSlideStep"),
+      GetSettingItem("Sound", "VolumeSlideLoop"),
+      GetSettingItem("Sound", "VolumeMetronome")
     },
     {
       GetSettingItem("Play", "EnableAutoPlay"),
@@ -43,8 +48,8 @@ class SettingScene : CoroutineScene {
   };
 
   Sprite@ spBack, spCursor;
-  array<TextSprite@> spDescriptions(10);
-  array<TextSprite@> spValues(10);
+  array<TextSprite@> spDescriptions(15);
+  array<TextSprite@> spValues(15);
   TextSprite@ spGroup;
 
   array<SettingItem@>@ target;
@@ -69,7 +74,7 @@ class SettingScene : CoroutineScene {
     spCursor.Apply("x:640, y:108, origX:512, origY:20, z:-1");
     AddSprite(spCursor);
 
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < spDescriptions.length(); i++) {
       int y = 108 + 4 + 48 * i;
       @spDescriptions[i] = TextSprite(font32, "");
       spDescriptions[i].Apply("r:0, g:0, b:0, x:384, y:" + y);
@@ -102,7 +107,7 @@ class SettingScene : CoroutineScene {
     @target = @settings[index];
     availableCount = target.length();
     spGroup.SetText("← " + groups[index] + " →");
-    for(int i = 0; i < 10; i++) {
+    for(int i = 0; i < spDescriptions.length(); i++) {
       spDescriptions[i].SetText((i < availableCount && target[i] !is null) ? target[i].GetDescription() : "");
       spValues[i].SetText((i < availableCount && target[i] !is null) ? target[i].GetItemText() : "");
     }

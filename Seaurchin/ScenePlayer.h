@@ -168,9 +168,6 @@ protected:
 	std::map<std::string, SResource*> resources;
 
 	// 実リソース LoadResourcesでresourcesを用いて初期化する 実体はresourcesで管理するのでAddRefもReleaseもしない
-	SSound * soundTap{}, *soundExTap{}, *soundFlick{}, *soundAir{}, *soundAirDown{}, *soundAirAction{}, *soundAirLoop{};
-	SSound * soundHoldLoop{}, *soundSlideLoop{}, *soundHoldStep{}, *soundSlideStep{};
-	SSound * soundMetronome{};
 	SImage * imageLaneGround{}, *imageLaneJudgeLine{};
 	SImage * imageTap{}, *imageExTap{}, *imageFlick{}, *imageHellTap{};
 	SImage * imageAir{}, *imageAirUp{}, *imageAirDown{};
@@ -192,6 +189,10 @@ protected:
 	int segmentsPerSecond{};                  // Slide分解能
 	mutable std::vector<VERTEX2D> slideVertices;    // Slide描画用頂点座標配列 関数内ローカル変数で頻繁に生成,破棄されるのを嫌って宣言
 	mutable std::vector<uint16_t> slideIndices;     // Slide描画用頂点番号指定配列 同上
+	// 効果音
+	SSound* soundTap{}, * soundExTap{}, * soundFlick{}, * soundAir{}, * soundAirDown{}, * soundAirAction{}, * soundAirLoop{};
+	SSound* soundHoldLoop{}, * soundSlideLoop{}, * soundHoldStep{}, * soundSlideStep{};
+	SSound* soundMetronome{};
 
 	const std::shared_ptr<Result> currentResult;
 	DrawableResult previousStatus{}, status{};
@@ -257,6 +258,7 @@ public:
 	void Finalize();
 
 	void Initialize();
+	bool RegisterSound(const std::string& name, SSound* sound);
 	void Load(const std::string& fileName);
 	bool IsScoreLoaded();
 	bool IsLoadCompleted();

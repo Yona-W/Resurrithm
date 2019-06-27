@@ -1,6 +1,5 @@
 [EntryPoint]
 void InitializeSkin(Skin@ skin) {
-  //システム(というか組み込みのプレイ画面)用リソース名には先頭に*をつける
   skin.LoadImage("*Note-Tap", "Images\\Note-Tap.png");
   skin.LoadImage("*Note-ExTap", "Images\\Note-ExTap.png");
   skin.LoadImage("*Note-Air", "Images\\Note-Air.png");
@@ -68,9 +67,9 @@ void InitializeSkin(Skin@ skin) {
   skin.LoadSound("*Sound-AirDown", "Sounds\\AirDown.wav");
   skin.LoadSound("*Sound-AirAction", "Sounds\\AirAction.wav");
   skin.LoadSound("*Sound-AirHoldLoop", "Sounds\\AirHoldLoop.wav");
-  skin.LoadSound("*Sound-SlideLoop", "Sounds\\SlideLoop.wav");
   skin.LoadSound("*Sound-HoldLoop", "Sounds\\SlideLoop.wav");
   skin.LoadSound("*Sound-HoldStep", "Sounds\\HoldStep.wav");
+  skin.LoadSound("*Sound-SlideLoop", "Sounds\\SlideLoop.wav");
   skin.LoadSound("*Sound-SlideStep", "Sounds\\SlideStep.wav");
   skin.LoadSound("*Sound-Metronome", "Sounds\\Metronome.wav");
   skin.LoadSound("SoundCursor", "Sounds\\button01a.mp3");

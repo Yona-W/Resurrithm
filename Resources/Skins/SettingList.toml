@@ -156,6 +156,15 @@ Default = 1.0
 
 [[SettingItems]]
 Group = "Sound"
+Key = "VolumeAirDown"
+Description = "AirDown音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
 Key = "VolumeAirAction"
 Description = "AirAction音量"
 Type = "Float"
@@ -165,7 +174,16 @@ Default = 1.0
 
 [[SettingItems]]
 Group = "Sound"
-Key = "VolumeHold"
+Key = "VolumeAirHoldLoop"
+Description = "AirHold音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeHoldLoop"
 Description = "Hold音量"
 Type = "Float"
 Range = [ 0.0, 1.0 ]
@@ -174,8 +192,35 @@ Default = 1.0
 
 [[SettingItems]]
 Group = "Sound"
-Key = "VolumeSlide"
+Key = "VolumeHoldStep"
+Description = "HoldStep音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeSlideLoop"
 Description = "Slide音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeSlideStep"
+Description = "SlideStep音量"
+Type = "Float"
+Range = [ 0.0, 1.0 ]
+Step = 0.01
+Default = 1.0
+
+[[SettingItems]]
+Group = "Sound"
+Key = "VolumeMetronome"
+Description = "Metronome音量"
 Type = "Float"
 Range = [ 0.0, 1.0 ]
 Step = 0.01

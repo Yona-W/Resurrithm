@@ -68,18 +68,18 @@ class Play : CoroutineScene {
     player.SetResource("SlideStep", skin.GetImage("*Note-SlideStep"));
     player.SetResource("SlideStrut", skin.GetImage("*Note-SlideStrut"));
     player.SetResource("AirAction", skin.GetImage("*Note-AirAction"));
-    player.SetResource("SoundTap", skin.GetSound("*Sound-Tap"));
-    player.SetResource("SoundExTap", skin.GetSound("*Sound-ExTap"));
-    player.SetResource("SoundFlick", skin.GetSound("*Sound-Flick"));
-    player.SetResource("SoundAir", skin.GetSound("*Sound-Air"));
-    player.SetResource("SoundAirDown", skin.GetSound("*Sound-AirDown"));
-    player.SetResource("SoundAirAction", skin.GetSound("*Sound-AirAction"));
-    player.SetResource("SoundAirHoldLoop", skin.GetSound("*Sound-AirHoldLoop"));
-    player.SetResource("SoundHoldLoop", skin.GetSound("*Sound-SlideLoop"));
-    player.SetResource("SoundSlideLoop", skin.GetSound("*Sound-HoldLoop"));
-    player.SetResource("SoundHoldStep", skin.GetSound("*Sound-HoldStep"));
-    player.SetResource("SoundSlideStep", skin.GetSound("*Sound-SlideStep"));
-    player.SetResource("Metronome", skin.GetSound("*Sound-Metronome"));
+    SetPlayerSoundResource("Tap", false);
+    SetPlayerSoundResource("ExTap", false);
+    SetPlayerSoundResource("Flick", false);
+    SetPlayerSoundResource("Air", false);
+    SetPlayerSoundResource("AirDown", false);
+    SetPlayerSoundResource("AirAction", false);
+    SetPlayerSoundResource("AirHoldLoop", true);
+    SetPlayerSoundResource("HoldLoop", true);
+    SetPlayerSoundResource("HoldStep", false);
+    SetPlayerSoundResource("SlideLoop", true);
+    SetPlayerSoundResource("SlideStep", false);
+    SetPlayerSoundResource("Metronome", false);
     player.SetResource("EffectTap", skin.GetAnime("*Anime-Tap"));
     player.SetResource("EffectExTap", skin.GetAnime("*Anime-ExTap"));
     player.SetResource("EffectAirAction", skin.GetAnime("*Anime-AirAction"));
@@ -128,6 +128,13 @@ class Play : CoroutineScene {
       sp.Apply("x:0, y:3840, z:3, origY:"+(imgLine.Height/2));
       ctnLane.AddChild(sp);
     }
+  }
+
+  void SetPlayerSoundResource(string name, bool isLoop) {
+    Sound@ se = skin.GetSound("*Sound-" + name);
+    se.SetVolume(parseFloat(GetSettingItem("Sound", "Volume" + name).GetItemText()));
+    se.SetLoop(isLoop);
+    player.RegisterResource(name, se);
   }
 
   void RunPlayer() {

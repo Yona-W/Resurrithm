@@ -29,10 +29,10 @@ void RegisterPlayerScene(asIScriptEngine* engine)
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void GetMetrics(" SU_IF_SCENE_PLAYER_METRICS " &out)", asMETHOD(ScenePlayer, GetMetrics), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_IMAGE "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_FONT "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_SOUND "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetResource(const string &in, " SU_IF_ANIMEIMAGE "@)", asMETHOD(ScenePlayer, SetPlayerResource), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void SetLaneSprite(" SU_IF_SPRITE "@)", asMETHOD(ScenePlayer, SetLaneSprite), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Initialize()", asMETHOD(ScenePlayer, Initialize), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "bool RegisterResource(const string &in, " SU_IF_SOUND "@)", asMETHOD(ScenePlayer, RegisterSound), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "void Load(const string &in)", asMETHOD(ScenePlayer, Load), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "bool IsScoreLoaded()", asMETHOD(ScenePlayer, IsScoreLoaded), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_SCENE_PLAYER, "bool IsLoadCompleted()", asMETHOD(ScenePlayer, IsLoadCompleted), asCALL_THISCALL);
@@ -109,9 +109,6 @@ void ScenePlayer::Finalize()
 {
 	isTerminating = true;
 	if (loadWorkerThread.joinable()) loadWorkerThread.join();
-	soundHoldLoop->Stop();
-	soundSlideLoop->Stop();
-	soundAirLoop->Stop();
 	for (auto& res : resources) if (res.second) res.second->Release();
 	if (spriteLane) spriteLane->Release();
 	for (auto& i : sprites) i->Release();
@@ -120,6 +117,55 @@ void ScenePlayer::Finalize()
 	spritesPending.clear();
 	for (auto& i : slideEffects) i.second->Release();
 	slideEffects.clear();
+
+	if (soundTap) {
+		soundTap->Stop();
+		soundTap->Release();
+	}
+	if (soundExTap) {
+		soundExTap->Stop();
+		soundExTap->Release();
+	}
+	if (soundFlick) {
+		soundFlick->Stop();
+		soundFlick->Release();
+	}
+	if (soundAir) {
+		soundAir->Stop();
+		soundAir->Release();
+	}
+	if (soundAirDown) {
+		soundAirDown->Stop();
+		soundAirDown->Release();
+	}
+	if (soundAirAction) {
+		soundAirAction->Stop();
+		soundAirAction->Release();
+	}
+	if (soundAirLoop) {
+		soundAirLoop->Stop();
+		soundAirLoop->Release();
+	}
+	if (soundHoldLoop) {
+		soundHoldLoop->Stop();
+		soundHoldLoop->Release();
+	}
+	if (soundSlideLoop) {
+		soundSlideLoop->Stop();
+		soundSlideLoop->Release();
+	}
+	if (soundHoldStep) {
+		soundHoldStep->Stop();
+		soundHoldStep->Release();
+	}
+	if (soundSlideStep) {
+		soundSlideStep->Stop();
+		soundSlideStep->Release();
+	}
+	if (soundMetronome) {
+		soundMetronome->Stop();
+		soundMetronome->Release();
+	}
 	if (soundBGM) {
 		soundBGM->Stop();
 		soundBGM->Release();
@@ -129,6 +175,34 @@ void ScenePlayer::Finalize()
 	DeleteGraph(hGroundBuffer);
 	judgeSoundQueue.Dispose(JudgeSoundType::Disposing);
 	judgeSoundThread.join();
+}
+
+bool ScenePlayer::RegisterSound(const std::string& name, SSound* sound)
+{
+	using namespace crc32_constexpr;
+
+	if (name.empty() || !sound) return false;
+
+	switch (Crc32Rec(0xFFFFFFFF, name.c_str())) {
+	case "Tap"_crc32: soundTap = sound; return true;
+	case "ExTap"_crc32: soundExTap = sound; return true;
+	case "Flick"_crc32: soundFlick = sound; return true;
+	case "Air"_crc32: soundAir = sound; return true;
+	case "AirDown"_crc32: soundAirDown = sound; return true;
+	case "AirAction"_crc32: soundAirAction = sound; return true;
+	case "AirHoldLoop"_crc32: soundAirLoop = sound; return true;
+	case "HoldLoop"_crc32: soundHoldLoop = sound; return true;
+	case "SlideLoop"_crc32: soundSlideLoop = sound; return true;
+	case "HoldStep"_crc32: soundHoldStep = sound; return true;
+	case "SlideStep"_crc32: soundSlideStep = sound; return true;
+	case "Metronome"_crc32: soundMetronome = sound; return true;
+	default:
+		spdlog::get("main")->warn(u8"{0}に対する不明なリソース\"{1}\"の登録 : リソース登録に失敗しました。", SU_IF_SCENE_PLAYER, name);
+		sound->Release();
+		break;
+	}
+
+	return false;
 }
 
 void ScenePlayer::LoadWorker(const path& file)
@@ -314,7 +388,7 @@ void ScenePlayer::ProcessSound()
 		}
 		else if (nextMetronomeTime < 0 && currentTime >= nextMetronomeTime) {
 			// TODO: NextMetronomeにもLatency適用？
-			if (metronomeAvailable) soundMetronome->Play();
+			if (metronomeAvailable && soundMetronome) soundMetronome->Play();
 			nextMetronomeTime += 60 / analyzer->GetBpmAt(0, 0);
 		}
 		break;
