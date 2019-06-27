@@ -270,6 +270,7 @@ public:
 	void MovePositionBySecond(double sec);
 	void MovePositionByMeasure(int meas);
 	void SetAbility(SkillDetail* detail);
+	bool FireAbility(const std::string& name, void* arg);
 	void SetJudgeCallback(asIScriptFunction* func) const;
 	void SetAbilityCallback(asIScriptFunction * func) const;
 	void Pause();

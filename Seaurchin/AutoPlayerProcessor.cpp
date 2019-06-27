@@ -278,5 +278,5 @@ void AutoPlayerProcessor::IncrementCombo(const JudgeInformation & info, const st
 {
 	auto infoClone = info;
 	player->currentResult->PerformJusticeCritical();
-	player->ability->OnJudge(player->currentResult.get(), &infoClone);
+	player->FireAbility("OnJudge", &infoClone);
 }

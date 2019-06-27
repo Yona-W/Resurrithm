@@ -242,8 +242,7 @@ void ScenePlayer::LoadWorker(const path& file)
 		slideVertices.reserve(maxElements * 4);
 		slideIndices.reserve(maxElements * 6);
 
-
-		// 動画・音声の読み込み
+		// 音声の読み込み
 		const auto soundfile = file.parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
 		soundBGM = SSound::CreateSoundFromFile(soundfile, false, DX_SOUNDDATATYPE_FILE);
 		if (!soundBGM) {
@@ -615,6 +614,21 @@ void ScenePlayer::SetAbility(SkillDetail* detail) {
 	ptr->Initialize(detail);
 	log->info(u8"アビリティー " + ConvertUnicodeToUTF8(scrpath));
 	abo->Release();
+}
+
+bool ScenePlayer::FireAbility(const string& name, void* arg) {
+	using namespace crc32_constexpr;
+
+	switch (Crc32Rec(0xFFFFFFFF, name.c_str())) {
+	case "OnStart"_crc32: if (ability) return ability->OnStart(currentResult.get()); break;
+	case "OnFinish"_crc32: if (ability) return ability->OnFinish(currentResult.get()); break;
+	case "OnJudge"_crc32: if (ability) return ability->OnJudge(currentResult.get(), reinterpret_cast<JudgeInformation*>(arg)); break;
+	default:
+		spdlog::get("main")->error(u8"不明なアビリティーメソッド \"{0}\" の呼び出しが行われました。", name);
+		return false;
+	}
+
+	return true;
 }
 
 void ScenePlayer::Pause()
