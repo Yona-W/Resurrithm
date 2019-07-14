@@ -184,18 +184,18 @@ bool ScenePlayer::RegisterSound(const std::string& name, SSound* sound)
 	if (name.empty() || !sound) return false;
 
 	switch (Crc32Rec(0xFFFFFFFF, name.c_str())) {
-	case "Tap"_crc32: soundTap = sound; return true;
-	case "ExTap"_crc32: soundExTap = sound; return true;
-	case "Flick"_crc32: soundFlick = sound; return true;
-	case "Air"_crc32: soundAir = sound; return true;
-	case "AirDown"_crc32: soundAirDown = sound; return true;
-	case "AirAction"_crc32: soundAirAction = sound; return true;
-	case "AirHoldLoop"_crc32: soundAirLoop = sound; return true;
-	case "HoldLoop"_crc32: soundHoldLoop = sound; return true;
-	case "SlideLoop"_crc32: soundSlideLoop = sound; return true;
-	case "HoldStep"_crc32: soundHoldStep = sound; return true;
-	case "SlideStep"_crc32: soundSlideStep = sound; return true;
-	case "Metronome"_crc32: soundMetronome = sound; return true;
+	case "Tap"_crc32: if (soundTap) soundTap->Release(); soundTap = sound; return true;
+	case "ExTap"_crc32: if (soundExTap) soundExTap->Release(); soundExTap = sound; return true;
+	case "Flick"_crc32: if (soundFlick) soundFlick->Release(); soundFlick = sound; return true;
+	case "Air"_crc32: if (soundAir) soundAir->Release(); soundAir = sound; return true;
+	case "AirDown"_crc32: if (soundAirDown) soundAirDown->Release(); soundAirDown = sound; return true;
+	case "AirAction"_crc32: if (soundAirAction) soundAirAction->Release(); soundAirAction = sound; return true;
+	case "AirHoldLoop"_crc32: if (soundAirLoop) soundAirLoop->Release(); soundAirLoop = sound; return true;
+	case "HoldLoop"_crc32: if (soundHoldLoop) soundHoldLoop->Release(); soundHoldLoop = sound; return true;
+	case "SlideLoop"_crc32: if (soundSlideLoop) soundSlideLoop->Release(); soundSlideLoop = sound; return true;
+	case "HoldStep"_crc32: if (soundHoldStep) soundHoldStep->Release(); soundHoldStep = sound; return true;
+	case "SlideStep"_crc32: if (soundSlideStep) soundSlideStep->Release(); soundSlideStep = sound; return true;
+	case "Metronome"_crc32: if (soundMetronome) soundMetronome->Release(); soundMetronome = sound; return true;
 	default:
 		spdlog::get("main")->warn(u8"{0}に対する不明なリソース\"{1}\"の登録 : リソース登録に失敗しました。", SU_IF_SCENE_PLAYER, name);
 		sound->Release();
