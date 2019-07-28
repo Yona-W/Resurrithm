@@ -86,6 +86,6 @@ void MusicsManager::RegisterType(asIScriptEngine* engine)
 	engine->RegisterObjectMethod(SU_IF_MUSIC_MANAGER, "bool Reload(bool = false)", asMETHOD(MusicsManager, Reload), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_MUSIC_MANAGER, "bool IsReloading()", asMETHOD(MusicsManager, IsReloading), asCALL_THISCALL);
 	engine->RegisterObjectMethod(SU_IF_MUSIC_MANAGER, "uint GetCategorySize()", asMETHOD(MusicsManager, GetCategorySize), asCALL_THISCALL);
-	engine->RegisterObjectMethod(SU_IF_MUSIC_MANAGER, SU_IF_CATEGORY "@ GetCategory(uint)", asMETHOD(MusicsManager, GetCategory), asCALL_THISCALL);
+	engine->RegisterObjectMethod(SU_IF_MUSIC_MANAGER, SU_IF_CATEGORY "@ GetCategoryInfo(uint)", asMETHOD(MusicsManager, GetCategory), asCALL_THISCALL);
 }
 

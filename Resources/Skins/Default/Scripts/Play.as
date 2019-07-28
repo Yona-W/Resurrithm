@@ -7,7 +7,7 @@ class Play : CoroutineScene {
   ScenePlayer@ player;
   CharacterInfo charinfo;
   TextSprite@ txtCombo;
-  Score@ score;
+  ScoreInfo@ scoreinfo;
   Sprite@ spBack;
   MovieSprite@ spMovie;
   double movieoffset = 0.0;
@@ -163,9 +163,9 @@ class Play : CoroutineScene {
       return;
     }
 
-    SetBackgroundSprite(score);
+    SetBackgroundSprite(scoreinfo);
 
-    player.Load(score.Path);
+    player.Load(scoreinfo.Path);
     while(!player.IsLoadCompleted()) YieldFrame(1);
     if (player.IsScoreLoaded()) {
       SetMusicInfo();

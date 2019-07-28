@@ -152,7 +152,7 @@ bool MusicParameter::RegisterTypes(asIScriptEngine * engine)
 	result = (result && 0 <= engine->RegisterObjectBehaviour(SU_IF_MUSIC, asBEHAVE_RELEASE, "void f()", asMETHOD(MusicParameter, Release), asCALL_THISCALL));
 	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, "string get_Id()", asMETHOD(MusicParameter, GetSongId), asCALL_THISCALL));
 	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, "uint get_ScoreCount()", asMETHOD(MusicParameter, GetScoreCount), asCALL_THISCALL));
-	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, SU_IF_SCORE "@ GetScore(uint)", asMETHOD(MusicParameter, GetScore), asCALL_THISCALL));
+	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_MUSIC, SU_IF_SCORE "@ GetScoreInfo(uint)", asMETHOD(MusicParameter, GetScore), asCALL_THISCALL));
 	return result;
 }
 
@@ -267,7 +267,7 @@ bool CategoryParameter::RegisterTypes(asIScriptEngine* engine)
 	result = (result && 0 <= engine->RegisterObjectBehaviour(SU_IF_CATEGORY, asBEHAVE_RELEASE, "void f()", asMETHOD(CategoryParameter, Release), asCALL_THISCALL));
 	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, "string get_Name()", asMETHOD(CategoryParameter, GetName), asCALL_THISCALL));
 	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, "uint get_MusicCount()", asMETHOD(CategoryParameter, GetMusicCount), asCALL_THISCALL));
-	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, SU_IF_MUSIC "@ GetMusic(uint)", asMETHODPR(CategoryParameter, GetMusic, (uint32_t) const, MusicParameter*), asCALL_THISCALL));
-	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, SU_IF_MUSIC "@ GetMusic(string)", asMETHODPR(CategoryParameter, GetMusic, (const string&) const, MusicParameter*), asCALL_THISCALL));
+	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, SU_IF_MUSIC "@ GetMusicInfo(uint)", asMETHODPR(CategoryParameter, GetMusic, (uint32_t) const, MusicParameter*), asCALL_THISCALL));
+	result = (result && 0 <= engine->RegisterObjectMethod(SU_IF_CATEGORY, SU_IF_MUSIC "@ GetMusicInfo(string)", asMETHODPR(CategoryParameter, GetMusic, (const string&) const, MusicParameter*), asCALL_THISCALL));
 	return result;
 }

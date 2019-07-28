@@ -8,9 +8,9 @@
 
 #pragma once
 
-#define SU_IF_CATEGORY "Category"
-#define SU_IF_MUSIC "Music"
-#define SU_IF_SCORE "Score"
+#define SU_IF_CATEGORY "CategoryInfo"
+#define SU_IF_MUSIC "MusicInfo"
+#define SU_IF_SCORE "ScoreInfo"
 #define SU_IF_SCORE_DIFFICULTY "Difficulty"
 
 class SusAnalyzer;
