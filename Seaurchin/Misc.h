@@ -36,6 +36,7 @@ double NormalizedFmod(double x, double y);
 uint32_t ConvertUnsignedInteger(const std::string& input);
 int32_t ConvertInteger(const std::string& input);
 uint32_t ConvertHexatridecimal(const std::string& input);
+double ConvertDouble(const std::string& input);
 float ConvertFloat(const std::string& input);
 bool ConvertBoolean(const std::string& input);
 void SplitProps(const std::string& source, PropList& vec);

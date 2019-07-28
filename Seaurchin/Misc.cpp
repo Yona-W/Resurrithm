@@ -63,6 +63,11 @@ uint32_t ConvertHexatridecimal(const string & input)
 	return stoul(input, nullptr, 36);
 }
 
+double ConvertDouble(const string& input)
+{
+	return ToDouble(input.c_str());
+}
+
 float ConvertFloat(const string & input)
 {
 	return SU_TO_FLOAT(ToDouble(input.c_str()));
