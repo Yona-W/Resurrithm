@@ -154,10 +154,10 @@ class Play : CoroutineScene {
     player.Apply("z:5");
     AddSprite(player);
     int scoreIndex = GetIntData("Player::ScoreIndex");
-    Category@ cat = GetMusicManager().GetCategory(GetIntData("Player::CatIndex"));
-    Music@ mus = (cat is null)? null : cat.GetMusic(GetIntData("Player::MusIndex"));
-    @score = (mus is null)? null : mus.GetScore(GetIntData("Player::ScoreIndex"));
-    if (score is null) {
+    CategoryInfo@ cat = GetMusicManager().GetCategoryInfo(GetIntData("Player::CatIndex"));
+    MusicInfo@ mus = (cat is null)? null : cat.GetMusicInfo(GetIntData("Player::MusIndex"));
+    @scoreinfo = (mus is null)? null : mus.GetScoreInfo(GetIntData("Player::ScoreIndex"));
+    if (scoreinfo is null) {
       WriteLog(Severity::Critical, "譜面データの取得に失敗しました");
       Fire("Player:Exit");
       return;
@@ -307,9 +307,9 @@ class Play : CoroutineScene {
   }
 
   void SetMusicInfo() {
-    if (score is null) return;
+    if (scoreinfo is null) return;
     
-    Image@ imgJacket = Image(score.JacketPath);
+    Image@ imgJacket = Image(scoreinfo.JacketPath);
     if (imgJacket !is null) {
         int w = imgJacket.Width, h = imgJacket.Height;
         if (w > 0 && h > 0) {
@@ -317,9 +317,9 @@ class Play : CoroutineScene {
         }
     }
     spJacket.SetImage(imgJacket);
-    txtTitle.SetText(score.Title);
-    txtArtist.SetText(score.Artist);
-    txtLevel.SetText("" + score.Level);
+    txtTitle.SetText(scoreinfo.Title);
+    txtArtist.SetText(scoreinfo.Artist);
+    txtLevel.SetText("" + scoreinfo.Level);
   }
 
   bool isPausing;
@@ -353,7 +353,7 @@ class Play : CoroutineScene {
     }
   }
 
-  void SetBackgroundSprite(Score@ score) {
+  void SetBackgroundSprite(ScoreInfo@ score) {
     if (score !is null) {
       if (score.MoviePath != "") {
         Movie@ movie = Movie(score.MoviePath);

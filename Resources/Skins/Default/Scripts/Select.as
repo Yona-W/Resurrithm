@@ -87,7 +87,7 @@ class Select : CoroutineScene {
           @currentCategory = categoryManager.GetItem(0);
           InitCursor();
         } else {
-          Score@ score = currentCategory.GetItem(0);
+          ScoreInfo@ score = currentCategory.GetItem(0);
           if (score is null) return;
 
           SetData("Player::CatIndex", categoryManager.GetIndex());
@@ -184,7 +184,7 @@ class CategoryManager {
     items.resize(0); // Clear
     items.resize(size);
     for (uint i=0; i<size; ++i) {
-      @items[i] = CategoryItem(manager.GetCategory(i));
+      @items[i] = CategoryItem(manager.GetCategoryInfo(i));
     }
     current = 0;
   }
@@ -205,27 +205,27 @@ class CategoryManager {
 }
 
 class CategoryItem {
-  Category@ category;
+  CategoryInfo@ category;
   array<MusicItem@> items;
   uint current;
   
-  CategoryItem(Category@ cat) {
+  CategoryItem(CategoryInfo@ cat) {
     ResetItems(cat);
   }
   
-  void ResetItems(Category@ cat) {
+  void ResetItems(CategoryInfo@ cat) {
     @category = cat;
     
     uint size = (cat is null)? 0 : cat.MusicCount;
     items.resize(0); // Clear
     items.resize(size);
     for (uint i=0; i<size; ++i) {
-      @items[i] = MusicItem(cat.GetMusic(i));
+      @items[i] = MusicItem(cat.GetMusicInfo(i));
     }
     current = 0;
   }
   
-  Category@ GetInstance() { return category; }
+  CategoryInfo@ GetInstance() { return category; }
   uint GetSize() { return items.length(); }
   uint GetIndex() { return current; }
   uint GetSubIndex() { MusicItem@ item = GetRawItem(0); if (item is null) return 0; return item.GetIndex(); }
@@ -243,7 +243,7 @@ class CategoryItem {
     return items[index];
   }
   
-  Score@ GetItem(int offset) {
+  ScoreInfo@ GetItem(int offset) {
     MusicItem@ item = GetRawItem(offset);
     if (item is null) return null;
     
@@ -252,27 +252,27 @@ class CategoryItem {
 }
 
 class MusicItem {
-  Music@ music;
+  MusicInfo@ music;
   uint current;
   
-  MusicItem(Music@ mus) {
+  MusicItem(MusicInfo@ mus) {
     @music = mus;
     current = 0;
   }
   
-  Music@ GetInstance() { return music; }
+  MusicInfo@ GetInstance() { return music; }
   uint GetSize() { return (music is null)? 0 : music.ScoreCount; }
   uint GetIndex() { return current; }
   void Next() { uint size = GetSize(); if (size == 0) return; current = (current + 1) % size; }
   void Prev() { uint size = GetSize(); if (size == 0) return; current = (current + size - 1) % size; }
   
-  Score@ GetItem(int offset) {
+  ScoreInfo@ GetItem(int offset) {
     uint size = GetSize();
     if (size == 0) return null; 
     
     // TODO: 値が大きくなった時に死にやすいので修正する
     uint index = (current + (offset + uint(abs(offset)) * size)) % size;
-    return music.GetScore(index);
+    return music.GetScoreInfo(index);
   }
 }
 
@@ -319,7 +319,7 @@ class MusicFrame {
     cMain.AddChild(leveltype);
   }
   
-  void UpdateInfo(Category@ cat) {
+  void UpdateInfo(CategoryInfo@ cat) {
     if (cat is null) return;
     
     title.SetText(cat.Name);
@@ -330,7 +330,7 @@ class MusicFrame {
     leveltype.Apply("alpha:0");
   }
   
-  void UpdateInfo(Score@ score) {
+  void UpdateInfo(ScoreInfo@ score) {
     if (score is null) return;
     
     title.SetText(score.Title);
