@@ -287,9 +287,13 @@ class Play : CoroutineScene {
       }
       if (dsNow.CurrentGaugeRatio != dsPrev.CurrentGaugeRatio) {
         spBarFill.AddMove("u2:{end:" + dsNow.CurrentGaugeRatio + ", time:0.1, func:out_sine}");
+      }
+      if (dsNow.Score != dsPrev.Score) {
         txtScore.SetText(formatInt(dsNow.Score, "", 8));
       }
-      if (dsNow.MaxCombo != dsPrev.MaxCombo) txtMaxCombo.SetText(formatInt(dsNow.MaxCombo, "", 5));
+      if (dsNow.MaxCombo != dsPrev.MaxCombo) {
+        txtMaxCombo.SetText(formatInt(dsNow.MaxCombo, "", 5));
+      }
       if (dsNow.Combo > dsPrev.Combo && dsNow.Combo >= 5) {
         txtCombo.SetText("" + dsNow.Combo);
         txtCombo.AbortMove(true);
