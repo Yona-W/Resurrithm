@@ -5,10 +5,10 @@
 
 // AngelScriptに登録した値型用の汎用処理アレ
 
-template <typename T>
-void AngelScriptValueConstruct(void* address)
+template <typename T, typename... Args>
+void AngelScriptValueConstruct(void* address, Args... args)
 {
-	new (address) T;
+	new (address) T (args...);
 }
 
 template <typename T>
