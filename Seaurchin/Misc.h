@@ -67,7 +67,7 @@ void SplitProps(const std::string& source, PropList& vec);
 #define SU_INT_MAX (std::numeric_limits<int>::max())
 #define SU_UINT_MAX (std::numeric_limits<unsigned int>::max())
 #define SU_FLOAT_MAX (std::numeric_limits<float>::max())
-#define SU_DOUBLE_MAX (std::numeric_limits<doube>::max())
+#define SU_DOUBLE_MAX (std::numeric_limits<double>::max())
 #define SU_WORD_MAX (std::numeric_limits<WORD>::max())
 #define SU_DWORD_MAX (std::numeric_limits<DWORD>::max())
 
@@ -82,7 +82,7 @@ void SplitProps(const std::string& source, PropList& vec);
 #define SU_INT_MIN (std::numeric_limits<int>::min())
 #define SU_UINT_MIN (std::numeric_limits<unsigned int>::min())
 #define SU_FLOAT_MIN (std::numeric_limits<float>::min())
-#define SU_DOUBLE_MIN (std::numeric_limits<doube>::min())
+#define SU_DOUBLE_MIN (std::numeric_limits<double>::min())
 #define SU_WORD_MIN (std::numeric_limits<WORD>::min())
 #define SU_DWORD_MIN (std::numeric_limits<DWORD>::min())
 
