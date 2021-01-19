@@ -1,4 +1,11 @@
-# Seaurchin
+# Resurrithm
+
+WIP project to port Seaurchin to Linux / Vulkan and fix some of its issues to make it:
+- closer to the arcade game
+- more compatible with OpeNITHM
+- playable by people who can't read japanese
+
+The original Readme
 某スライドして手を跳ね上げる音ゲーシミュレーター
 
 ## ダウンロード
