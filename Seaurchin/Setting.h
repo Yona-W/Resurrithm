@@ -3,6 +3,8 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
+#include <format.hpp>
+#include <vector>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/algorithm.hpp>
 #include <toml/toml.h>

@@ -5,11 +5,7 @@
 
 class MoverObject {
 public:
-    static class Values
-    {
-    public:
-        static constexpr double Default = std::numeric_limits<double>::quiet_NaN();
-    };
+    static constexpr double DefaultValue = std::numeric_limits<double>::quiet_NaN();
 
     enum class StateID
     {
@@ -23,7 +19,6 @@ public:
 
     static bool RegisterType(asIScriptEngine *engine);
 
-public:
     MoverObject()
         : reference(1)
         , target(nullptr)
@@ -34,8 +29,8 @@ public:
         , waiting(0)
         , time(0)
         , wait(0)
-        , begin(Values::Default)
-        , end(Values::Default)
+        , begin(DefaultValue)
+        , end(DefaultValue)
         , isBeginOffset(false)
         , isEndOffset(false)
     {}

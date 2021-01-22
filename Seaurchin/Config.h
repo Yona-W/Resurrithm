@@ -6,36 +6,36 @@
 #define SU_APP_NAME "Resurrithm"
 #define SU_APP_VERSION "0.1.0"
 
-#define SU_SETTING_FILE L"config.toml"
-#define SU_CACHE_MUSIC_FILE L"musics.mp"
+#define SU_SETTING_FILE "config.toml"
+#define SU_CACHE_MUSIC_FILE "musics.mp"
 #define SU_NAMED_PIPE_NAME "\\\\.\\pipe\\seaurchin"
 
-#define SU_DATA_DIR L"Data"
-#define SU_IMAGE_DIR L"Images"
-#define SU_SKIN_DIR L"Skins"
-#define SU_FONT_DIR L"Fonts"
-#define SU_CACHE_DIR L"Cache"
-#define SU_CHARACTER_DIR L"Characters"
-#define SU_MUSIC_DIR L"Music"
-#define SU_SOUND_DIR L"Sounds"
-#define SU_EXTENSION_DIR L"Extensions"
-#define SU_SCRIPT_DIR L"Scripts"
-#define SU_SKILL_DIR L"Skills"
-#define SU_ABILITY_DIR L"Abilities"
-#define SU_ICON_DIR L"Icons"
+#define SU_DATA_DIR "Data"
+#define SU_IMAGE_DIR "Images"
+#define SU_SKIN_DIR "Skins"
+#define SU_FONT_DIR "Fonts"
+#define SU_CACHE_DIR "Cache"
+#define SU_CHARACTER_DIR "Characters"
+#define SU_MUSIC_DIR "Music"
+#define SU_SOUND_DIR "Sounds"
+#define SU_EXTENSION_DIR "Extensions"
+#define SU_SCRIPT_DIR "Scripts"
+#define SU_SKILL_DIR "Skills"
+#define SU_ABILITY_DIR "Abilities"
+#define SU_ICON_DIR "Icons"
 
-#define SU_SKIN_MAIN_FILE L"Skin.as"
-#define SU_SKIN_TITLE_FILE L"Title.as"
-#define SU_SKIN_SELECT_FILE L"Select.as"
-#define SU_SKIN_PLAY_FILE L"Play.as"
-#define SU_SKIN_RESULT_FILE L"Result.as"
-#define SU_SYSTEM_MENU_FILE L"System.as"
-#define SU_SETTING_DEFINITION_FILE L"SettingList.toml"
+#define SU_SKIN_MAIN_FILE "Skin.as"
+#define SU_SKIN_TITLE_FILE "Title.as"
+#define SU_SKIN_SELECT_FILE "Select.as"
+#define SU_SKIN_PLAY_FILE "Play.as"
+#define SU_SKIN_RESULT_FILE "Result.as"
+#define SU_SYSTEM_MENU_FILE "System.as"
+#define SU_SETTING_DEFINITION_FILE "SettingList.toml"
 
 #define SU_FONT_SYSTEM "ＭＳ ゴシック"
 
-#define SU_RES_WIDTH 1280
-#define SU_RES_HEIGHT 720
+#define SU_RES_WIDTH 1920
+#define SU_RES_HEIGHT 1080
 
 #define SU_EFX_PMAX 1024
 

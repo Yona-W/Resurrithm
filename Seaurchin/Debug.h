@@ -1,5 +1,15 @@
 ﻿#pragma once
 
+#include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/base_sink.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
+#include <rang.hpp>
+
 class Logger {
 private:
     std::vector<spdlog::sink_ptr> sinks;
@@ -20,14 +30,9 @@ public:
 };
 
 class StandardOutputUnicodeSink : public spdlog::sinks::base_sink<std::mutex> {
-private:
-    HANDLE hStdout;
-    std::map<spdlog::level::level_enum, WORD> colors;
-
 protected:
-    void _sink_it(const spdlog::details::log_msg& msg) override;
-    virtual void _flush() override {}
-
+    void sink_it_(const spdlog::details::log_msg& msg) override;
+    virtual void flush_() override {}
 public:
     StandardOutputUnicodeSink();
 };

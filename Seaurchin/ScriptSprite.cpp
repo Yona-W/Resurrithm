@@ -290,8 +290,9 @@ void SSprite::Draw(const Transform2D &parent, const ColorTint &color)
 void SSprite::DrawBy(const Transform2D &tf, const ColorTint &ct)
 {
     if (!Image) return;
-    SetDrawBright(ct.R, ct.G, ct.B);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
+    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
     DrawRotaGraph3F(
         tf.X, tf.Y,
         tf.OriginX, tf.OriginY,
@@ -401,8 +402,8 @@ SShape::SShape()
 
 void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
 {
-    SetDrawBright(ct.R, ct.G, ct.B);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
+    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     switch (Type) {
         case SShapeType::Pixel:
             DrawPixel(SU_TO_INT32(tf.X), SU_TO_INT32(tf.Y), GetColor(255, 255, 255));
@@ -562,12 +563,12 @@ void STextSprite::Refresh()
 
 void STextSprite::DrawNormal(const Transform2D &tf, const ColorTint &ct)
 {
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
-    SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    //SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
     if (isRich) {
-        SetDrawBright(255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255);
     } else {
-        SetDrawBright(ct.R, ct.G, ct.B);
+        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
     }
     const auto tox = SU_TO_FLOAT(get<0>(size) / 2 * int(horizontalAlignment));
     const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
@@ -580,11 +581,10 @@ void STextSprite::DrawNormal(const Transform2D &tf, const ColorTint &ct)
 
 void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct)
 {
-    const auto pds = GetDrawScreen();
-    SetDrawScreen(scrollBuffer->GetHandle());
-    SetDrawBright(255, 255, 255);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-    ClearDrawScreen();
+    SDL_SetRenderTarget(scrollBuffer->GetTexture());
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    SDL_RenderClear(renderer);
     if (scrollSpeed >= 0) {
         auto reach = -scrollPosition + int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
         while (reach < scrollWidth) {
@@ -604,15 +604,16 @@ void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct)
             reach -= get<0>(size) + scrollMargin;
         }
     }
-    SetDrawScreen(pds);
+
+    SDL_SetRenderTarget(renderer, NULL);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    //SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
 
     if (isRich) {
-        SetDrawBright(255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255);
     } else {
-        SetDrawBright(ct.R, ct.G, ct.B);
+        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
     }
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
-    SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
     const auto tox = SU_TO_FLOAT(scrollWidth / 2 * int(horizontalAlignment));
     const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
     DrawRotaGraph3F(
@@ -806,15 +807,18 @@ void STextInput::Activate() const
 
 void STextInput::Draw()
 {
+    /*
     const auto wcc = MultiByteToWideChar(CP_OEMCP, 0, currentRawString.c_str(), 1024, nullptr, 0);
     const auto widestr = new wchar_t[wcc];
     MultiByteToWideChar(CP_OEMCP, 0, currentRawString.c_str(), 1024, widestr, 0);
     delete[] widestr;
+    */ 
+    // TODO wtf is this?
 }
 
 void STextInput::Tick(double delta)
 {
-    TCHAR buffer[1024] = { 0 };
+    char buffer[1024] = { 0 };
     switch (CheckKeyInput(inputHandle)) {
         case 0:
             GetKeyInputString(buffer, inputHandle);
@@ -855,8 +859,8 @@ void STextInput::RegisterType(asIScriptEngine *engine)
 void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
 {
     if (!target) return;
-    SetDrawBright(ct.R, ct.G, ct.B);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     DrawRotaGraph3F(
         tf.X, tf.Y,
         tf.OriginX, tf.OriginY,
@@ -888,9 +892,9 @@ void SSynthSprite::Transfer(SSprite *sprite)
 {
     if (!sprite) return;
 
-    BEGIN_DRAW_TRANSACTION(target->GetHandle());
+    SDL_SetRenderTarget(renderer, target->GetTexture());
     sprite->Draw();
-    FINISH_DRAW_TRANSACTION;
+    SDL_SetRenderTarget(renderer, NULL);
 
     sprite->Release();
 }
@@ -900,11 +904,11 @@ void SSynthSprite::Transfer(SImage * image, const double x, const double y)
 {
     if (!image) return;
 
-    BEGIN_DRAW_TRANSACTION(target->GetHandle());
-    SetDrawBright(255, 255, 255);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
+    SDL_SetRenderTarget(renderer, target->GetTexture());
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     DrawGraphF(SU_TO_FLOAT(x), SU_TO_FLOAT(y), image->GetHandle(), HasAlpha ? TRUE : FALSE);
-    FINISH_DRAW_TRANSACTION;
+    SDL_SetRenderTarget(renderer, NULL);
 
     image->Release();
 }
@@ -970,8 +974,8 @@ void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
     const auto y = SU_TO_INT32(height * v1);
     const auto w = SU_TO_INT32(width * u2);
     const auto h = SU_TO_INT32(height * v2);
-    SetDrawBright(ct.R, ct.G, ct.B);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, ct.A);
+    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     DrawRectRotaGraph3F(
         tf.X, tf.Y,
         x, y, w, h,
@@ -1059,8 +1063,8 @@ void SAnimeSprite::DrawBy(const Transform2D &tf, const ColorTint &ct)
     const auto at = images->GetCellTime() * images->GetFrameCount() - time;
     const auto ih = images->GetImageHandleAt(at);
     if (!ih) return;
-    SetDrawBright(Color.R, Color.G, Color.B);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, Color.A);
+    SDL_SetRenderDrawColor(renderer, Color.R, Color.G, Color.B);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     DrawRotaGraph3F(
         Transform.X, Transform.Y,
         Transform.OriginX, Transform.OriginY,

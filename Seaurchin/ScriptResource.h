@@ -5,6 +5,9 @@
 #include "Setting.h"
 #include "ScriptSpriteMisc.h"
 
+#include <SDL2/SDL.h>
+#include <libpng16/png.h>
+
 #define SU_IF_IMAGE "Image"
 #define SU_IF_FONT "Font"
 #define SU_IF_RENDER "RenderTarget"
@@ -17,42 +20,40 @@
 class SResource {
 protected:
     int reference = 0;
-    int handle = 0;
 public:
     SResource();
     virtual ~SResource();
     void AddRef();
     void Release();
 
-    int GetHandle() const { return handle; }
     int GetRefCount() const { return reference; }
 };
 
 //画像
 class SImage : public SResource {
 protected:
-    int width = 0;
-    int height = 0;
-
-    void ObtainSize();
+    SDL_Surface *surfacePtr;
 public:
-    explicit SImage(int ih);
+    explicit SImage(SDL_Surface *surfacePtr);
     ~SImage() override;
 
     int GetWidth();
     int GetHeight();
 
-    static SImage* CreateBlankImage();
+    static SImage* CreateBlankImage(int width, int height);
     static SImage* CreateLoadedImageFromFile(const std::string &file, bool async);
-    static SImage* CreateLoadedImageFromMemory(void *buffer, size_t size);
+    static SImage* CreateLoadedImageFromMemory(void *buffer, int width, int height);
 };
 
 //描画タゲ
 class SRenderTarget : public SImage {
+    private:
+    SDL_Texture *texture;
+    SDL_Renderer *renderer;
 public:
     SRenderTarget(int w, int h);
-
-    static SRenderTarget* CreateBlankTarget(int w, int h);
+    SDL_Texture *GetTexture();
+    static SRenderTarget* CreateBlankTarget(int width, int height);
 };
 
 //9patch描画用

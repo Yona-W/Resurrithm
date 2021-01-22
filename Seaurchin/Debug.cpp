@@ -16,7 +16,7 @@ void Logger::Initialize()
     AllocConsole();
     sinks.push_back(make_shared<StandardOutputUnicodeSink>());
 #endif
-    sinks.push_back(make_shared<sinks::simple_file_sink_mt>("Seaurchin.log", true));
+    sinks.push_back(make_shared<sinks::basic_file_sink_mt>("Seaurchin.log", true));
     loggerMain = make_shared<logger>("main", begin(sinks), end(sinks));
     loggerMain->set_pattern("[%H:%M:%S.%e] [%L] %v");
 #if _DEBUG
@@ -38,26 +38,29 @@ void Logger::Terminate() const
 
 StandardOutputUnicodeSink::StandardOutputUnicodeSink()
 {
-    using namespace spdlog::level;
-    colors[level_enum::trace] = FOREGROUND_INTENSITY;   // 灰色
-    colors[level_enum::debug] = FOREGROUND_INTENSITY;   // 灰色
-    colors[level_enum::info] = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;  // 白
-    colors[level_enum::warn] = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;    // 黄色
-    colors[level_enum::err] = FOREGROUND_RED | FOREGROUND_INTENSITY;    // 赤
-    colors[level_enum::critical] =
-        FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY
-        | BACKGROUND_RED | BACKGROUND_INTENSITY;    // 赤地に白
-    colors[level_enum::off] = 0;
-
-    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 }
 
-void StandardOutputUnicodeSink::_sink_it(const spdlog::details::log_msg & msg)
+void StandardOutputUnicodeSink::sink_it_(const spdlog::details::log_msg & msg)
 {
-    const auto color = colors[msg.level];
-    auto u16Msg = ConvertUTF8ToUnicode(msg.formatted.str());
-    DWORD written;
-    SetConsoleTextAttribute(hStdout, color);
-    WriteConsoleW(hStdout, u16Msg.c_str(), u16Msg.length(), &written, nullptr);
-    SetConsoleTextAttribute(hStdout, 0);
+    using namespace rang;
+    switch(msg.level){
+        case spdlog::level::trace:
+            break;
+        case spdlog::level::debug:
+            break;
+        case spdlog::level::info:
+            cout << fg::gray;
+            break;
+        case spdlog::level::warn:
+            cout << fg::yellow;
+            break;
+        case spdlog::level::err:
+            cout << fg::red << style::bold;
+            break;
+        case spdlog::level::critical:
+            cout << fg::gray << bg::red << style::bold;
+            break;
+    }
+
+    cout << msg.payload.data() << fg::reset << bg::reset << style::reset;
 }

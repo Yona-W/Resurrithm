@@ -7,10 +7,12 @@
 #include "ScoreProcessor.h"
 #include "SoundManager.h"
 #include "Result.h"
+#include "Rendering.h"
 #include "CharacterInstance.h"
 
 #include <boost/lockfree/queue.hpp>
 #include <thread>
+#include <SDL2/SDL.h>
 
 #define SU_IF_SCENE_PLAYER "ScenePlayer"
 #define SU_IF_SCENE_PLAYER_METRICS "ScenePlayerMetrics"
@@ -149,8 +151,8 @@ protected:
     SSprite *spriteLane {};
 
     // LoadResourcesで初期化 (設定ファイルから取得)
-    unsigned int slideLineColor = GetColor(0, 200, 255);        // Slide中心線色
-    unsigned int airActionJudgeColor = GetColor(128, 255, 160); // Air入力線色
+    COLOR slideLineColor = {0, 200, 255};        // Slide中心線色
+    COLOR airActionJudgeColor = {128, 255, 160}; // Air入力線色
     bool showSlideLine {}, showAirActionJudge {};                     // Slide中心線/Air入力線が有効でtrue
     double slideLineThickness {};                                  // Slide中心線太さ
 

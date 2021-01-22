@@ -766,7 +766,7 @@ IntegerListVectorSettingItem::IntegerListVectorSettingItem(const std::shared_ptr
 
 string IntegerListVectorSettingItem::GetItemString()
 {
-    std::vector<fmt::ArgJoin<char, std::vector<int64_t>::const_iterator>> joinedList;
+    std::vector<fmt::arg_join<std::vector<int64_t>::const_iterator, std::vector<int64_t>::const_iterator, char>> joinedList;
     for (const auto &list : values) joinedList.push_back(fmt::join(list.begin(), list.end(), valueSeparator));
     return fmt::format("{0}", fmt::join(joinedList.begin(), joinedList.end(), listSeparator));
 }
@@ -846,7 +846,7 @@ FloatListVectorSettingItem::FloatListVectorSettingItem(const std::shared_ptr<Set
 
 string FloatListVectorSettingItem::GetItemString()
 {
-    std::vector<fmt::ArgJoin<char, std::vector<double>::const_iterator>> joinedList;
+    std::vector<fmt::arg_join<std::vector<double>::const_iterator, std::vector<double>::const_iterator, char>> joinedList;
     for (const auto &list : values) joinedList.push_back(fmt::join(list.begin(), list.end(), valueSeparator));
     return fmt::format("{0}", fmt::join(joinedList.begin(), joinedList.end(), listSeparator));
 }
@@ -926,7 +926,7 @@ BooleanListVectorSettingItem::BooleanListVectorSettingItem(const std::shared_ptr
 
 string BooleanListVectorSettingItem::GetItemString()
 {
-    std::vector<fmt::ArgJoin<char, std::vector<bool>::const_iterator>> joinedList;
+    std::vector<fmt::arg_join<std::vector<bool>::const_iterator, std::vector<bool>::const_iterator, char>> joinedList;
     for (const auto &list : values) joinedList.push_back(fmt::join(list.begin(), list.end(), valueSeparator));
     return fmt::format("{0}", fmt::join(joinedList.begin(), joinedList.end(), listSeparator));
 }

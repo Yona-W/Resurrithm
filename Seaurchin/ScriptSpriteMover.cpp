@@ -139,8 +139,8 @@ void MoverObject::Clear()
 {
     time = 0.0;
     wait = 0.0;
-    begin = Values::Default;
-    end = Values::Default;
+    begin = DefaultValue;
+    end = DefaultValue;
     isBeginOffset = false;
     isEndOffset = false;
 }

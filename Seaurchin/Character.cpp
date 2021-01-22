@@ -181,7 +181,7 @@ CharacterImageSet *CharacterImageSet::CreateImageSet(const shared_ptr<CharacterP
 
 void CharacterImageSet::LoadAllImage()
 {
-    /* TODO VULKAN
+    /* TODO GRAPHICS LOL
     auto root = ConvertUTF8ToUnicode(parameter->ImagePath);
     const auto hBase = LoadGraph(reinterpret_cast<const char*>(root.c_str()));
     const auto hSmall = MakeScreen(SU_CHAR_SMALL_WIDTH, SU_CHAR_SMALL_WIDTH, 1);

@@ -253,7 +253,7 @@ void ExecutionManager::ExecuteSkin()
     skin = make_unique<SkinHolder>(ConvertUTF8ToUnicode(sn), scriptInterface, sound);
     skin->Initialize();
     log->info("Skin loaded");
-    ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
+    ExecuteSkin(SU_SKIN_TITLE_FILE);
 }
 
 bool ExecutionManager::ExecuteSkin(const string &file)
@@ -360,13 +360,10 @@ void ExecutionManager::Tick(const double delta)
     scriptInterface->GetEngine()->GarbageCollect(asGC_ONE_STEP);
 }
 
-//Draw
 void ExecutionManager::Draw()
 {
-    // TODO VULKAN
-    // ClearDrawScreen();
+    SDL_RenderClear(renderer);
     for (const auto& s : scenes) s->Draw();
-    // ScreenFlip();
 }
 
 void ExecutionManager::AddScene(const shared_ptr<Scene>& scene)

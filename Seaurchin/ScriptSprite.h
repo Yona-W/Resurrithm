@@ -1,7 +1,10 @@
 ﻿#pragma once
 
 #include <angelscript.h>
+#include <scriptdictionary/scriptdictionary.h>
 #include <set>
+//#include <glm.hpp>
+#include <glm/ext.hpp>
 
 #include "Misc.h"
 #include "ScriptSpriteMisc.h"

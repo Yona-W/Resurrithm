@@ -22,37 +22,30 @@ void SResource::Release()
 
 // SImage ----------------------
 
-void SImage::ObtainSize()
+SImage::SImage(SDL_Surface *ptr)
 {
-    GetGraphSize(handle, &width, &height);
-}
-
-SImage::SImage(const int ih)
-{
-    handle = ih;
+    surfacePtr = ptr;
 }
 
 SImage::~SImage()
 {
-    if (handle) DeleteGraph(handle);
-    handle = 0;
+    if (surfacePtr) SDL_FreeSurface(surfacePtr);
+    surfacePtr = nullptr;
 }
 
 int SImage::GetWidth()
 {
-    if (!width) ObtainSize();
-    return width;
+    return surfacePtr->w;
 }
 
 int SImage::GetHeight()
 {
-    if (!height) ObtainSize();
-    return height;
+    return surfacePtr->h;
 }
 
-SImage * SImage::CreateBlankImage()
+SImage * SImage::CreateBlankImage(int width, int height)
 {
-    auto result = new SImage(0);
+    auto result = new SImage(SDL_CreateRGBSurface(0, width, height, 8, 0, 0, 0, 0));
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -61,18 +54,16 @@ SImage * SImage::CreateBlankImage()
 
 SImage * SImage::CreateLoadedImageFromFile(const string &file, const bool async)
 {
-    if (async) SetUseASyncLoadFlag(TRUE);
     auto result = new SImage(LoadGraph(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(file).c_str())));
-    if (async) SetUseASyncLoadFlag(FALSE);
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
 }
 
-SImage * SImage::CreateLoadedImageFromMemory(void * buffer, const size_t size)
+SImage * SImage::CreateLoadedImageFromMemory(void * buffer, int width, int height)
 {
-    auto result = new SImage(CreateGraphFromMem(buffer, size));
+    auto result = new SImage(SDL_CreateRGBSurfaceFrom(buffer, width, height, 8, width * 3, 0, 0, 0, 0)); //TODO might be wrong
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -81,17 +72,15 @@ SImage * SImage::CreateLoadedImageFromMemory(void * buffer, const size_t size)
 
 // SRenderTarget -----------------------------
 
-SRenderTarget::SRenderTarget(const int w, const int h)
+SRenderTarget::SRenderTarget(const int width, const int height)
     : SImage(0)
 {
-    width = w;
-    height = h;
-    if (w * h) handle = MakeScreen(w, h, TRUE);
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
 }
 
-SRenderTarget * SRenderTarget::CreateBlankTarget(const int w, const int h)
+SRenderTarget * SRenderTarget::CreateBlankTarget(const int width, const int height)
 {
-    auto result = new SRenderTarget(w, h);
+    auto result = new SRenderTarget(width, height);
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -176,10 +165,10 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
     uint32_t mx = 0;
     auto line = 1;
     if (rt) {
-        BEGIN_DRAW_TRANSACTION(rt->GetHandle());
-        ClearDrawScreen();
-        SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-        SetDrawBright(255, 255, 255);
+        SDL_SetRenderTarget(renderer, rt->GetTexture());
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255);
     }
     const auto *ccp = reinterpret_cast<const uint8_t*>(utf8Str.c_str());
     while (*ccp) {
@@ -215,7 +204,7 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
         cx += sg->WholeAdvance;
     }
     if (rt) {
-        FINISH_DRAW_TRANSACTION;
+        SDL_SetRenderTarget(renderer, NULL);
     }
     mx = max(mx, cx);
     double my = line * size;
@@ -238,11 +227,11 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
     float cw = 1;
 
     if (rt) {
-        BEGIN_DRAW_TRANSACTION(rt->GetHandle());
-        ClearDrawScreen();
-        SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-        SetDrawBright(cr, cg, cb);
-        SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
+        SDL_SetRenderTarget(renderer, rt->GetTexture());
+        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, cr, cg, cb);
+        //SetDrawMode(DX_DRAWMODE_ANISOTROPIC); // Not sure how to translate this tbh
     }
     auto ccp = utf8Str.begin();
     bx::smatch match;
@@ -334,7 +323,7 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
         const auto sg = glyphs[gi];
         if (!sg) continue;
         if (rt) {
-            SetDrawBright(cr, cg, cb);
+            SDL_SetRenderDrawColor(renderer, cr, cg, cb); // I think?
             DrawRectRotaGraph3F(
                 SU_TO_FLOAT(cx + sg->BearX) - (cw - 1.0f) * 0.5f * sg->GlyphWidth, SU_TO_FLOAT(cy + sg->BearY),
                 sg->GlyphX, sg->GlyphY,
@@ -347,8 +336,8 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
         cx += sg->WholeAdvance;
     }
     if (rt) {
-        SetDrawMode(DX_DRAWMODE_NEAREST);
-        FINISH_DRAW_TRANSACTION;
+        //SetDrawMode(DX_DRAWMODE_NEAREST);
+        SDL_SetRenderTarget(renderer, NULL);
     }
     mx = max(mx, cx);
     double my = line * size;
@@ -369,7 +358,7 @@ SFont * SFont::CreateLoadedFontFromFile(const string & file)
 {
     auto result = new SFont();
     result->AddRef();
-    ifstream font(ConvertUTF8ToUnicode(file), ios::in | ios::binary);
+    ifstream font(file, ios::in | ios::binary);
 
     Sif2Header header;
     font.read(reinterpret_cast<char*>(&header), sizeof(Sif2Header));
@@ -385,7 +374,7 @@ SFont * SFont::CreateLoadedFontFromFile(const string & file)
         font.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
         const auto pngdata = new uint8_t[size];
         font.read(reinterpret_cast<char*>(pngdata), size);
-        result->Images.push_back(SImage::CreateLoadedImageFromMemory(pngdata, size));
+        result->Images.push_back(SImage::CreateLoadedImageFromMemory(pngdata, width, height)); //TODO
         delete[] pngdata;
     }
 

@@ -142,7 +142,7 @@ void Sif2Creator::SaveBitmapCache(boost::filesystem::path cachepath) const
     auto png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     auto info = png_create_info_struct(png);
     png_init_io(png, file);
-    png_set_IHDR(png, info, bitmapWidth, bitmapHeight, 8, PNG_COLOR_TYPE_GRAY_ALPHA, NULL, PNG_COMPRESSION_TYPE_DEFAULT, NULL);
+    png_set_IHDR(png, info, bitmapWidth, bitmapHeight, 8, PNG_COLOR_TYPE_GRAY_ALPHA, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_COMPRESSION_TYPE_BASE);
     const auto rows = new png_byte*[bitmapHeight];
     for (auto i = 0; i < bitmapHeight; i++) rows[i] = bitmapMemory + bitmapWidth * i * 2;
     png_set_rows(png, info, rows);

@@ -132,7 +132,6 @@ source_group("Header files / Library" FILES ${Header_Library})
 
 set(ALL_FILES
     ${AngelScript}
-    #${DxLib}
     ${Interface_AngelScript}
     ${Interface__CPP}
     ${Interface_Character}
@@ -192,6 +191,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/../library/tinytoml/include;"
     "${CMAKE_CURRENT_SOURCE_DIR}/../library/glm;"
     "${CMAKE_CURRENT_SOURCE_DIR}/../library/libjpeg/Release"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../library/rang/include"
 )
 
 ################################################################################
