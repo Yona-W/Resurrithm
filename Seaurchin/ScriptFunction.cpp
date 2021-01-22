@@ -9,13 +9,16 @@ using namespace std;
 using namespace boost::filesystem;
 
 
+#ifdef _WIN32
+
 static int CALLBACK FontEnumerationProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, DWORD type, LPARAM lParam);
 
-// ReSharper disable once CppParameterNeverUsed
 static int CALLBACK FontEnumerationProc(ENUMLOGFONTEX *lpelfe, NEWTEXTMETRICEX *lpntme, DWORD type, LPARAM lParam)
 {
     return 0;
 }
+
+#endif //_WIN32
 
 void YieldTime(const double time)
 {
@@ -74,6 +77,8 @@ void CreateImageFont(const string &fileName, const string &saveName, const int s
     creator.CreateSif2(option, op);
 }
 
+#ifdef _WIN32
+
 void EnumerateInstalledFonts()
 {
     // HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\Fonts
@@ -84,3 +89,5 @@ void EnumerateInstalledFonts()
     logfont.lfPitchAndFamily = 0;
     EnumFontFamiliesEx(hdc, &logfont, FONTENUMPROC(FontEnumerationProc), LPARAM(0), 0);
 }
+
+#endif // _WIN32

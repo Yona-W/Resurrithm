@@ -3,6 +3,7 @@
 #include "Config.h"
 #include "Setting.h"
 
+/*
 using namespace std;
 
 ExtensionManager::ExtensionManager()
@@ -53,3 +54,4 @@ void ExtensionManager::RegisterInterfaces()
         func();
     }
 }
+*/

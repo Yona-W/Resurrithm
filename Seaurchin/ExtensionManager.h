@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+/*
 class ExtensionManager final {
 private:
     std::vector<HINSTANCE> dllInstances;
@@ -13,3 +14,4 @@ public:
     void Initialize(asIScriptEngine *engine);
     void RegisterInterfaces();
 };
+*/

@@ -57,7 +57,7 @@ string CWScriptBuilder::GetSectionName(unsigned int idx) const
 #ifdef _WIN32
     set<wstring, ci_less>::const_iterator it = includedScripts.begin();
 #else
-    set<string>::const_iterator it = includedScripts.begin();
+    set<wstring>::const_iterator it = includedScripts.begin();
 #endif
     while (idx-- > 0) it++;
     return ConvertUnicodeToUTF8(*it).c_str();
@@ -66,11 +66,11 @@ string CWScriptBuilder::GetSectionName(unsigned int idx) const
 // Returns 1 if the section was included
 // Returns 0 if the section was not included because it had already been included before
 // Returns <0 if there was an error
-int CWScriptBuilder::AddSectionFromFile(const wchar_t *filename)
+int CWScriptBuilder::AddSectionFromFile(const char_t *filename)
 {
     // The file name stored in the set should be the fully resolved name because
     // it is possible to name the same file in multiple ways using relative paths.
-    wstring fullpath = GetAbsolutePath(filename);
+    string fullpath = GetAbsolutePath(filename);
 
     if (IncludeIfNotAlreadyIncluded(fullpath.c_str())) {
         int r = LoadScriptSection(fullpath.c_str());
@@ -127,9 +127,9 @@ void CWScriptBuilder::ClearAll()
 #endif
 }
 
-bool CWScriptBuilder::IncludeIfNotAlreadyIncluded(const wchar_t *filename)
+bool CWScriptBuilder::IncludeIfNotAlreadyIncluded(const char_t *filename)
 {
-    wstring scriptFile = filename;
+    string scriptFile = filename;
     if (includedScripts.find(scriptFile) != includedScripts.end()) {
         // Already included
         return false;
@@ -141,12 +141,16 @@ bool CWScriptBuilder::IncludeIfNotAlreadyIncluded(const wchar_t *filename)
     return true;
 }
 
-int CWScriptBuilder::LoadScriptSection(const wchar_t *filename)
+int CWScriptBuilder::LoadScriptSection(const char_t *filename)
 {
     // Open the script file
-    wstring scriptFile = filename;
+    string scriptFile = filename;
+    #ifdef _WIN32
     FILE *f = 0;
     _wfopen_s(&f, scriptFile.c_str(), L"rb");
+    #else
+    FILE *f = fopen(scriptFile.c_str(), "rb");
+    #endif //_WIN32
 
     if (f == 0) {
         // Write a message to the engine's message callback
@@ -807,30 +811,30 @@ const char *CWScriptBuilder::GetMetadataStringForTypeMethod(int typeId, asIScrip
 }
 #endif
 
-wstring GetAbsolutePath(const wstring &file)
+wstring GetAbsolutePath(const string &file)
 {
-    wstring str = file;
+    string str = file;
 
     // If this is a relative path, complement it with the current path
-    if (!((str.length() > 0 && (str[0] == L'/' || str[0] == L'\\')) ||
-        str.find(L":") != string::npos)) {
-        str = GetCurrentDir() + L"/" + str;
+    if (!((str.length() > 0 && (str[0] == '/' || str[0] == '\\')) ||
+        str.find(":") != string::npos)) {
+        str = GetCurrentDir() + "/" + str;
     }
 
     // Replace backslashes for forward slashes
     size_t pos = 0;
-    while ((pos = str.find(L"\\", pos)) != string::npos)
+    while ((pos = str.find("\\", pos)) != string::npos)
         str[pos] = '/';
 
     // Replace /./ with /
     pos = 0;
-    while ((pos = str.find(L"/./", pos)) != string::npos)
+    while ((pos = str.find("/./", pos)) != string::npos)
         str.erase(pos + 1, 2);
 
     // For each /../ remove the parent dir and the /../
     pos = 0;
-    while ((pos = str.find(L"/../")) != string::npos) {
-        size_t pos2 = str.rfind(L"/", pos - 1);
+    while ((pos = str.find("/../")) != string::npos) {
+        size_t pos2 = str.rfind("/", pos - 1);
         if (pos2 != string::npos)
             str.erase(pos2, pos + 3 - pos2);
         else {

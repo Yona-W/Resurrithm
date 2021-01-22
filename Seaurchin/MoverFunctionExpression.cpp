@@ -1,14 +1,7 @@
 ﻿#define _USE_MATH_DEFINES
-#include <iostream>
-#include <memory>
-#include <cmath>
-#include <vector>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
 
-#include "Misc.h"
-#include "Crc32.h"
+#include "MoverFunctionExpression.h"
+
 using namespace crc32_constexpr;
 
 

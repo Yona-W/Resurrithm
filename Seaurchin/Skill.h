@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include "ScriptResource.h"
+#include <boost/any.hpp>
+#include <angelscript.h>
 
 #define SU_IF_ABILITY "Ability"
 #define SU_IF_SKILL "Skill"

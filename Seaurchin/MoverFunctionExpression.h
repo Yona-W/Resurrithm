@@ -1,6 +1,20 @@
 ﻿#pragma once
 
+#include <iostream>
 #include <memory>
+#include <cmath>
+#include <random>
+#include <vector>
+#include <boost/assert.hpp>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
+#include <memory>
+#include <map>
+#include <spdlog/spdlog.h>
+
+#include "Misc.h"
+#include "Crc32.h"
 
 class MoverFunctionExpressionVariables
 {

@@ -9,6 +9,9 @@
 #include "Result.h"
 #include "CharacterInstance.h"
 
+#include <boost/lockfree/queue.hpp>
+#include <thread>
+
 #define SU_IF_SCENE_PLAYER "ScenePlayer"
 #define SU_IF_SCENE_PLAYER_METRICS "ScenePlayerMetrics"
 

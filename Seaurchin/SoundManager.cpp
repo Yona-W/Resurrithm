@@ -1,4 +1,6 @@
-﻿#include "Misc.h"
+﻿#include <boost/algorithm/clamp.hpp>
+#include <boost/filesystem.hpp>
+#include "Misc.h"
 #include "SoundManager.h"
 
 using namespace std;
@@ -80,7 +82,7 @@ void SoundStream::StopSound()
 
 void SoundStream::SetVolume(const double vol)
 {
-    BASS_ChannelSetAttribute(hStream, BASS_ATTRIB_VOL, SU_TO_FLOAT(clamp(vol, 0.0f, 1.0f)));
+    BASS_ChannelSetAttribute(hStream, BASS_ATTRIB_VOL, SU_TO_FLOAT(clamp(vol, 0.0, 1.0)));
 }
 
 void SoundStream::Pause() const
@@ -166,12 +168,16 @@ void SoundMixerStream::SetVolume(const double vol) const
 SoundManager::SoundManager()
 {
     auto log = spdlog::get("main");
-    //よろしくない
+
+    #ifdef _WIN32
     if (!BASS_Init(-1, 44100, 0, GetMainWindowHandle(), nullptr)) {
-        log->critical(u8"BASS Libraryの初期化に失敗しました");
+    #else
+    if (!BASS_Init(-1, 44100, 0, nullptr, nullptr)) {
+    #endif
+        log->critical(u8"BASS failed to initialize");
         abort();
     }
-    spdlog::get("main")->info(u8"BASS Library初期化終了");
+    spdlog::get("main")->info(u8"BASS initialized");
 }
 
 SoundManager::~SoundManager()

@@ -40,7 +40,7 @@ void Sif2Creator::InitializeFace(const string& fontpath)
     // boost::filesystem::path up = ConvertUTF8ToUnicode(fontpath);
     auto log = spdlog::get("main");
     if (faceMemory) return;
-    ifstream fontfile(ConvertUTF8ToUnicode(fontpath), ios::in | ios::binary);
+    ifstream fontfile(fontpath, ios::in | ios::binary);
     fontfile.seekg(0, ios_base::end);
     faceMemorySize = SU_TO_UINT32(fontfile.tellg());
     fontfile.seekg(ios_base::beg);
@@ -81,7 +81,7 @@ void Sif2Creator::RequestFace(const float size) const
 
 void Sif2Creator::OpenSif2(boost::filesystem::path sif2Path)
 {
-    sif2Stream.open(sif2Path.wstring(), ios::out | ios::trunc | ios::binary);
+    sif2Stream.open(sif2Path.string(), ios::out | ios::trunc | ios::binary);
     sif2Stream.seekp(sizeof(Sif2Header));
     imageIndex = 0;
     writtenGlyphs = 0;
@@ -103,7 +103,7 @@ void Sif2Creator::PackImageSif2()
         auto path = Setting::GetRootDirectory() / SU_DATA_DIR / SU_CACHE_DIR / fss.str();
 
         std::ifstream fif;
-        fif.open(path.wstring(), ios::binary | ios::in);
+        fif.open(path.string(), ios::binary | ios::in);
         auto fsize = SU_TO_UINT32(fif.seekg(0, ios::end).tellg());
 
         const auto file = new uint8_t[fsize];
@@ -137,8 +137,7 @@ void Sif2Creator::NewBitmap(const uint16_t width, const uint16_t height)
 
 void Sif2Creator::SaveBitmapCache(boost::filesystem::path cachepath) const
 {
-    FILE *file;
-    fopen_s(&file, cachepath.string().c_str(), "wb");
+    FILE *file = fopen(cachepath.string().c_str(), "wb");
     if (file == nullptr) return;
     auto png = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     auto info = png_create_info_struct(png);
@@ -191,7 +190,9 @@ bool Sif2Creator::RenderGlyph(const uint32_t cp)
             buffer[x * 2 + 1] = gslot->bitmap.buffer[y * rect.Width + x];
         }
         const auto py = rect.Y + y;
-        memcpy_s(bitmapMemory + (py * bitmapHeight * 2 + rect.X * 2), rect.Width * 2, buffer, rect.Width * 2);
+
+        // ew wtf
+        memcpy(bitmapMemory + (py * bitmapHeight * 2 + rect.X * 2), buffer, rect.Width * 2);
     }
     delete[] buffer;
 

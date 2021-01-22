@@ -3,6 +3,9 @@
 #include "AngelScriptManager.h"
 #include "SoundManager.h"
 #include "ScriptResource.h"
+#include <boost/filesystem.hpp>
+#include <string>
+#include <memory>
 
 #define SU_IF_SKIN "Skin"
 #define SU_IF_SIZE "Size"
@@ -21,7 +24,7 @@ private:
     std::unordered_map<std::string, SAnimatedImage*> animatedImages;
     // std::unordered_map<std::string, shared_ptr<Image>> Images;
 
-    static bool IncludeScript(std::wstring include, std::wstring from, CWScriptBuilder *builder);
+    static bool IncludeScript(std::wstring include, std::wstring from, CScriptBuilder *builder);
 
 public:
     SkinHolder(const std::wstring &name, const std::shared_ptr<AngelScript>& script, const std::shared_ptr<SoundManager> &sound);

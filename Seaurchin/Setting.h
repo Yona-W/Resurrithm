@@ -1,21 +1,29 @@
 ﻿#pragma once
 
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <boost/filesystem.hpp>
+#include <boost/algorithm/algorithm.hpp>
+#include <toml/toml.h>
+#include <spdlog/spdlog.h>
+#include "Crc32.h"
+
 #define SU_SETTING_GENERAL "General"
 #define SU_SETTING_SKIN "Skin"
 
 class Setting final {
 private:
-    static std::wstring rootDirectory;
-    std::wstring file;
+    static std::string rootDirectory;
+    std::string file;
     toml::Value settingTree;
 
 public:
     Setting();
-    explicit Setting(HMODULE hModule);
-    void Load(const std::wstring &filename);
+    void Load(const std::string &filename);
     void Reload() { Load(file); }
     void Save() const;
-    static std::wstring GetRootDirectory();
+    static std::string GetRootDirectory();
 
     template<typename T>
     T ReadValue(const std::string &group, const std::string &key, T defValue)

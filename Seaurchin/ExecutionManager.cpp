@@ -14,6 +14,8 @@
 using namespace boost::filesystem;
 using namespace std;
 
+#ifdef _WIN32
+
 const static toml::Array defaultSliderKeys = {
     toml::Array { KEY_INPUT_A }, toml::Array { KEY_INPUT_Z }, toml::Array { KEY_INPUT_S }, toml::Array { KEY_INPUT_X },
     toml::Array { KEY_INPUT_D }, toml::Array { KEY_INPUT_C }, toml::Array { KEY_INPUT_F }, toml::Array { KEY_INPUT_V },
@@ -22,8 +24,23 @@ const static toml::Array defaultSliderKeys = {
 };
 
 const static toml::Array defaultAirStringKeys = {
-    toml::Array { KEY_INPUT_PGUP }, toml::Array { KEY_INPUT_PGDN }, toml::Array { KEY_INPUT_HOME }, toml::Array { KEY_INPUT_END }
+    KEY_SLASH, KEY_DOT, KEY_APOSTROPHE, KEY_SEMICOLON, KEY_LEFTBRACE, KEY_RIGHTBRACE // TODO fix for windows
 };
+
+#else
+
+const static toml::Array defaultSliderKeys = {
+    toml::Array { KEY_A, KEY_1 }, toml::Array { KEY_Z, KEY_Q }, toml::Array { KEY_S, KEY_2 }, toml::Array { KEY_X, KEY_W },
+    toml::Array { KEY_D, KEY_3 }, toml::Array { KEY_C, KEY_E }, toml::Array { KEY_F, KEY_4 }, toml::Array { KEY_V, KEY_R },
+    toml::Array { KEY_G, KEY_5 }, toml::Array { KEY_B, KEY_T }, toml::Array { KEY_H, KEY_6 }, toml::Array { KEY_N, KEY_Y },
+    toml::Array { KEY_J, KEY_7 }, toml::Array { KEY_M, KEY_U }, toml::Array { KEY_K, KEY_8 }, toml::Array { KEY_COMMA, KEY_I }
+};
+
+const static toml::Array defaultAirStringKeys = {
+    KEY_SLASH, KEY_DOT, KEY_APOSTROPHE, KEY_SEMICOLON, KEY_LEFTBRACE, KEY_RIGHTBRACE
+};
+
+#endif
 
 ExecutionManager::ExecutionManager(const shared_ptr<Setting>& setting)
     : sharedSetting(setting)
@@ -33,14 +50,16 @@ ExecutionManager::ExecutionManager(const shared_ptr<Setting>& setting)
     , musics(new MusicsManager(this)) // this渡すの怖いけどMusicsManagerのコンストラクタ内で逆参照してないから多分セーフ
     , characters(new CharacterManager())
     , skills(new SkillManager())
-    , extensions(new ExtensionManager())
+    //, extensions(new ExtensionManager())
     , random(new mt19937(random_device()()))
     , sharedControlState(new ControlState)
     , lastResult()
+    #ifdef _WIN32
     , hImc(nullptr)
     , hCommunicationPipe(nullptr)
     , immConversion(0)
     , immSentence(0)
+    #endif
     , mixerBgm(nullptr)
     , mixerSe(nullptr)
 {}
@@ -60,21 +79,34 @@ void ExecutionManager::Initialize()
 
     auto loadedSliderKeys = sharedSetting->ReadValue<toml::Array>("Play", "SliderKeys", defaultSliderKeys);
     if (loadedSliderKeys.size() >= 16) {
-        for (auto i = 0; i < 16; i++) sharedControlState->SetSliderKeyCombination(i, loadedSliderKeys[i].as<vector<int>>());
+        for (auto i = 0; i < 16; i++) sharedControlState->SetSliderKeybindings(i, loadedSliderKeys[i].as<vector<int>>());
     } else {
-        log->warn(u8"スライダーキー設定の配列が16要素未満のため、フォールバックを利用します");
+        log->warn("Configuration contains less than 16 slider key sets, using default.");
     }
 
     auto loadedAirStringKeys = sharedSetting->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
-    if (loadedAirStringKeys.size() >= 4) {
-        for (auto i = 0; i < 4; i++) sharedControlState->SetAirStringKeyCombination(i, loadedAirStringKeys[i].as<vector<int>>());
+    if (loadedAirStringKeys.size() > 0) {
+        auto keys = std::vector<int>();
+        for (auto key : loadedSliderKeys) keys.push_back(key.as<int>());
+        sharedControlState->SetAirKeybindings(keys);
     } else {
-        log->warn(u8"エアストリングキー設定の配列が4要素未満のため、フォールバックを利用します");
+        log->warn(u8"No air keys defined, using default");
+    }
+
+    auto inputDevice = sharedSetting->ReadValue<std::string>("Play", "InputDevice", GetFirstKeyboardDevice());
+    auto inputdevice_fp = open(inputDevice.c_str(), O_NONBLOCK | O_RDONLY);
+    if(inputdevice_fp < 0){
+        log->warn("Could not open input device '{0}', input will not work!", inputdevice_fp);
+    }
+    else{
+        sharedControlState->SetInputDevice(inputdevice_fp);
     }
 
     // 拡張ライブラリ読み込み
+    /*
     extensions->LoadExtensions();
     extensions->Initialize(scriptInterface->GetEngine());
+    */
 
     // サウンド初期化
     mixerBgm = SSoundMixer::CreateMixer(sound.get());
@@ -91,12 +123,13 @@ void ExecutionManager::Initialize()
     InterfacesRegisterSceneFunction(this);
     InterfacesRegisterGlobalFunction(this);
     RegisterGlobalManagementFunction();
-    extensions->RegisterInterfaces();
+    //extensions->RegisterInterfaces();
 
     // キャラ・スキル読み込み
     characters->LoadAllCharacters();
     skills->LoadAllSkills();
 
+    # ifdef _WIN32
     // 外部通信
     hCommunicationPipe = CreateNamedPipe(
         SU_NAMED_PIPE_NAME,
@@ -104,7 +137,7 @@ void ExecutionManager::Initialize()
         3, 0, 0, 1000,
         nullptr
     );
-
+    #endif
     /*
     hImc = ImmGetContext(GetMainWindowHandle());
     if (!ImmGetOpenStatus(hImc)) ImmSetOpenStatus(hImc, TRUE);
@@ -129,10 +162,13 @@ void ExecutionManager::Shutdown()
 
     mixerBgm->Release();
     mixerSe->Release();
+
+    # ifdef _WIN32
     if (hCommunicationPipe != INVALID_HANDLE_VALUE) {
         DisconnectNamedPipe(hCommunicationPipe);
         CloseHandle(hCommunicationPipe);
     }
+    #endif
 }
 
 void ExecutionManager::RegisterGlobalManagementFunction()
@@ -170,7 +206,7 @@ void ExecutionManager::RegisterGlobalManagementFunction()
 void ExecutionManager::EnumerateSkins()
 {
     using namespace boost;
-    using namespace filesystem;
+    using namespace boost::filesystem;
     using namespace xpressive;
     auto log = spdlog::get("main");
 
@@ -181,13 +217,13 @@ void ExecutionManager::EnumerateSkins()
         if (!CheckSkinStructure(fdata.path())) continue;
         skinNames.push_back(fdata.path().filename().wstring());
     }
-    log->info(u8"スキン総数: {0:d}", skinNames.size());
+    log->info(u8"Number of skins: {0:d}", skinNames.size());
 }
 
 bool ExecutionManager::CheckSkinStructure(const path& name) const
 {
     using namespace boost;
-    using namespace filesystem;
+    using namespace boost::filesystem;
 
     if (!exists(name / SU_SKIN_MAIN_FILE)) return false;
     if (!exists(name / SU_SCRIPT_DIR / SU_SKIN_TITLE_FILE)) return false;
@@ -204,19 +240,19 @@ void ExecutionManager::ExecuteSkin()
 
     const auto sn = sharedSetting->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
     if (find(skinNames.begin(), skinNames.end(), ConvertUTF8ToUnicode(sn)) == skinNames.end()) {
-        log->error(u8"スキン \"{0}\"が見つかりませんでした", sn);
+        log->error("Skin  \"{0}\" not found!", sn);
         return;
     }
     const auto skincfg = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / ConvertUTF8ToUnicode(sn) / SU_SETTING_DEFINITION_FILE;
     if (exists(skincfg)) {
-        log->info(u8"スキンの設定定義ファイルが有効です");
+        log->info("Skin configuration found");
         settingManager->LoadItemsFromToml(skincfg);
         settingManager->RetrieveAllValues();
     }
 
     skin = make_unique<SkinHolder>(ConvertUTF8ToUnicode(sn), scriptInterface, sound);
     skin->Initialize();
-    log->info(u8"スキン読み込み完了");
+    log->info("Skin loaded");
     ExecuteSkin(ConvertUnicodeToUTF8(SU_SKIN_TITLE_FILE));
 }
 
@@ -225,12 +261,12 @@ bool ExecutionManager::ExecuteSkin(const string &file)
     auto log = spdlog::get("main");
     const auto obj = skin->ExecuteSkinScript(ConvertUTF8ToUnicode(file));
     if (!obj) {
-        log->error(u8"スクリプトをコンパイルできませんでした");
+        log->error("Skin script compile failed");
         return false;
     }
     const auto s = CreateSceneFromScriptObject(obj);
     if (!s) {
-        log->error(u8"{0}にEntryPointが見つかりませんでした", file);
+        log->error("No EntryPoint in {0}", file);
         obj->Release();
         return false;
     }
@@ -255,19 +291,19 @@ bool ExecutionManager::ExecuteScene(asIScriptObject *sceneObject)
 void ExecutionManager::ExecuteSystemMenu()
 {
     using namespace boost;
-    using namespace filesystem;
+    using namespace boost::filesystem;
     auto log = spdlog::get("main");
 
     auto sysmf = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SYSTEM_MENU_FILE;
     if (!exists(sysmf)) {
-        log->error(u8"システムメニュースクリプトが見つかりませんでした");
+        log->error("No system menu script");
         return;
     }
 
     scriptInterface->StartBuildModule("SystemMenu", [](auto inc, auto from, auto sb) { return true; });
-    scriptInterface->LoadFile(sysmf.wstring());
+    scriptInterface->LoadFile(sysmf.string());
     if (!scriptInterface->FinishBuildModule()) {
-        log->error(u8"システムメニュースクリプトをコンパイルできませんでした");
+        log->error("System menu script failed to compile");
         return;
     }
     const auto mod = scriptInterface->GetLastModule();
@@ -283,7 +319,7 @@ void ExecutionManager::ExecuteSystemMenu()
         break;
     }
     if (!type) {
-        log->error(u8"システムメニュースクリプトにEntryPointが見つかりませんでした");
+        log->error(u8"No EntryPoint in system menu script");
         return;
     }
 
@@ -327,9 +363,10 @@ void ExecutionManager::Tick(const double delta)
 //Draw
 void ExecutionManager::Draw()
 {
-    ClearDrawScreen();
+    // TODO VULKAN
+    // ClearDrawScreen();
     for (const auto& s : scenes) s->Draw();
-    ScreenFlip();
+    // ScreenFlip();
 }
 
 void ExecutionManager::AddScene(const shared_ptr<Scene>& scene)
@@ -352,7 +389,7 @@ shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptType(asITypeInfo 
         auto obj = scriptInterface->InstantiateObject(type);
         return make_shared<ScriptScene>(obj);
     }
-    log->error(u8"{0}クラスにScene系インターフェースが実装されていません", type->GetName());
+    log->error(u8"{0} does not implement the Scene interface", type->GetName());
     return nullptr;
 }
 
@@ -368,10 +405,48 @@ shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptObject(asIScriptO
     {
         return make_shared<ScriptScene>(obj);
     }
-    log->error(u8"{0}クラスにScene系インターフェースが実装されていません", type->GetName());
+    log->error(u8"{0} does not implement the Scene interface", type->GetName());
     return nullptr;
 }
 
+std::string ExecutionManager::GetFirstKeyboardDevice(){
+    auto log = spdlog::get("main");
+    std::string event_device_path = "/dev/input";
+    for(auto &entry : boost::filesystem::directory_iterator(event_device_path)){
+        const char *device_path = entry.path().string().c_str();
+        log->info("Trying device {0}", device_path);
+        int fd = open(device_path, O_RDONLY | O_NONBLOCK);
+        if(fd < 0){
+            log->error("Could not open device!");
+            continue;
+        }
+
+        struct libevdev *dev = NULL;
+        if(libevdev_new_from_fd(fd, &dev) < 0){
+            log->error("Failed treating device as input device");
+            libevdev_free(dev);
+            close(fd);
+            continue;
+        }
+
+        if(libevdev_has_event_type(dev, EV_KEY)){
+            log->info("{0} looks like a keyboard!", libevdev_get_name(dev));
+            libevdev_free(dev);
+            close(fd);
+            return(device_path);
+        }
+        else{
+            log->info("{0} is not a keyboard, trying next...", libevdev_get_name(dev));
+            libevdev_free(dev);
+            close(fd);
+            continue;
+        }
+    }
+    log->error("Ran out of devices and none of them look like a keyboard. Make sure your account has permissions to access input devices.");
+    return "";
+}
+
+#ifdef _WIN32
 // ReSharper disable once CppMemberFunctionMayBeStatic
 std::tuple<bool, LRESULT> ExecutionManager::CustomWindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) const
 {
@@ -408,3 +483,5 @@ std::tuple<bool, LRESULT> ExecutionManager::CustomWindowProc(const HWND hWnd, co
     }
 
 }
+
+#endif

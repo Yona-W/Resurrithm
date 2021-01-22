@@ -2,6 +2,7 @@
 
 #include "ScriptResource.h"
 #include "SoundManager.h"
+#include <stdint.h>
 
 enum class WaitType {
     Frame,
@@ -37,4 +38,7 @@ SImage *LoadSystemImage(const std::string & file);
 SFont *LoadSystemFont(const std::string & file);
 SSound *LoadSystemSound(SoundManager *smng, const std::string & file);
 void CreateImageFont(const std::string & fileName, const std::string & saveName, int size);
+
+#ifdef _WIN32
 void EnumerateInstalledFonts();
+#endif

@@ -2,6 +2,12 @@
 #include <utility>
 #include "Misc.h"
 
+#include "Crc32.h"
+#include <boost/algorithm/string.hpp>
+#include <spdlog/spdlog.h>
+#include <fstream>
+#include <glm.hpp>
+
 using namespace std;
 using namespace crc32_constexpr;
 namespace b = boost;
@@ -52,7 +58,7 @@ static auto convertRawString = [](const string &input) -> string {
                     */
                     // wchar_t r = stoi(cp, 0, 16);
                     //でも突っ込むのめんどくさいので🙅で代用します
-                    result << u8"🙅";
+                    result << "u";
                     break;
                 }
                 default:
@@ -126,7 +132,7 @@ void SusAnalyzer::SetMessageCallBack(const function<void(string, string)>& func)
 
 //一応UTF-8として処理することにしますがどうせ変わらないだろうなぁ
 //あと列挙済みファイルを流し込む前提でエラーチェックしない
-void SusAnalyzer::LoadFromFile(const wstring &fileName, const bool analyzeOnlyMetaData)
+void SusAnalyzer::LoadFromFile(const string &fileName, const bool analyzeOnlyMetaData)
 {
     auto log = spdlog::get("main");
     ifstream file;
@@ -135,7 +141,7 @@ void SusAnalyzer::LoadFromFile(const wstring &fileName, const bool analyzeOnlyMe
     uint32_t line = 0;
 
     Reset();
-    if (!analyzeOnlyMetaData) log->info(u8"{0}の解析を開始…", ConvertUnicodeToUTF8(fileName));
+    if (!analyzeOnlyMetaData) log->info(u8"Parsing {0}", fileName);
 
     file.open(fileName, ios::in);
 
@@ -152,12 +158,12 @@ void SusAnalyzer::LoadFromFile(const wstring &fileName, const bool analyzeOnlyMe
         } else if (xp::regex_match(rawline, match, regexSusData)) {
             if (!analyzeOnlyMetaData || boost::starts_with(rawline, "#BPM")) ProcessData(match, line);
         } else {
-            MakeMessage(line, u8"SUS有効行ですが解析できませんでした。");
+            MakeMessage(line, "SUS line valid but could not be parsed");
         }
     }
     file.close();
 
-    if (!analyzeOnlyMetaData) log->info(u8"…終了");
+    if (!analyzeOnlyMetaData) log->info(u8"End");
     if (!analyzeOnlyMetaData) {
         // いい感じにソート
         stable_sort(notes.begin(), notes.end(), [](tuple<SusRelativeNoteTime, SusRawNoteData> a, tuple<SusRelativeNoteTime, SusRawNoteData> b) {
@@ -224,17 +230,17 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
             break;
         case "PLAYLEVEL"_crc32: {
             if (SharedMetaData.DifficultyType == 4) {
-                MakeMessage(line, u8"難易度指定がWORLD'S END時は譜面レベル指定は無効です。");
+                MakeMessage(line, "Level field unused for WORLD'S END");
                 break;
             }
 
             string lstr = result[2];
             const auto pluspos = lstr.find('+');
             if (pluspos != string::npos) {
-                SharedMetaData.UExtraDifficulty = u8"+";
+                SharedMetaData.UExtraDifficulty = "+";
                 SharedMetaData.Level = ConvertInteger(lstr.substr(0, pluspos));
             } else {
-                SharedMetaData.UExtraDifficulty = u8"";
+                SharedMetaData.UExtraDifficulty = "";
                 SharedMetaData.Level = ConvertInteger(lstr);
             }
             break;
@@ -244,7 +250,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
                 //通常記法
                 const auto difficultyType = ConvertInteger(result[2]);
                 if (difficultyType < 0 || 3 < difficultyType) {
-                    MakeMessage(line, u8"不明な難易度指定です。");
+                    MakeMessage(line, "Difficulty is not in valid range");
                     break;
                 }
 
@@ -253,7 +259,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
                 // 通常の難易度指定した後に再度通常の難易度指定したならパラメータを引き継ぐ
                 if (SharedMetaData.DifficultyType == 4) {
                     SharedMetaData.Level = 0;
-                    SharedMetaData.UExtraDifficulty = u8"";
+                    SharedMetaData.UExtraDifficulty = "";
                 }
                 SharedMetaData.DifficultyType = difficultyType;
             } else {
@@ -262,7 +268,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
                 vector<string> params;
                 ba::split(params, dd, ba::is_any_of(":"));
                 if (params.size() < 2) {
-                    MakeMessage(line, u8"難易度指定書式が不正です。");
+                    MakeMessage(line, "Difficulty format incorrect");
                     return;
                 }
                 SharedMetaData.DifficultyType = 4;
@@ -304,7 +310,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
             if (onlyMeta) break;
             const auto hsn = ConvertHexatridecimal(result[2]);
             if (hispeedDefinitions.find(hsn) == hispeedDefinitions.end()) {
-                MakeMessage(line, u8"指定されたタイムラインが存在しません。");
+                MakeMessage(line, "Timeline does not exist");
                 break;
             }
             hispeedToApply = hispeedDefinitions[hsn];
@@ -321,7 +327,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
 
             const auto ean = ConvertHexatridecimal(result[2]);
             if (extraAttributes.find(ean) == extraAttributes.end()) {
-                MakeMessage(line, u8"指定されたアトリビュートが存在しません。");
+                MakeMessage(line, "Attribute does not exist");
                 break;
             }
             extraAttributeToApply = extraAttributes[ean];
@@ -338,7 +344,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
 
             const auto hsn = ConvertHexatridecimal(result[2]);
             if (hispeedDefinitions.find(hsn) == hispeedDefinitions.end()) {
-                MakeMessage(line, u8"指定されたタイムラインが存在しません。");
+                MakeMessage(line, "Timeline does not exist");
                 break;
             }
             hispeedToMeasure = hispeedDefinitions[hsn];
@@ -350,7 +356,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
 
             const auto bsc = ConvertInteger(result[2]);
             if (bsc < 0) {
-                MakeMessage(line, u8"小節オフセットの値が不正です。");
+                MakeMessage(line, "Invalid measure offset");
                 break;
             }
             measureCountOffset = bsc;
@@ -362,7 +368,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
 
             const auto bsc = ConvertInteger(result[2]);
             if (bsc < 0) {
-                MakeMessage(line, u8"チャンネルオフセットの値が不正です。");
+                MakeMessage(line, "Invalid channel offset");
                 break;
             }
             longNoteChannelOffset = bsc;
@@ -370,7 +376,7 @@ void SusAnalyzer::ProcessCommand(const xp::smatch &result, const bool onlyMeta, 
         }
 
         default:
-            MakeMessage(line, u8"SUSコマンドが無効です。");
+            MakeMessage(line, "Invalid SUS command");
             break;
     }
 
@@ -392,11 +398,11 @@ void SusAnalyzer::ProcessRequest(const string &cmd, const uint32_t line)
             ticksPerBeat = ConvertInteger(params[1]);
             break;
         case "enable_priority"_crc32:
-            MakeMessage(line, u8"優先度つきノーツ描画が設定されます。");
+            MakeMessage(line, "Setting priority");
             SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::EnableDrawPriority)] = ConvertBoolean(params[1]);
             break;
         case "enable_moving_lane"_crc32:
-            MakeMessage(line, u8"移動レーンサポートが設定されます。");
+            MakeMessage(line, "Enabling lane movement");
             SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::EnableMovingLane)] = ConvertBoolean(params[1]);
             break;
         case "segments_per_second"_crc32:
@@ -455,7 +461,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
                 it->second->Apply(convertRawString(pattern));
             }
         } else {
-            MakeMessage(line, u8"不正なデータコマンドです。");
+            MakeMessage(line, "Invalid data command");
         }
     } else if (lane[0] == '0') {
         switch (lane[1]) {
@@ -479,7 +485,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
                 break;
             }
             default:
-                MakeMessage(line, u8"不正なデータコマンドです。");
+                MakeMessage(line, "Invalid data command");
                 break;
         }
     } else if (lane[0] == '1') {
@@ -516,7 +522,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
                     break;
                 default:
                     if (note[1] == '0') continue;
-                    MakeMessage(line, u8"ショートレーンの指定が不正です。");
+                    MakeMessage(line, "Invalid tap lane specification");
                     continue;
             }
 
@@ -582,7 +588,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
                     break;
                 default:
                     if (note[1] == '0') continue;
-                    MakeMessage(line, u8"Airレーンの指定が不正です。");
+                    MakeMessage(line, "Invalid air lane specification");
                     continue;
             }
 
@@ -612,7 +618,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
                     noteData.Type.set(size_t(SusNoteType::AirAction));
                     break;
                 default:
-                    MakeMessage(line, u8"ロングレーンの指定が不正です。");
+                    MakeMessage(line, "Invalid hold lane specification");
                     continue;
             }
             switch (note[0]) {
@@ -633,7 +639,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
                     break;
                 default:
                     if (note[1] == '0') continue;
-                    MakeMessage(line, u8"ノーツ種類の指定が不正です。");
+                    MakeMessage(line, "Invalid note type");
                     continue;
             }
 
@@ -649,7 +655,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
             const auto note = pattern.substr(i * 2, 2);
             if (note[1] == '0') continue;
             if (note[0] != '1') {
-                MakeMessage(line, u8"スタートレーンの指定が不正です。");
+                MakeMessage(line, "Invalid start lane");
                 continue;
             }
 
@@ -666,7 +672,7 @@ void SusAnalyzer::ProcessData(const xp::smatch &result, const uint32_t line)
         }
     } else {
         // 不正
-        MakeMessage(line, u8"不正なデータ定義です。");
+        MakeMessage(line, "Invalid data definition");
     }
 }
 
@@ -678,14 +684,14 @@ void SusAnalyzer::MakeMessage(const string &message) const
 void SusAnalyzer::MakeMessage(const uint32_t line, const string &message) const
 {
     ostringstream ss;
-    ss << line << u8"行目: " << message;
+    ss << "Line " << line << ": " << message;
     MakeMessage(ss.str());
 }
 
 void SusAnalyzer::MakeMessage(const uint32_t meas, const uint32_t tick, const uint32_t lane, const std::string &message) const
 {
     ostringstream ss;
-    ss << meas << u8"'" << tick << u8"@" << lane << u8": " << message;
+    ss << meas << "'" << tick << "@" << lane << ": " << message;
     MakeMessage(ss.str());
 }
 
@@ -821,7 +827,7 @@ void SusAnalyzer::RenderScoreData(DrawableNotesList &data, NoteCurvesList &curve
         if (info.Type[size_t(SusNoteType::Undefined)]) continue;
 
         if (info.NotePosition.StartLane + info.NotePosition.Length > 16) {
-            MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, u8"ショートノーツがはみ出しています。");
+            MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, u8"Tap note endpoint exceeds playfield width");
             continue;
         }
 
@@ -852,7 +858,7 @@ void SusAnalyzer::RenderScoreData(DrawableNotesList &data, NoteCurvesList &curve
                     ltype = SusNoteType::AirAction;
                     break;
                 default:
-                    MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, u8"致命的なノーツエラー(不正な内部表現です)。");
+                    MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, "Internal representation error");
                     continue;
             }
 
@@ -867,14 +873,14 @@ void SusAnalyzer::RenderScoreData(DrawableNotesList &data, NoteCurvesList &curve
                 if (curPos < time) continue;
 
                 if (curNo.NotePosition.StartLane + curNo.NotePosition.Length > 16) {
-                    MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, u8"ノーツがはみ出しています。");
+                    MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, "Note endpoint exceeds playfield width");
                     continue;
                 }
 
                 switch (ltype) {
                     case SusNoteType::Hold: {
                         if (curNo.Type.test(size_t(SusNoteType::Control)) || curNo.Type.test(size_t(SusNoteType::Invisible))) {
-                            MakeMessage(curPos.Measure, curPos.Tick, curNo.NotePosition.StartLane, u8"HoldでControl/Invisibleは指定できません。");
+                            MakeMessage(curPos.Measure, curPos.Tick, curNo.NotePosition.StartLane, "A note cannot be Control and Invisible at the same time");
                             continue;
                         }
                         if (curNo.DefinitionNumber != info.DefinitionNumber) continue;
@@ -921,7 +927,7 @@ void SusAnalyzer::RenderScoreData(DrawableNotesList &data, NoteCurvesList &curve
                 if (completed) break;
             }
             if (!completed) {
-                MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, u8"ロングノーツに終点がありません。");
+                MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, "Hold note does not have an endpoint");
                 continue;
             }
 
@@ -975,7 +981,7 @@ void SusAnalyzer::RenderScoreData(DrawableNotesList &data, NoteCurvesList &curve
                 if (hispeedDefinitions.find(noteData->ExtraAttribute->RollHispeedNumber) != hispeedDefinitions.end()) {
                     noteData->ExtraAttribute->RollTimeline = hispeedDefinitions[noteData->ExtraAttribute->RollHispeedNumber];
                 } else {
-                    MakeMessage(0, u8"指定されたタイムラインが存在しません。");
+                    MakeMessage(0, "Timeline does not exist");
                     noteData->ExtraAttribute->RollHispeedNumber = -1;
                 }
             }
@@ -1042,7 +1048,7 @@ void SusAnalyzer::RenderScoreData(DrawableNotesList &data, NoteCurvesList &curve
             SharedMetaData.ScoreDuration = max(SharedMetaData.ScoreDuration, noteData->StartTime);
         } else if (info.Type[size_t(SusNoteType::MeasureLine)]) {
         } else if (!info.Type[size_t(SusNoteType::StartPosition)]) {
-            MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, u8"致命的なノーツエラー(不正な内部表現です)。");
+            MakeMessage(time.Measure, time.Tick, info.NotePosition.StartLane, "Error with internal representation of notes");
             continue;
         }
 

@@ -5,23 +5,14 @@ using namespace std;
 using namespace boost::filesystem;
 namespace ba = boost::algorithm;
 
-std::wstring Setting::rootDirectory = L"";
-
-Setting::Setting(const HMODULE hModule)
-{
-    if (rootDirectory != "") return;
-    wchar_t directory[MAX_PATH];
-    GetModuleFileNameW(hModule, directory, MAX_PATH);
-    PathRemoveFileSpecW(directory);
-    rootDirectory = directory;
-}
+std::string Setting::rootDirectory = "";
 
 Setting::Setting()
 {
 
 }
 
-void Setting::Load(const wstring &filename)
+void Setting::Load(const string &filename)
 {
     auto log = spdlog::get("main");
     file = filename;
@@ -29,7 +20,7 @@ void Setting::Load(const wstring &filename)
         log->info(u8"設定ファイルを作成しました");
         Save();
     }
-    std::ifstream ifs((rootDirectory / file).wstring(), ios::in);
+    std::ifstream ifs((rootDirectory / file).string(), ios::in);
     auto pr = toml::parse(ifs);
     if (!pr.valid()) {
         log->error(u8"設定ファイルの記述が不正です: {0}", pr.errorReason);
@@ -40,7 +31,7 @@ void Setting::Load(const wstring &filename)
     ifs.close();
 }
 
-std::wstring Setting::GetRootDirectory()
+std::string Setting::GetRootDirectory()
 {
     return rootDirectory;
 }
@@ -48,7 +39,7 @@ std::wstring Setting::GetRootDirectory()
 void Setting::Save() const
 {
     auto log = spdlog::get("main");
-    std::ofstream ofs((rootDirectory / file).wstring(), ios::out);
+    std::ofstream ofs((rootDirectory / file).string(), ios::out);
     if (settingTree.valid()) settingTree.write(&ofs);
     log->info(u8"設定ファイルを保存しました");
     ofs.close();
@@ -71,7 +62,7 @@ void SettingItemManager::LoadItemsFromToml(const path& file)
 
     auto log = spdlog::get("main");
 
-    std::ifstream ifs(file.wstring(), ios::in);
+    std::ifstream ifs(file.string(), ios::in);
     auto pr = toml::parse(ifs);
     ifs.close();
     if (!pr.valid()) {

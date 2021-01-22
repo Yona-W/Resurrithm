@@ -4,6 +4,9 @@
 #include "Scene.h"
 #include "ScriptSprite.h"
 #include "ScriptFunction.h"
+#include <set>
+#include <list>
+#include <boost/filesystem.hpp>
 
 #define SU_IF_SCENE "Scene"
 #define SU_IF_COSCENE "CoroutineScene"

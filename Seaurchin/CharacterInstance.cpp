@@ -3,6 +3,7 @@
 #include "Setting.h"
 #include "Config.h"
 #include "ScriptScene.h"
+#include <angelscript.h>
 
 using namespace std;
 
@@ -88,7 +89,6 @@ void CharacterInstance::LoadAbilities()
         context->SetArgAddress(1, indicators.get());
         context->Execute();
         context->Unprepare();
-        log->info(u8"アビリティー " + ConvertUnicodeToUTF8(scrpath.c_str()));
     }
 }
 
@@ -102,16 +102,16 @@ asIScriptObject* CharacterInstance::LoadAbilityObject(const boost::filesystem::p
     using namespace boost::filesystem;
     auto log = spdlog::get("main");
     auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
-    //お茶を濁せ
-    const auto modulename = ConvertUnicodeToUTF8(filepath.c_str());
+
+    const auto modulename = ConvertUnicodeToUTF8(filepath.wstring().c_str());
     auto mod = scriptInterface->GetExistModule(modulename);
     if (!mod) {
-        scriptInterface->StartBuildModule(modulename, [=](wstring inc, wstring from, CWScriptBuilder *b) {
+        scriptInterface->StartBuildModule(modulename, [=](string inc, string from, CScriptBuilder *b) {
             if (!exists(abroot / inc)) return false;
-            b->AddSectionFromFile((abroot / inc).wstring().c_str());
+            b->AddSectionFromFile((abroot / inc).string().c_str());
             return true;
         });
-        scriptInterface->LoadFile(filepath.wstring());
+        scriptInterface->LoadFile(filepath.string());
         if (!scriptInterface->FinishBuildModule()) {
             scriptInterface->GetLastModule()->Discard();
             return nullptr;
@@ -173,7 +173,7 @@ void CharacterInstance::CallJudgeCallback(const AbilityJudgeType judge, const Ju
     auto infoClone = info;
 
     judgeCallback->Prepare();
-    judgeCallback->SetArg(0, SU_TO_INT32(judge));
+    judgeCallback->SetArgDWord(0, SU_TO_INT32(judge));
     judgeCallback->SetArgObject(1, &infoClone);
     judgeCallback->SetArgObject(2, &message);
     judgeCallback->Execute();

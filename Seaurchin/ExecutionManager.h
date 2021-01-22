@@ -13,6 +13,13 @@
 #include "Character.h"
 #include "Skill.h"
 
+#include <random>
+#include <map>
+#include <spdlog/spdlog.h>
+
+#include <libevdev-1.0/libevdev/libevdev.h>
+#include <boost/filesystem.hpp>
+
 class ExecutionManager final {
     friend class ScenePlayer;
 
@@ -24,7 +31,7 @@ private:
     const std::shared_ptr<MusicsManager> musics;
     const std::shared_ptr<CharacterManager> characters;
     const std::shared_ptr<SkillManager> skills;
-    const std::unique_ptr<ExtensionManager> extensions;
+    //const std::unique_ptr<ExtensionManager> extensions;
     const std::shared_ptr<std::mt19937> random;
     const std::shared_ptr<ControlState> sharedControlState;
 
@@ -34,10 +41,15 @@ private:
     std::unique_ptr<SkinHolder> skin;
     std::unordered_map<std::string, boost::any> optionalData;
     DrawableResult lastResult;
+    SSoundMixer *mixerBgm, *mixerSe;
+
+    #ifdef _WIN32
+
     HIMC hImc;
     HANDLE hCommunicationPipe;
     DWORD immConversion, immSentence;
-    SSoundMixer *mixerBgm, *mixerSe;
+
+    #endif
 
 public:
     explicit ExecutionManager(const std::shared_ptr<Setting>& setting);
@@ -64,7 +76,12 @@ public:
     CharacterManager* GetCharacterManagerUnsafe() const { return characters.get(); }
     SkillManager* GetSkillManagerUnsafe() const { return skills.get(); }
 
+    std::string GetFirstKeyboardDevice();
+
+    #ifdef _WIN32
     std::tuple<bool, LRESULT> CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) const;
+    #endif
+
     void ExecuteSkin();
     bool ExecuteSkin(const std::string &file);
     bool ExecuteScene(asIScriptObject *sceneObject);

@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include <angelscript.h>
+#include <set>
+
 #include "Misc.h"
 #include "ScriptSpriteMisc.h"
 #include "ScriptResource.h"

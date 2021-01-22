@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <cmath>
+
 #define SU_IF_DRESULT "DrawableResult"
 #define SU_IF_RESULT "Result"
 

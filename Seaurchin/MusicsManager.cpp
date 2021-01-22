@@ -5,7 +5,7 @@
 
 using namespace std;
 using namespace boost;
-using namespace filesystem;
+using namespace boost::filesystem;
 using namespace xpressive;
 
 typedef std::lock_guard<std::mutex> LockGuard;
@@ -72,7 +72,7 @@ void MusicsManager::CreateMusicCache()
                 if (is_directory(file)) continue;
                 if (file.path().extension() != ".sus") continue;     //これ大文字どうすんの
                 analyzer->Reset();
-                analyzer->LoadFromFile(file.path().wstring(), true);
+                analyzer->LoadFromFile(file.path().string(), true);
                 auto music = find_if(category->Musics.begin(), category->Musics.end(), [&](const std::shared_ptr<MusicMetaInfo> info) {
                     return info->SongId == analyzer->SharedMetaData.USongId;
                 });

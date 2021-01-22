@@ -1,6 +1,12 @@
 ﻿#ifndef SCRIPTBUILDER_H
 #define SCRIPTBUILDER_H
 
+#include <set>
+#include <map>
+#include <string>
+#include <boost/filesystem.hpp>
+#include <angelscript.h>
+
 //---------------------------
 // Compilation settings
 //

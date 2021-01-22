@@ -64,7 +64,7 @@ void SkillManager::LoadFromToml(boost::filesystem::path file)
     auto result = make_shared<SkillParameter>();
     const auto iconRoot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
 
-    std::ifstream ifs(file.wstring(), ios::in);
+    std::ifstream ifs(file.string(), ios::in);
     auto pr = toml::parse(ifs);
     ifs.close();
     if (!pr.valid()) {
@@ -179,7 +179,7 @@ void SkillIndicators::TriggerSkillIndicator(const int index) const
     }
 
     callback->Prepare();
-    callback->SetArg(0, index);
+    callback->SetArgDWord(0, index);
     callback->Execute();
     callback->Unprepare();
 }

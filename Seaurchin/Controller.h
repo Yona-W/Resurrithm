@@ -1,35 +1,35 @@
 ﻿#pragma once
 
+#include <vector>
+#include <stdint.h>
+#include <unistd.h>
+#include <cstring>
+#include <libevdev-1.0/libevdev/libevdev.h>
+
 enum class ControllerSource {
     RawKeyboard,
-    RawTouch,
-    IntegratedSliders,
-    IntegratedAir,
-};
-
-enum class AirControlSource {
-    AirUp,
-    AirDown,
-    AirHold,
-    AirAction,
+    Slider,
+    Air,
 };
 
 class ControlState final {
 private:
-    char keyboardCurrent[256];
-    char keyboardLast[256];
+    bool keyboardCurrent[256];
+    bool keyboardLast[256];
     bool keyboardTrigger[256];
 
-    bool integratedSliderCurrent[16];
-    bool integratedSliderLast[16];
-    bool integratedSliderTrigger[16];
-    bool integratedAir[4];
-    std::vector<int> sliderKeyboardInputCombinations[16];
-    uint32_t sliderKeyboardPrevious[16];
-    uint32_t sliderKeyboardCurrent[16];
-    bool sliderKeyboardTrigger[16];
-    std::vector<int> airStringKeyboardInputCombinations[4];
-    bool airStringKeyboard[4];
+    bool sliderCurrent[16];
+    bool sliderLast[16];
+    bool sliderTrigger[16];
+
+    std::vector<bool> airCurrent;
+    std::vector<bool> airLast;
+    std::vector<bool> airTrigger;
+
+    std::vector<int> sliderKeybindings[16];
+    std::vector<int> airKeybindings;
+
+    struct libevdev *inputDevice;
 
 public:
     void Initialize();
@@ -39,6 +39,7 @@ public:
     bool GetTriggerState(ControllerSource source, int number);
     bool GetCurrentState(ControllerSource source, int number);
     bool GetLastState(ControllerSource source, int number);
-    void SetSliderKeyCombination(int sliderNumber, const std::vector<int>& keys);
-    void SetAirStringKeyCombination(int airNumber, const std::vector<int>& keys);
+    void SetSliderKeybindings(int sliderNumber, const std::vector<int>& keys);
+    void SetAirKeybindings(const std::vector<int>& keys);
+    bool SetInputDevice(int fp);
 };

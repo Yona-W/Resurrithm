@@ -1,4 +1,10 @@
 ﻿#pragma once
+#include <stdint.h>
+#include <freetype/freetype.h>
+#include <string>
+#include <fstream>
+#include <boost/filesystem.hpp>
+#include <libpng16/png.h>
 
 struct Rect {
     int X;

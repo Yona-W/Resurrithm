@@ -1,7 +1,14 @@
 ﻿#pragma once
 
+#include <stdint.h>
+#include <string>
+#include <memory>
+#include <boost/filesystem.hpp>
+#include <angelscript.h>
+
 #define SU_IF_MSCURSOR "MusicCursor"
 #define SU_IF_MSCSTATE "CursorState"
+
 
 struct MusicScoreInfo final {
     uint16_t Difficulty = 0;

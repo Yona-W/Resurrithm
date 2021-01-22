@@ -1,5 +1,12 @@
 ﻿#pragma once
 
+#include <functional>
+#include <string>
+#include <memory>
+#include <bitset>
+#include <unordered_map>
+#include <boost/xpressive/xpressive.hpp>
+
 #define SU_NOTE_LONG_MASK  0b00000000001110000000
 #define SU_NOTE_SHORT_MASK 0b00000000000001111110
 
@@ -267,7 +274,7 @@ public:
 
     void Reset();
     void SetMessageCallBack(const std::function<void(std::string, std::string)>& func);
-    void LoadFromFile(const std::wstring &fileName, bool analyzeOnlyMetaData = false);
+    void LoadFromFile(const std::string &fileName, bool analyzeOnlyMetaData = false);
     void RenderScoreData(DrawableNotesList &data, NoteCurvesList &curveData);
     float GetBeatsAt(uint32_t measure) const;
     double GetBpmAt(uint32_t measure, uint32_t tick) const;

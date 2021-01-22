@@ -14,7 +14,7 @@ CharacterManager::CharacterManager()
 void CharacterManager::LoadAllCharacters()
 {
     using namespace boost;
-    using namespace filesystem;
+    using namespace boost::filesystem;
     using namespace xpressive;
     auto log = spdlog::get("main");
 
@@ -75,7 +75,7 @@ void CharacterManager::LoadFromToml(const boost::filesystem::path& file)
     auto log = spdlog::get("main");
     auto result = make_shared<CharacterParameter>();
 
-    std::ifstream ifs(file.wstring(), ios::in);
+    std::ifstream ifs(file.string(), ios::in);
     auto pr = toml::parse(ifs);
     ifs.close();
     if (!pr.valid()) {
@@ -181,6 +181,7 @@ CharacterImageSet *CharacterImageSet::CreateImageSet(const shared_ptr<CharacterP
 
 void CharacterImageSet::LoadAllImage()
 {
+    /* TODO VULKAN
     auto root = ConvertUTF8ToUnicode(parameter->ImagePath);
     const auto hBase = LoadGraph(reinterpret_cast<const char*>(root.c_str()));
     const auto hSmall = MakeScreen(SU_CHAR_SMALL_WIDTH, SU_CHAR_SMALL_WIDTH, 1);
@@ -204,6 +205,7 @@ void CharacterImageSet::LoadAllImage()
     imageSmall->AddRef();
     imageFace = new SImage(hFace);
     imageFace->AddRef();
+    */
 }
 
 void CharacterImageSet::RegisterType(asIScriptEngine *engine)

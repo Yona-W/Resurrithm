@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "MoverFunctionExpression.h"
+#include <math.h>
 
 #define SU_DEF_EASING_MOVER_FUNCTION_EXPRESSION(name, expression) \
 class name ## MoverFunctionExpression : public MoverFunctionExpression \

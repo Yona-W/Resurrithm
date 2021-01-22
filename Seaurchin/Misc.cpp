@@ -4,9 +4,10 @@ using namespace std;
 
 wstring ConvertUTF8ToUnicode(const string &utf8Str)
 {
-    const auto len = MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, nullptr, 0);
+    auto len = utf8Str.length();
     const auto buffer = new wchar_t[len];
-    MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), -1, buffer, len);
+    const char *input = utf8Str.c_str();
+    UTF8to16(input, buffer);
     wstring ret = buffer;
     delete[] buffer;
     return ret;
@@ -14,9 +15,10 @@ wstring ConvertUTF8ToUnicode(const string &utf8Str)
 
 string ConvertUnicodeToUTF8(const wstring &utf16Str)
 {
-    const auto len = WideCharToMultiByte(CP_UTF8, 0, reinterpret_cast<const wchar_t*>(utf16Str.c_str()), -1, nullptr, 0, nullptr, nullptr);
+    auto len = utf16Str.length();
     const auto buffer = new char[len];
-    WideCharToMultiByte(CP_UTF8, 0, reinterpret_cast<const wchar_t*>(utf16Str.c_str()), -1, buffer, len, nullptr, nullptr);
+    const wchar_t *input = utf16Str.c_str();
+    UTF16to8(input, buffer);
     string ret = buffer;
     delete[] buffer;
     return ret;
@@ -74,7 +76,7 @@ bool ConvertBoolean(const string &input)
 {
     const auto toLower = [](const char c) { return char(tolower(c)); };
     auto test = input;
-    transform(test.cbegin(), test.cend(), test.begin(), toLower);
+    std::transform(test.cbegin(), test.cend(), test.begin(), toLower);
     return
         input == "1"
         || input == "true"

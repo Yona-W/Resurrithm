@@ -7,7 +7,7 @@ using namespace std;
 using namespace boost::filesystem;
 
 // ReSharper disable once CppParameterNeverUsed
-bool SkinHolder::IncludeScript(std::wstring include, std::wstring from, CWScriptBuilder *builder)
+bool SkinHolder::IncludeScript(std::wstring include, std::wstring from, CScriptBuilder *builder)
 {
     return false;
 }
@@ -26,12 +26,12 @@ void SkinHolder::Initialize()
 {
     auto log = spdlog::get("main");
     scriptInterface->StartBuildModule("SkinLoader",
-        [this](wstring inc, wstring from, CWScriptBuilder *b) {
+        [this](string inc, string from, CScriptBuilder *b) {
         if (!exists(skinRoot / SU_SCRIPT_DIR / inc)) return false;
-        b->AddSectionFromFile((skinRoot / SU_SCRIPT_DIR / inc).wstring().c_str());
+        b->AddSectionFromFile((skinRoot / SU_SCRIPT_DIR / inc).string().c_str());
         return true;
     });
-    scriptInterface->LoadFile((skinRoot / SU_SKIN_MAIN_FILE).wstring());
+    scriptInterface->LoadFile((skinRoot / SU_SKIN_MAIN_FILE).string());
     scriptInterface->FinishBuildModule();
 
     auto mod = scriptInterface->GetLastModule();
@@ -80,12 +80,12 @@ asIScriptObject* SkinHolder::ExecuteSkinScript(const wstring &file, const bool f
     auto mod = scriptInterface->GetExistModule(modulename);
     if (!mod || forceReload) {
         scriptInterface->StartBuildModule(modulename,
-            [this](wstring inc, wstring from, CWScriptBuilder *b) {
+            [this](string inc, string from, CScriptBuilder *b) {
             if (!exists(skinRoot / SU_SCRIPT_DIR / inc)) return false;
-            b->AddSectionFromFile((skinRoot / SU_SCRIPT_DIR / inc).wstring().c_str());
+            b->AddSectionFromFile((skinRoot / SU_SCRIPT_DIR / inc).string().c_str());
             return true;
         });
-        scriptInterface->LoadFile((skinRoot / SU_SCRIPT_DIR / file).wstring());
+        scriptInterface->LoadFile((skinRoot / SU_SCRIPT_DIR / file).string());
         if (!scriptInterface->FinishBuildModule()) {
             scriptInterface->GetLastModule()->Discard();
             return nullptr;

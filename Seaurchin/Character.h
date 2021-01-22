@@ -1,6 +1,12 @@
 ﻿#pragma once
 
 #include "ScriptSprite.h"
+#include <boost/filesystem.hpp>
+#include <boost/iterator.hpp>
+#include <boost/xpressive/xpressive.hpp>
+#include <boost/algorithm/string.hpp>
+#include <fstream>
+
 
 #define SU_IF_CHARACTER_METRIC "CharacterMetric"
 #define SU_IF_CHARACTER_PARAM "Character"

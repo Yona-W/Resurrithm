@@ -126,7 +126,7 @@ void ScriptScene::Tick(const double delta)
     if (!mainMethod) return;
 
     mainMethod->Prepare();
-    mainMethod->SetArg(0, delta);
+    mainMethod->SetArgDouble(0, delta);
     mainMethod->Execute();
     mainMethod->Unprepare();
 
@@ -138,7 +138,7 @@ void ScriptScene::OnEvent(const string &message)
 
     auto msg = message;
     eventMethod->Prepare();
-    eventMethod->SetArg(0, &msg);
+    eventMethod->SetArgAddress(0, &msg);
     eventMethod->Execute();
     eventMethod->Unprepare();
 }

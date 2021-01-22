@@ -1,7 +1,7 @@
 ﻿#include "AngelScriptManager.h"
 
 using namespace std;
-static int ScriptIncludeCallback(const wchar_t *include, const wchar_t *from, CWScriptBuilder *builder, void *userParam);
+static int ScriptIncludeCallback(const char *include, const char *from, CScriptBuilder *builder, void *userParam);
 
 AngelScript::AngelScript()
     : engine(asCreateScriptEngine())
@@ -30,12 +30,12 @@ void AngelScript::StartBuildModule(const string &name, const IncludeCallback cal
     builder.StartNewModule(engine, name.c_str());
 }
 
-void AngelScript::LoadFile(const wstring &filename)
+void AngelScript::LoadFile(const string &filename)
 {
     builder.AddSectionFromFile(filename.c_str());
 }
 
-bool AngelScript::IncludeFile(const wstring &include, const wstring &from)
+bool AngelScript::IncludeFile(const string &include, const string &from)
 {
     return includeFunc(include, from, &builder);
 }
@@ -47,14 +47,20 @@ bool AngelScript::FinishBuildModule()
 
 bool AngelScript::CheckMetaData(asITypeInfo *type, const string &meta)
 {
-    const auto df = builder.GetMetadataStringForType(type->GetTypeId());
+    return false;
+    /* TODO
+    const auto df = builder.GetMetadataForType(type->GetTypeId());
     return df == meta;
+    */
 }
 
 bool AngelScript::CheckMetaData(asIScriptFunction *func, const string &meta)
 {
-    const auto df = builder.GetMetadataStringForFunc(func);
+    return false;
+    /*
+    const auto df = builder.GetMetadataForFunc(func);
     return df == meta;
+    */
 }
 
 asIScriptObject *AngelScript::InstantiateObject(asITypeInfo * type) const
@@ -87,7 +93,7 @@ void AngelScript::ScriptMessageCallback(const asSMessageInfo * message) const
     }
 }
 
-int ScriptIncludeCallback(const wchar_t *include, const wchar_t *from, CWScriptBuilder *builder, void *userParam)
+int ScriptIncludeCallback(const char *include, const char *from, CScriptBuilder *builder, void *userParam)
 {
     auto as = reinterpret_cast<AngelScript*>(userParam);
     return as->IncludeFile(include, from) ? 1 : -1;

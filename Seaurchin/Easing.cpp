@@ -1,5 +1,4 @@
-﻿#include "MoverFunctionExpression.h"
-#include "Easing.h"
+﻿#include "Easing.h"
 
 namespace easing {
     bool RegisterDefaultMoverFunctionExpressions()

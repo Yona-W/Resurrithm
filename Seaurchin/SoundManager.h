@@ -1,5 +1,12 @@
 ﻿#pragma once
 
+#include <bass.h>
+#include <bassmix.h>
+#include <bass_fx.h>
+#include <string>
+#include <unordered_set>
+#include <spdlog/spdlog.h>
+
 class SoundManager;
 
 enum class SoundType {
@@ -49,7 +56,7 @@ public:
     DWORD GetSoundHandle() override;
     void StopSound() override;
     void SetVolume(double vol) override;
-    // 適当に考えたんですが多分Pause/Resumeは独自にやっちゃってokですね
+
     void Pause() const;
     void Resume() const;
 
