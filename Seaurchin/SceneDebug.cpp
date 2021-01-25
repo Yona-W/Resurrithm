@@ -12,8 +12,10 @@ void SceneDebug::Tick(const double delta)
 
 void SceneDebug::Draw()
 {
+    /* TODO: reintroduce fps counter
     clsDx();
     printfDx(reinterpret_cast<const char*>(L"%2.1f fps\n"), fps);
+    */
 }
 
 bool SceneDebug::IsDead()

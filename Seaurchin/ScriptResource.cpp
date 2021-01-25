@@ -25,12 +25,13 @@ void SResource::Release()
 SImage::SImage(SDL_Surface *ptr)
 {
     surfacePtr = ptr;
+    texturePtr = SDL_CreateTextureFromSurface(renderer, ptr);
 }
 
 SImage::~SImage()
 {
     if (surfacePtr) SDL_FreeSurface(surfacePtr);
-    surfacePtr = nullptr;
+    if (texturePtr) SDL_DestroyTexture(texturePtr);
 }
 
 int SImage::GetWidth()
@@ -54,16 +55,17 @@ SImage * SImage::CreateBlankImage(int width, int height)
 
 SImage * SImage::CreateLoadedImageFromFile(const string &file, const bool async)
 {
-    auto result = new SImage(LoadGraph(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(file).c_str())));
+    auto result = new SImage(IMG_Load(file.c_str()));
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
 }
 
-SImage * SImage::CreateLoadedImageFromMemory(void * buffer, int width, int height)
+SImage * SImage::CreateLoadedImageFromMemory(void * buffer, size_t size)
 {
-    auto result = new SImage(SDL_CreateRGBSurfaceFrom(buffer, width, height, 8, width * 3, 0, 0, 0, 0)); //TODO might be wrong
+    auto rw = SDL_RWFromMem(buffer, size);
+    auto result = new SImage(IMG_Load_RW(rw, true));
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -87,6 +89,7 @@ SRenderTarget * SRenderTarget::CreateBlankTarget(const int width, const int heig
     return result;
 }
 
+/*
 // SNinePatchImage ----------------------------
 SNinePatchImage::SNinePatchImage(const int ih)
     : SImage(ih)
@@ -106,42 +109,45 @@ void SNinePatchImage::SetArea(const int leftw, const int toph, const int bodyw, 
     bodyWidth = bodyw;
     bodyHeight = bodyh;
 }
+*/
 
 // SAnimatedImage --------------------------------
 
 SAnimatedImage::SAnimatedImage(const int w, const int h, const int count, const double time)
     : SImage(0)
 {
-    cellWidth = width = w;
-    cellHeight = height = h;
+    cellWidth = w;
+    cellHeight = h;
     frameCount = count;
     secondsPerFrame = time;
 }
 
 SAnimatedImage::~SAnimatedImage()
 {
-    for (auto &img : images) DeleteGraph(img);
+    SDL_FreeSurface(surfacePtr);
+    SDL_DestroyTexture(texturePtr);
 }
 
-SAnimatedImage * SAnimatedImage::CreateLoadedImageFromFile(const std::string & file, const int xc, const int yc, const int w, const int h, const int count, const double time)
+SAnimatedImage * SAnimatedImage::CreateLoadedImageFromFile(const std::string & file, const int w, const int h, const int count, const double time)
 {
     auto result = new SAnimatedImage(w, h, count, time);
     result->AddRef();
 
-    result->images.resize(count);
-    LoadDivGraph(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(file).c_str()), count, xc, yc, w, h, result->images.data());
+    result->surfacePtr = IMG_Load(file.c_str());
+    result->texturePtr = SDL_CreateTextureFromSurface(renderer, result->surfacePtr);
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
 }
 
-SAnimatedImage * SAnimatedImage::CreateLoadedImageFromMemory(void * buffer, const size_t size, const int xc, const int yc, const int w, const int h, const int count, const double time)
+SAnimatedImage * SAnimatedImage::CreateLoadedImageFromMemory(void * buffer, const size_t size, const int w, const int h, const int count, const double time)
 {
     auto result = new SAnimatedImage(w, h, count, time);
     result->AddRef();
 
-    result->images.resize(count);
-    CreateDivGraphFromMem(buffer, size, count, xc, yc, w, h, result->images.data());
+    auto rw = SDL_RWFromMem(buffer, size);
+    result->surfacePtr = IMG_Load_RW(rw, true);
+    result->texturePtr = SDL_CreateTextureFromSurface(renderer, result->surfacePtr);
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
@@ -168,7 +174,7 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
         SDL_SetRenderTarget(renderer, rt->GetTexture());
         SDL_RenderClear(renderer);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     }
     const auto *ccp = reinterpret_cast<const uint8_t*>(utf8Str.c_str());
     while (*ccp) {
@@ -195,12 +201,25 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
         }
         const auto sg = glyphs[gi];
         if (!sg) continue;
-        if (rt) DrawRectGraph(
-            cx + sg->BearX, cy + sg->BearY,
-            sg->GlyphX, sg->GlyphY,
-            sg->GlyphWidth, sg->GlyphHeight,
-            Images[sg->ImageNumber]->GetHandle(),
-            TRUE, FALSE);
+
+        if (rt) {
+            SDL_Rect srcRect = {sg->GlyphX, sg->GlyphY, sg->GlyphWidth, sg->GlyphHeight};
+            SDL_Rect dstRect = {sg->BearX, sg->BearY, sg->GlyphWidth, sg->GlyphHeight};
+            SDL_RenderCopy(renderer, Images[sg->ImageNumber]->GetTexture(), &srcRect, &dstRect);
+        }
+        
+        /*
+        DrawRectGraph(
+            cx + sg->BearX, // DestX
+            cy + sg->BearY, // DestY
+            sg->GlyphX, // SrcX
+            sg->GlyphY, // SrcY
+            sg->GlyphWidth, // Src / Dst Width
+            sg->GlyphHeight, // Src / Dst Height
+            Images[sg->ImageNumber]->GetHandle(), // Image
+            TRUE, // Transparency
+            FALSE); // Invert?
+        */
         cx += sg->WholeAdvance;
     }
     if (rt) {
@@ -223,14 +242,14 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
     auto visible = true;
     auto line = 1;
 
-    auto cr = defcol.R, cg = defcol.G, cb = defcol.B;
+    auto cr = defcol.R, cg = defcol.G, cb = defcol.B, ca = defcol.A;
     float cw = 1;
 
     if (rt) {
         SDL_SetRenderTarget(renderer, rt->GetTexture());
         SDL_RenderClear(renderer);
         SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, cr, cg, cb);
+        SDL_SetRenderDrawColor(renderer, cr, cg, cb, ca);
         //SetDrawMode(DX_DRAWMODE_ANISOTROPIC); // Not sure how to translate this tbh
     }
     auto ccp = utf8Str.begin();
@@ -276,12 +295,6 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
                     cg = defcol.G;
                     cb = defcol.B;
                     break;
-                case "bold"_crc32:
-                    cw = 1.2f;
-                    break;
-                case "normal"_crc32:
-                    cw = 1.0f;
-                    break;
                 case "hide"_crc32:
                     visible = false;
                     break;
@@ -323,21 +336,13 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
         const auto sg = glyphs[gi];
         if (!sg) continue;
         if (rt) {
-            SDL_SetRenderDrawColor(renderer, cr, cg, cb); // I think?
-            DrawRectRotaGraph3F(
-                SU_TO_FLOAT(cx + sg->BearX) - (cw - 1.0f) * 0.5f * sg->GlyphWidth, SU_TO_FLOAT(cy + sg->BearY),
-                sg->GlyphX, sg->GlyphY,
-                sg->GlyphWidth, sg->GlyphHeight,
-                0, 0,
-                cw, 1, 0,
-                Images[sg->ImageNumber]->GetHandle(),
-                TRUE, FALSE);
+            SDL_SetRenderDrawColor(renderer, cr, cg, cb, ca);
+            SDL_Rect srcRect = {sg->GlyphX, sg->GlyphY, sg->GlyphWidth, sg->GlyphHeight};
+            SDL_Rect dstRect = {sg->BearX, sg->BearY, sg->GlyphWidth, sg->GlyphHeight};
+            SDL_RenderCopy(renderer, Images[sg->ImageNumber]->GetTexture(), &srcRect, &dstRect);
+            cx += sg->WholeAdvance;
+            SDL_SetRenderTarget(renderer, NULL);
         }
-        cx += sg->WholeAdvance;
-    }
-    if (rt) {
-        //SetDrawMode(DX_DRAWMODE_NEAREST);
-        SDL_SetRenderTarget(renderer, NULL);
     }
     mx = max(mx, cx);
     double my = line * size;
@@ -374,7 +379,7 @@ SFont * SFont::CreateLoadedFontFromFile(const string & file)
         font.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
         const auto pngdata = new uint8_t[size];
         font.read(reinterpret_cast<char*>(pngdata), size);
-        result->Images.push_back(SImage::CreateLoadedImageFromMemory(pngdata, width, height)); //TODO
+        result->Images.push_back(SImage::CreateLoadedImageFromMemory(pngdata, size));
         delete[] pngdata;
     }
 

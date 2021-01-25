@@ -6,6 +6,8 @@
 #include <cstring>
 #include <libevdev-1.0/libevdev/libevdev.h>
 
+#define AIRSENSOR_ALL -1
+
 enum class ControllerSource {
     RawKeyboard,
     Slider,

@@ -3,8 +3,9 @@
 #include <angelscript.h>
 #include <scriptdictionary/scriptdictionary.h>
 #include <set>
-//#include <glm.hpp>
 #include <glm/ext.hpp>
+#include <glm/gtx/rotate_vector.hpp>
+#include <SDL2/SDL2_gfxPrimitives.h>
 
 #include "Misc.h"
 #include "ScriptSpriteMisc.h"

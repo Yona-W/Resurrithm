@@ -290,15 +290,26 @@ void SSprite::Draw(const Transform2D &parent, const ColorTint &color)
 void SSprite::DrawBy(const Transform2D &tf, const ColorTint &ct)
 {
     if (!Image) return;
-    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
+    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    DrawRotaGraph3F(
-        tf.X, tf.Y,
-        tf.OriginX, tf.OriginY,
-        tf.ScaleX, tf.ScaleY,
-        tf.Angle, Image->GetHandle(),
-        HasAlpha ? TRUE : FALSE, FALSE);
+    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
+
+    SDL_FRect dstRect = {
+        tf.X - scaledOrigin.x,
+        tf.Y - scaledOrigin.y,
+        Image->GetWidth() * tf.ScaleX,
+        Image->GetHeight() * tf.ScaleY
+    };
+
+    SDL_RenderCopyExF(
+        renderer,
+        Image->GetTexture(),
+        NULL,
+        &dstRect,
+        tf.Angle,
+        &scaledOrigin,
+        SDL_FLIP_NONE);
 }
 
 SSprite * SSprite::Clone()
@@ -402,47 +413,42 @@ SShape::SShape()
 
 void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
 {
-    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
+    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     switch (Type) {
         case SShapeType::Pixel:
-            DrawPixel(SU_TO_INT32(tf.X), SU_TO_INT32(tf.Y), GetColor(255, 255, 255));
+            SDL_RenderDrawPointF(renderer, tf.X, tf.Y);
             break;
         case SShapeType::Box: {
             const glm::vec2 points[] = {
-                glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-                glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-                glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle)),
-                glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle))
+                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
+                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
+                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle),
+                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle)
             };
-            DrawQuadrangleAA(
-                tf.X + points[0].x, tf.Y - points[0].y,
-                tf.X + points[1].x, tf.Y - points[1].y,
-                tf.X + points[2].x, tf.Y - points[2].y,
-                tf.X + points[3].x, tf.Y - points[3].y,
-                GetColor(255, 255, 255), FALSE
-            );
+
+            const Sint16 Xs[] = { points[0].x, points[1].x, points[2].x, points[3].x};
+            const Sint16 Ys[] = { points[0].y, points[1].y, points[2].y, points[3].y};
+
+            polygonRGBA(renderer, Xs, Ys, 4, ct.R, ct.G, ct.B, ct.A);
             break;
         }
         case SShapeType::BoxFill: {
             const glm::vec2 points[] = {
-                glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-                glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, +Height * tf.ScaleY / 2.0), float(tf.Angle)),
-                glm::rotate(glm::vec2(-Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle)),
-                glm::rotate(glm::vec2(+Width * tf.ScaleX / 2.0, -Height * tf.ScaleY / 2.0), float(tf.Angle))
+                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
+                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
+                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle),
+                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle)
             };
-            DrawQuadrangleAA(
-                tf.X + points[0].x, tf.Y - points[0].y,
-                tf.X + points[1].x, tf.Y - points[1].y,
-                tf.X + points[2].x, tf.Y - points[2].y,
-                tf.X + points[3].x, tf.Y - points[3].y,
-                GetColor(255, 255, 255), TRUE
-            );
+            const Sint16 Xs[] = { points[0].x, points[1].x, points[2].x, points[3].x};
+            const Sint16 Ys[] = { points[0].y, points[1].y, points[2].y, points[3].y};
+
+            filledPolygonRGBA(renderer, Xs, Ys, 4, ct.R, ct.G, ct.B, ct.A);
             break;
         }
         case SShapeType::Oval: {
             auto prev = glm::rotate(
-                glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(0), Height * tf.ScaleY / 2.0 * glm::sin(0)),
+                glm::vec2(float(Width * tf.ScaleX / 2.0f * glm::cos(0)), float(Height * tf.ScaleY / 2.0f * glm::sin(0))),
                 float(tf.Angle)
             );
             for (auto i = 1; i <= 256; ++i) {
@@ -451,13 +457,7 @@ void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
                     glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(angle), Height * tf.ScaleY / 2.0 * glm::sin(angle)),
                     float(tf.Angle)
                 );
-                DrawLineAA(
-                    float(tf.X + prev.x),
-                    float(tf.Y - prev.y),
-                    float(tf.X + next.x),
-                    float(tf.Y - next.y),
-                    GetColor(255, 255, 255)
-                );
+                SDL_RenderDrawLine(renderer, tf.X + prev.x, tf.Y - prev.y, tf.X + next.x, tf.Y - next.y);
                 prev = next;
             }
             break;
@@ -473,15 +473,14 @@ void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
                     glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(angle), Height * tf.ScaleY / 2.0 * glm::sin(angle)),
                     float(tf.Angle)
                 );
-                DrawTriangleAA(
-                    float(tf.X),
-                    float(tf.Y),
-                    float(tf.X + prev.x),
-                    float(tf.Y - prev.y),
-                    float(tf.X + next.x),
-                    float(tf.Y - next.y),
-                    GetColor(255, 255, 255),
-                    TRUE
+                filledTrigonRGBA(renderer, 
+                    tf.X,
+                    tf.Y,
+                    tf.X + prev.x,
+                    tf.Y - prev.y,
+                    tf.X + next.x,
+                    tf.Y - next.y,
+                    ct.R, ct.G, ct.B, ct.A
                 );
                 prev = next;
             }
@@ -566,41 +565,62 @@ void STextSprite::DrawNormal(const Transform2D &tf, const ColorTint &ct)
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     //SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
     if (isRich) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     } else {
-        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
+        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
     }
     const auto tox = SU_TO_FLOAT(get<0>(size) / 2 * int(horizontalAlignment));
     const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
-    DrawRotaGraph3F(
-        tf.X, tf.Y,
-        tf.OriginX + tox, tf.OriginY + toy,
-        tf.ScaleX, tf.ScaleY,
-        tf.Angle, target->GetHandle(), TRUE, FALSE);
+
+    SDL_FPoint scaledOrigin = {(tf.OriginX + tox) * tf.ScaleX, (tf.OriginY + toy) * tf.ScaleY};
+
+    SDL_FRect dstRect = {
+        tf.X - (tf.OriginX + tox) * tf.ScaleX,
+        tf.Y - (tf.OriginY + toy) * tf.ScaleY,
+        target->GetWidth() * tf.ScaleX,
+        target->GetHeight() * tf.ScaleY
+    };
+
+    SDL_RenderCopyExF(
+        renderer,
+        target->GetTexture(),
+        NULL,
+        &dstRect,
+        tf.Angle,
+        &scaledOrigin,
+        SDL_FLIP_NONE);
 }
 
 void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct)
 {
-    SDL_SetRenderTarget(scrollBuffer->GetTexture());
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+    SDL_SetRenderTarget(renderer, scrollBuffer->GetTexture());
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     SDL_RenderClear(renderer);
     if (scrollSpeed >= 0) {
         auto reach = -scrollPosition + int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
         while (reach < scrollWidth) {
-            DrawRectGraphF(
-                SU_TO_FLOAT(reach), 0,
-                0, 0, SU_TO_INT32(get<0>(size)), SU_TO_INT32(get<1>(size)),
-                target->GetHandle(), TRUE, FALSE);
+            const SDL_Rect srcRect = {0, 0, get<0>(size), get<1>(size)};
+            const SDL_Rect dstRect = {reach, 0, srcRect.w, srcRect.h};
+            SDL_RenderCopy(
+                renderer,
+                target->GetTexture(),
+                &srcRect,
+                &dstRect
+            );
             reach += get<0>(size) + scrollMargin;
         }
     } else {
         auto reach = -scrollPosition - int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
         while (reach > 0) {
-            DrawRectGraphF(
-                SU_TO_FLOAT(reach), 0,
-                0, 0, SU_TO_INT32(get<0>(size)), SU_TO_INT32(get<1>(size)),
-                target->GetHandle(), TRUE, FALSE);
+            const SDL_Rect srcRect = {0, 0, get<0>(size), get<1>(size)};
+            const SDL_Rect dstRect = {reach, 0, srcRect.w, srcRect.h};
+            SDL_RenderCopy(
+                renderer,
+                target->GetTexture(),
+                &srcRect,
+                &dstRect
+            );
             reach -= get<0>(size) + scrollMargin;
         }
     }
@@ -610,17 +630,29 @@ void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct)
     //SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
 
     if (isRich) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     } else {
-        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
+        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
     }
     const auto tox = SU_TO_FLOAT(scrollWidth / 2 * int(horizontalAlignment));
     const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
-    DrawRotaGraph3F(
-        tf.X, tf.Y,
-        tf.OriginX + tox, tf.OriginY + toy,
-        tf.ScaleX, tf.ScaleY,
-        tf.Angle, scrollBuffer->GetHandle(), TRUE, FALSE);
+
+    SDL_FPoint scaledOrigin = {(tf.OriginX + tox) * tf.ScaleX, (tf.OriginY + toy) * tf.ScaleY};
+    SDL_FRect dstRect = {
+        tf.X - scaledOrigin.x,
+        tf.Y - scaledOrigin.y,
+        Image->GetWidth() * tf.ScaleX,
+        Image->GetHeight() * tf.ScaleY
+    };
+
+    SDL_RenderCopyExF(
+        renderer,
+        scrollBuffer->GetTexture(),
+        NULL,
+        &dstRect,
+        tf.Angle,
+        &scaledOrigin,
+        SDL_FLIP_NONE);
 }
 
 void STextSprite::SetFont(SFont * font)
@@ -783,6 +815,9 @@ void STextSprite::RegisterType(asIScriptEngine *engine)
 
 // STextInput ---------------------------------------
 
+
+/* lol screw this
+
 STextInput::STextInput()
 {
     //TODO: デフォルト値の引数化
@@ -807,12 +842,10 @@ void STextInput::Activate() const
 
 void STextInput::Draw()
 {
-    /*
     const auto wcc = MultiByteToWideChar(CP_OEMCP, 0, currentRawString.c_str(), 1024, nullptr, 0);
     const auto widestr = new wchar_t[wcc];
     MultiByteToWideChar(CP_OEMCP, 0, currentRawString.c_str(), 1024, widestr, 0);
     delete[] widestr;
-    */ 
     // TODO wtf is this?
 }
 
@@ -853,20 +886,32 @@ STextInput *STextInput::Factory(SFont *img)
 void STextInput::RegisterType(asIScriptEngine *engine)
 {}
 
+*/
 
 // SSynthSprite -------------------------------------
 
 void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
 {
     if (!target) return;
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    DrawRotaGraph3F(
-        tf.X, tf.Y,
-        tf.OriginX, tf.OriginY,
-        tf.ScaleX, tf.ScaleY,
-        tf.Angle, target->GetHandle(),
-        HasAlpha ? TRUE : FALSE, FALSE);
+
+    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
+    SDL_FRect dstRect = {
+        tf.X - scaledOrigin.x,
+        tf.Y - scaledOrigin.y,
+        target->GetWidth() * tf.ScaleX,
+        target->GetHeight() * tf.ScaleY
+    };
+
+    SDL_RenderCopyExF(
+        renderer,
+        target->GetTexture(),
+        NULL,
+        &dstRect,
+        tf.Angle,
+        &scaledOrigin,
+        SDL_FLIP_NONE);
 }
 
 SSynthSprite::SSynthSprite(const int w, const int h)
@@ -905,9 +950,12 @@ void SSynthSprite::Transfer(SImage * image, const double x, const double y)
     if (!image) return;
 
     SDL_SetRenderTarget(renderer, target->GetTexture());
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255);
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    DrawGraphF(SU_TO_FLOAT(x), SU_TO_FLOAT(y), image->GetHandle(), HasAlpha ? TRUE : FALSE);
+
+    SDL_Rect rect = {x, y, image->GetWidth(), image->GetHeight()};
+    SDL_RenderCopy(renderer, image->GetTexture(), &rect, NULL);
+
     SDL_SetRenderTarget(renderer, NULL);
 
     image->Release();
@@ -970,19 +1018,31 @@ void SSynthSprite::RegisterType(asIScriptEngine * engine)
 void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
 {
     if (!target) return;
+    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
     const auto x = SU_TO_INT32(width * u1);
     const auto y = SU_TO_INT32(height * v1);
     const auto w = SU_TO_INT32(width * u2);
     const auto h = SU_TO_INT32(height * v2);
-    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    DrawRectRotaGraph3F(
-        tf.X, tf.Y,
-        x, y, w, h,
-        tf.OriginX, tf.OriginY,
-        tf.ScaleX, tf.ScaleY,
-        tf.Angle, target->GetHandle(),
-        HasAlpha ? TRUE : FALSE, FALSE);
+
+    SDL_Rect srcRect = {x, y, w, h};
+    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
+    SDL_FRect dstRect = {
+        tf.X - scaledOrigin.x,
+        tf.Y - scaledOrigin.y,
+        target->GetWidth() * tf.ScaleX,
+        target->GetHeight() * tf.ScaleY
+    };
+
+    SDL_RenderCopyExF(
+        renderer,
+        target->GetTexture(),
+        &srcRect,
+        &dstRect,
+        tf.Angle,
+        &scaledOrigin,
+        SDL_FLIP_NONE);
 }
 
 SClippingSprite::SClippingSprite(const int w, const int h)
@@ -1061,16 +1121,28 @@ void SClippingSprite::RegisterType(asIScriptEngine * engine)
 void SAnimeSprite::DrawBy(const Transform2D &tf, const ColorTint &ct)
 {
     const auto at = images->GetCellTime() * images->GetFrameCount() - time;
-    const auto ih = images->GetImageHandleAt(at);
-    if (!ih) return;
-    SDL_SetRenderDrawColor(renderer, Color.R, Color.G, Color.B);
+    SDL_Texture *tex = images->GetTexture();
+
+    SDL_Rect srcRect = images->GetRectAt(at);
+
+    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
+    SDL_FRect dstRect = {
+        tf.X - scaledOrigin.x,
+        tf.Y - scaledOrigin.y,
+        srcRect.w * tf.ScaleX,
+        srcRect.h * tf.ScaleY
+    };
+
+    SDL_SetRenderDrawColor(renderer, Color.R, Color.G, Color.B, Color.A);
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    DrawRotaGraph3F(
-        Transform.X, Transform.Y,
-        Transform.OriginX, Transform.OriginY,
-        Transform.ScaleX, Transform.ScaleY,
-        Transform.Angle, ih,
-        HasAlpha ? TRUE : FALSE, FALSE);
+    SDL_RenderCopyExF(
+        renderer,
+        tex,
+        &srcRect,
+        &dstRect,
+        tf.Angle,
+        &scaledOrigin,
+        SDL_FLIP_NONE);
 }
 
 SAnimeSprite::SAnimeSprite(SAnimatedImage * img)

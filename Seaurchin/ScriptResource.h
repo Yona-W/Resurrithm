@@ -5,8 +5,8 @@
 #include "Setting.h"
 #include "ScriptSpriteMisc.h"
 
-#include <SDL2/SDL.h>
-#include <libpng16/png.h>
+#include <SDL2/SDL_image.h>
+#include <boost/range.hpp>
 
 #define SU_IF_IMAGE "Image"
 #define SU_IF_FONT "Font"
@@ -33,6 +33,7 @@ public:
 class SImage : public SResource {
 protected:
     SDL_Surface *surfacePtr;
+    SDL_Texture *texturePtr;
 public:
     explicit SImage(SDL_Surface *surfacePtr);
     ~SImage() override;
@@ -40,9 +41,12 @@ public:
     int GetWidth();
     int GetHeight();
 
+    SDL_Surface *GetSurface(){return surfacePtr;}
+    SDL_Texture *GetTexture(){return texturePtr;}
+
     static SImage* CreateBlankImage(int width, int height);
     static SImage* CreateLoadedImageFromFile(const std::string &file, bool async);
-    static SImage* CreateLoadedImageFromMemory(void *buffer, int width, int height);
+    static SImage* CreateLoadedImageFromMemory(void *buffer, size_t size);
 };
 
 //描画タゲ
@@ -56,6 +60,7 @@ public:
     static SRenderTarget* CreateBlankTarget(int width, int height);
 };
 
+/*
 //9patch描画用
 class SNinePatchImage : public SImage {
 protected:
@@ -70,6 +75,7 @@ public:
     void SetArea(int leftw, int toph, int bodyw, int bodyh);
     std::tuple<int, int, int, int> GetArea() { return std::make_tuple(leftSideWidth, topSideHeight, bodyWidth, bodyHeight); }
 };
+*/
 
 //アニメーション用
 class SAnimatedImage : public SImage {
@@ -78,7 +84,8 @@ protected:
     int cellHeight = 0;
     int frameCount = 0;
     double secondsPerFrame = 0.1;
-    std::vector<int> images;
+
+    SDL_Texture *texturePtr;
 
 public:
     SAnimatedImage(int w, int h, int count, double time);
@@ -86,10 +93,10 @@ public:
 
     double GetCellTime() const { return secondsPerFrame; }
     int GetFrameCount() const { return frameCount; }
-    int GetImageHandleAt(const double time) { return images[int(time / secondsPerFrame) % frameCount]; }
+    SDL_Rect GetRectAt(const double time) { return {int(time / secondsPerFrame) * cellWidth, 0, cellWidth, cellHeight}; }
 
-    static SAnimatedImage *CreateLoadedImageFromFile(const std::string &file, int xc, int yc, int w, int h, int count, double time);
-    static SAnimatedImage *CreateLoadedImageFromMemory(void *buffer, size_t size, int xc, int yc, int w, int h, int count, double time);
+    static SAnimatedImage *CreateLoadedImageFromFile(const std::string &file, int w, int h, int count, double time);
+    static SAnimatedImage *CreateLoadedImageFromMemory(void *buffer, size_t size, int w, int h, int count, double time);
 };
 
 //フォント

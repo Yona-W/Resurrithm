@@ -1,6 +1,7 @@
 ﻿#include "ScoreProcessor.h"
 #include "ExecutionManager.h"
 #include "ScenePlayer.h"
+#include <SDL2/SDL.h>
 
 using namespace std;
 
@@ -167,16 +168,29 @@ void PlayableProcessor::MovePosition(const double relative)
 void PlayableProcessor::Draw()
 {
     if (!imageHoldLight) return;
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-    for (auto i = 0; i < 16; i++)
-        if (currentState->GetCurrentState(ControllerSource::IntegratedSliders, i))
-            DrawRectRotaGraph3F(
-                SU_TO_FLOAT(player->widthPerLane * i), SU_TO_FLOAT(player->laneBufferY),
-                0, 0,
-                imageHoldLight->GetWidth(), imageHoldLight->GetHeight(),
-                0, SU_TO_FLOAT(imageHoldLight->GetHeight()),
-                1, 2, 0,
-                imageHoldLight->GetHandle(), TRUE, FALSE);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    for (auto i = 0; i < 16; i++){
+        if (currentState->GetCurrentState(ControllerSource::Slider, i)){
+
+            SDL_FRect dstRect = {
+                player->widthPerLane * i,
+                player->laneBufferY + imageHoldLight->GetHeight() * 2, // maybe wrong
+                imageHoldLight->GetWidth(),
+                imageHoldLight->GetHeight() * 2 // apparently?
+            };
+
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_RenderCopyExF(
+                renderer,
+                imageHoldLight->GetTexture(),
+                NULL,
+                &dstRect,
+                0,
+                NULL,
+                SDL_FLIP_NONE);
+        }
+    }
 }
 
 void PlayableProcessor::ProcessScore(const shared_ptr<SusDrawableNoteData>& note)
@@ -242,7 +256,7 @@ bool PlayableProcessor::CheckJudgement(const shared_ptr<SusDrawableNoteData>& no
     }
     const int left = SU_TO_INT32(note->StartLane), right = SU_TO_INT32(note->StartLane + note->Length);
     for (int i = left; i < right; i++) {
-        if (!currentState->GetTriggerState(ControllerSource::IntegratedSliders, i)) continue;
+        if (!currentState->GetTriggerState(ControllerSource::Slider, i)) continue;
         if (note->Type[size_t(SusNoteType::ExTap)]) {
             IncrementComboEx(note, "");
         } else if (note->Type[size_t(SusNoteType::AwesomeExTap)]) {
@@ -280,7 +294,7 @@ bool PlayableProcessor::CheckHellJudgement(const shared_ptr<SusDrawableNoteData>
     const int left = SU_TO_INT32(note->StartLane), right = SU_TO_INT32(note->StartLane + note->Length);
     for (int i = left; i < right; i++) {
         /* 押しっぱなしにしていた時にJC出るのは違う気がした */
-        if (!currentState->GetCurrentState(ControllerSource::IntegratedSliders, i)) continue;
+        if (!currentState->GetCurrentState(ControllerSource::Slider, i)) continue;
         IncrementComboHell(note, 1, "");
         return false;
     }
@@ -304,9 +318,7 @@ bool PlayableProcessor::CheckAirJudgement(const shared_ptr<SusDrawableNoteData>&
             return true;
         }
     } else {
-        const auto judged = currentState->GetTriggerState(
-            ControllerSource::IntegratedAir,
-            note->Type[size_t(SusNoteType::Up)] ? int(AirControlSource::AirUp) : int(AirControlSource::AirDown));
+        const auto judged = currentState->GetTriggerState(ControllerSource::Air, AIRSENSOR_ALL); // air note is valid if anything on the air sensor is triggered
         if (judged) {
             IncrementComboAir(note, (reltime < 0.0) ? 0.0 : reltime, { AbilityNoteType::Air, note->StartLane, note->StartLane + note->Length }, "");
             return true;
@@ -328,9 +340,9 @@ bool PlayableProcessor::CheckHoldJudgement(const shared_ptr<SusDrawableNoteData>
     auto held = false, trigger = false, release = false;
     const int l = SU_TO_INT32(left), r = SU_TO_INT32(right);
     for (auto i = l; i < r; i++) {
-        held |= currentState->GetCurrentState(ControllerSource::IntegratedSliders, i);
-        trigger |= currentState->GetTriggerState(ControllerSource::IntegratedSliders, i);
-        release |= currentState->GetLastState(ControllerSource::IntegratedSliders, i) && !currentState->GetCurrentState(ControllerSource::IntegratedSliders, i);
+        held |= currentState->GetCurrentState(ControllerSource::Slider, i);
+        trigger |= currentState->GetTriggerState(ControllerSource::Slider, i);
+        release |= currentState->GetLastState(ControllerSource::Slider, i) && !currentState->GetCurrentState(ControllerSource::Slider, i);
     }
     auto judgeTime = player->currentTime - note->StartTime - judgeAdjustSlider;
     judgeTime /= judgeMultiplierSlider;
@@ -448,9 +460,9 @@ bool PlayableProcessor::CheckSlideJudgement(const shared_ptr<SusDrawableNoteData
     auto held = false, trigger = false, release = false;
     const int l = SU_TO_INT32(left), r = SU_TO_INT32(right);
     for (auto i = l; i < r; i++) {
-        held |= currentState->GetCurrentState(ControllerSource::IntegratedSliders, i);
-        trigger |= currentState->GetTriggerState(ControllerSource::IntegratedSliders, i);
-        release |= currentState->GetLastState(ControllerSource::IntegratedSliders, i) && !currentState->GetCurrentState(ControllerSource::IntegratedSliders, i);
+        held |= currentState->GetCurrentState(ControllerSource::Slider, i);
+        trigger |= currentState->GetTriggerState(ControllerSource::Slider, i);
+        release |= currentState->GetLastState(ControllerSource::Slider, i) && !currentState->GetCurrentState(ControllerSource::Slider, i);
     }
     auto judgeTime = player->currentTime - note->StartTime - judgeAdjustSlider;
     judgeTime /= judgeMultiplierSlider;
@@ -522,7 +534,7 @@ bool PlayableProcessor::CheckAirActionJudgement(const shared_ptr<SusDrawableNote
     if (reltime < -judgeWidthAttack * judgeMultiplierAir) return false;
     if (note->OnTheFlyData[size_t(NoteAttribute::Completed)]) return false;
 
-    const auto held = currentState->GetCurrentState(ControllerSource::IntegratedAir, int(AirControlSource::AirHold)) || isAutoAir;
+    const auto held = currentState->GetCurrentState(ControllerSource::Air, AIRSENSOR_ALL) || isAutoAir;
 
     // Start判定
     // なし

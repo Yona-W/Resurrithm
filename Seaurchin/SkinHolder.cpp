@@ -151,16 +151,16 @@ void SkinHolder::LoadSkinSoundFromMem(const string &key, const void *buffer, con
     //images[key] = SSound::CreateLoadedSoundFromMemory(buffer, size, 1);
 }
 
-void SkinHolder::LoadSkinAnime(const std::string & key, const std::string & filename, const int x, const int y, const int w, const int h, const int c, const double time)
+void SkinHolder::LoadSkinAnime(const std::string & key, const std::string & filename, const int w, const int h, const int c, const double time)
 {
     if (animatedImages[key]) animatedImages[key]->Release();
-    animatedImages[key] = SAnimatedImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8((skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename)).wstring()), x, y, w, h, c, time);
+    animatedImages[key] = SAnimatedImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8((skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename)).wstring()), w, h, c, time);
 }
 
-void SkinHolder::LoadSkinAnimeFromMem(const string &key, void *buffer, const size_t size, const int x, const int y, const int w, const int h, const int c, const double time)
+void SkinHolder::LoadSkinAnimeFromMem(const string &key, void *buffer, const size_t size, const int w, const int h, const int c, const double time)
 {
     if (animatedImages[key]) animatedImages[key]->Release();
-    images[key] = SAnimatedImage::CreateLoadedImageFromMemory(buffer, size, x, y, w, h, c, time);
+    images[key] = SAnimatedImage::CreateLoadedImageFromMemory(buffer, size, w, h, c, time);
 }
 
 SImage* SkinHolder::GetSkinImage(const string &key)

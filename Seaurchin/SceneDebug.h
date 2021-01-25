@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Scene.h"
+#include <SDL2/SDL.h>
 
 class SceneDebug final : public Scene {
 private:

@@ -364,6 +364,7 @@ void ExecutionManager::Draw()
 {
     SDL_RenderClear(renderer);
     for (const auto& s : scenes) s->Draw();
+    SDL_RenderPresent(renderer);
 }
 
 void ExecutionManager::AddScene(const shared_ptr<Scene>& scene)

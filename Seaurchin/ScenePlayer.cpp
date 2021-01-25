@@ -135,8 +135,9 @@ void ScenePlayer::Finalize()
     delete processor;
     delete bgmStream;
 
-    DeleteGraph(hGroundBuffer);
-    if (movieBackground) DeleteGraph(movieBackground);
+    SDL_FreeSurface(groundBufferSurface);
+    SDL_DestroyTexture(groundBufferTexture);
+    // if (movieBackground) DeleteGraph(movieBackground); ok fuck movie backgrounds
     judgeSoundThread.join();
 }
 
@@ -152,7 +153,7 @@ void ScenePlayer::LoadWorker()
 
     // 譜面の読み込み
     analyzer->Reset();
-    analyzer->LoadFromFile(scorefile.wstring());
+    analyzer->LoadFromFile(scorefile.string());
     metronomeAvailable = !analyzer->SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::DisableMetronome)];
     analyzer->RenderScoreData(data, curveData);
     // 各種情報の設定
@@ -182,9 +183,11 @@ void ScenePlayer::LoadWorker()
     bgmStream = SoundStream::CreateFromFile(file.wstring());
     state = PlayingState::ReadyToStart;
 
+/* no
     if (!analyzer->SharedMetaData.UMovieFileName.empty()) {
         movieFileName = (boost::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UMovieFileName)).wstring();
     }
+*/
 
     // 前カウントの計算
     // WaveOffsetが1小節分より長いとめんどくさそうなので差し引いてく
@@ -367,6 +370,7 @@ void ScenePlayer::ProcessSound()
         default: break;
     }
 
+/* no
     if (moviePlaying) {
         movieCurrentPosition = TellMovieToGraph(movieBackground) / 1000.0;
         return;
@@ -375,6 +379,7 @@ void ScenePlayer::ProcessSound()
         PlayMovieToGraph(movieBackground);
         moviePlaying = true;
     }
+*/
 }
 
 void ScenePlayer::ProcessSoundQueue()
@@ -382,7 +387,7 @@ void ScenePlayer::ProcessSoundQueue()
     JudgeSoundType type;
     while (!isTerminating) {
         if (!judgeSoundQueue.pop(type)) {
-            Sleep(0);
+            pthread_yield();
             continue;
         }
         switch (type) {
@@ -456,6 +461,7 @@ void ScenePlayer::GetReady()
 {
     if (!isLoadCompleted || isReady) return;
 
+/* no
     // これはUIスレッドでやる必要あり マジかよ
     if (!movieFileName.empty()) {
         movieBackground = LoadGraph(reinterpret_cast<const char*>(movieFileName.c_str()));
@@ -469,7 +475,7 @@ void ScenePlayer::GetReady()
             movieCurrentPosition = -offset;
         }
     }
-
+*/
     isReady = true;
     currentCharacterInstance->OnStart();
 }
@@ -526,7 +532,8 @@ void ScenePlayer::MovePositionBySecond(const double sec)
     bgmStream->SetPlayingPosition(newBgmPos);
     currentTime = newBgmPos + gap;
     processor->MovePosition(currentTime - oldTime);
-    SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
+    // no
+    // SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
 }
 
 void ScenePlayer::MovePositionByMeasure(const int meas)
@@ -544,7 +551,8 @@ void ScenePlayer::MovePositionByMeasure(const int meas)
     bgmStream->SetPlayingPosition(newBgmPos);
     currentTime = newBgmPos + gap;
     processor->MovePosition(currentTime - oldTime);
-    SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
+    // no
+    //SeekMovieToGraph(movieBackground, int((currentTime - oldTime + movieCurrentPosition) * 1000.0));
 }
 
 void ScenePlayer::Pause()
@@ -553,7 +561,8 @@ void ScenePlayer::Pause()
     lastState = state;
     state = PlayingState::Paused;
     bgmStream->Pause();
-    PauseMovieToGraph(movieBackground);
+    // no
+    // PauseMovieToGraph(movieBackground);
 }
 
 void ScenePlayer::Resume()
@@ -561,7 +570,8 @@ void ScenePlayer::Resume()
     if (state != PlayingState::Paused) return;
     state = lastState;
     bgmStream->Resume();
-    PlayMovieToGraph(movieBackground);
+    // no
+    // PlayMovieToGraph(movieBackground);
 }
 
 void ScenePlayer::Reload()
@@ -576,9 +586,11 @@ void ScenePlayer::Reload()
     SoundManager::StopGlobal(bgmStream);
     delete bgmStream;
 
+    /*
     SetMainWindowText(reinterpret_cast<const char*>(L"リロード中…"));
     LoadWorker();
     SetMainWindowText(reinterpret_cast<const char*>(ConvertUTF8ToUnicode(SU_APP_NAME " " SU_APP_VERSION).c_str()));
+    */
 
     const auto bgmMeantToBePlayedAt = prevBgmPos - (analyzer->SharedMetaData.WaveOffset - prevOffset);
     bgmStream->SetPlayingPosition(bgmMeantToBePlayedAt);

@@ -45,6 +45,7 @@ void ControlState::Update()
         airTrigger[i] = 0;
     }
 
+    // TODO replace libevdev with sdl input
     while(libevdev_has_event_pending(inputDevice)){
         struct input_event * evt = NULL;
         // TODO handle desyncs
@@ -97,7 +98,7 @@ bool ControlState::GetTriggerState(const ControllerSource source, const int numb
             return sliderTrigger[number];
         case ControllerSource::Air:
             // The entire air sensor is triggered if there is any change in its state
-            if(number == -1){
+            if(number == AIRSENSOR_ALL){
                 for(int i = 0; i < airKeybindings.size(); i++){
                     if(airLast[i] != airCurrent[i]){
                         return true;
@@ -124,7 +125,7 @@ bool ControlState::GetCurrentState(const ControllerSource source, const int numb
             return sliderCurrent[number];
         case ControllerSource::Air:
             // The entire air sensor is held if any key is held
-            if (number == -1){
+            if (number == AIRSENSOR_ALL){
                 for(bool val : airCurrent){
                     if(val) return true;
                 }
@@ -148,7 +149,7 @@ bool ControlState::GetLastState(const ControllerSource source, const int number)
             if (number < 0 || number >= 16) return false;
             return sliderLast[number];
         case ControllerSource::Air:
-            if (number == -1){
+            if (number == AIRSENSOR_ALL){
                 for(bool val : airLast){
                     if(val) return true;
                 }
