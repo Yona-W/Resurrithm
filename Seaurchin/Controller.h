@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <cstring>
-#include <libevdev-1.0/libevdev/libevdev.h>
+#include <SDL2/SDL.h>
 
 #define AIRSENSOR_ALL -1
 

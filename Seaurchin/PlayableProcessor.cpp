@@ -4,6 +4,7 @@
 #include <SDL2/SDL.h>
 
 using namespace std;
+using namespace Rendering;
 
 PlayableProcessor::PlayableProcessor(ScenePlayer *splayer)
 {

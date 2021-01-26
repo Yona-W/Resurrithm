@@ -44,11 +44,11 @@ class Title : CoroutineScene {
     @font64 = skin.GetFont("Normal64");
 
     @imgWhite = skin.GetImage("White");
-    @imgDxLib = skin.GetImage("LogoDxLib");
+    @imgDxLib = skin.GetImage("SDL_logo");
     @imgBoost = skin.GetImage("LogoBoost");
     @imgFreeType = skin.GetImage("LogoFreeType");
     @imgAngelScript = skin.GetImage("LogoAngelScript");
-    @imgSeaurchin = skin.GetImage("LogoSeaurchin");
+    @imgSeaurchin = skin.GetImage("ResurrithmLogo");
     @imgCursorMenu = skin.GetImage("CursorMenu");
     @smCursor = skin.GetSound("SoundCursor");
     @mixSE = GetDefaultMixer("SE");
@@ -71,7 +71,7 @@ class Title : CoroutineScene {
 
     array<Sprite@> dxl = {
       TextSprite(font64, "Powered by"),
-      TextSprite(fontLatin, "DxLib"),
+      TextSprite(fontLatin, "SDL2"),
       Sprite(imgDxLib)
     };
     dxl[0].Apply("x:416, y:92, r:0, g:0, b: 0, alpha:0");
@@ -117,10 +117,10 @@ class Title : CoroutineScene {
     AddSprite(spLogo);
 
     @spTitle = ClipSprite(640, 128);
-    TextSprite @buffer = TextSprite(font64, "Ground Slider Simulator");
+    TextSprite @buffer = TextSprite(font64, "Based on Seaurchin");
     buffer.Apply("r:0, g:0, b:0");
     spTitle.Transfer(buffer);
-    buffer.SetText("Seaurchin");
+    buffer.SetText("Resurrithm");
     buffer.Apply("y:64");
     spTitle.Transfer(buffer);
     spTitle.Apply("origY:64, x:640, y:360, z:1");
@@ -128,7 +128,7 @@ class Title : CoroutineScene {
     AddSprite(spTitle);
 
     @menu[0] = TextSprite(font64, "Start");
-    @menu[1] = TextSprite(font64, "Setting");
+    @menu[1] = TextSprite(font64, "Settings");
     @menu[2] = TextSprite(font64, "Exit");
 
     @spCursor = Sprite(imgCursorMenu);

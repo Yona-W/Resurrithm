@@ -4,6 +4,8 @@ std::shared_ptr<Setting> setting;
 std::shared_ptr<Logger> logger;
 std::unique_ptr<ExecutionManager> manager;
 
+using namespace Rendering;
+
 int main(int argc, char **argv){
     PreInitialize();
     if(!Initialize()){

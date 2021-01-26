@@ -13,6 +13,7 @@
 
 using namespace boost::filesystem;
 using namespace std;
+using namespace Rendering;
 
 #ifdef _WIN32
 
@@ -30,14 +31,14 @@ const static toml::Array defaultAirStringKeys = {
 #else
 
 const static toml::Array defaultSliderKeys = {
-    toml::Array { KEY_A, KEY_1 }, toml::Array { KEY_Z, KEY_Q }, toml::Array { KEY_S, KEY_2 }, toml::Array { KEY_X, KEY_W },
-    toml::Array { KEY_D, KEY_3 }, toml::Array { KEY_C, KEY_E }, toml::Array { KEY_F, KEY_4 }, toml::Array { KEY_V, KEY_R },
-    toml::Array { KEY_G, KEY_5 }, toml::Array { KEY_B, KEY_T }, toml::Array { KEY_H, KEY_6 }, toml::Array { KEY_N, KEY_Y },
-    toml::Array { KEY_J, KEY_7 }, toml::Array { KEY_M, KEY_U }, toml::Array { KEY_K, KEY_8 }, toml::Array { KEY_COMMA, KEY_I }
+    toml::Array { SDL_SCANCODE_A, SDL_SCANCODE_1 }, toml::Array { SDL_SCANCODE_Z, SDL_SCANCODE_Q }, toml::Array { SDL_SCANCODE_S, SDL_SCANCODE_2 }, toml::Array { SDL_SCANCODE_X, SDL_SCANCODE_W },
+    toml::Array { SDL_SCANCODE_D, SDL_SCANCODE_3 }, toml::Array { SDL_SCANCODE_C, SDL_SCANCODE_E }, toml::Array { SDL_SCANCODE_F, SDL_SCANCODE_4 }, toml::Array { SDL_SCANCODE_V, SDL_SCANCODE_R },
+    toml::Array { SDL_SCANCODE_G, SDL_SCANCODE_5 }, toml::Array { SDL_SCANCODE_B, SDL_SCANCODE_T }, toml::Array { SDL_SCANCODE_H, SDL_SCANCODE_6 }, toml::Array { SDL_SCANCODE_N, SDL_SCANCODE_Y },
+    toml::Array { SDL_SCANCODE_J, SDL_SCANCODE_7 }, toml::Array { SDL_SCANCODE_M, SDL_SCANCODE_U }, toml::Array { SDL_SCANCODE_K, SDL_SCANCODE_8 }, toml::Array { SDL_SCANCODE_COMMA, SDL_SCANCODE_I }
 };
 
 const static toml::Array defaultAirStringKeys = {
-    KEY_SLASH, KEY_DOT, KEY_APOSTROPHE, KEY_SEMICOLON, KEY_LEFTBRACE, KEY_RIGHTBRACE
+    SDL_SCANCODE_SLASH, SDL_SCANCODE_PERIOD, SDL_SCANCODE_APOSTROPHE, SDL_SCANCODE_SEMICOLON, SDL_SCANCODE_LEFTBRACKET, SDL_SCANCODE_RIGHTBRACKET
 };
 
 #endif
@@ -181,10 +182,10 @@ void ExecutionManager::RegisterGlobalManagementFunction()
     engine->RegisterGlobalFunction("void Fire(const string &in)", asMETHOD(ExecutionManager, Fire), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction(SU_IF_SETTING_ITEM "@ GetSettingItem(const string &in, const string &in)", asMETHOD(ExecutionManager, GetSettingItem), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction("bool ExistsData(const string &in)", asMETHOD(ExecutionManager, ExistsData), asCALL_THISCALL_ASGLOBAL, this);
-    engine->RegisterGlobalFunction("void SetData(const string &in, const bool &in)", asMETHOD(ExecutionManager, SetData<bool>), asCALL_THISCALL_ASGLOBAL, this);
-    engine->RegisterGlobalFunction("void SetData(const string &in, const int &in)", asMETHOD(ExecutionManager, SetData<int>), asCALL_THISCALL_ASGLOBAL, this);
-    engine->RegisterGlobalFunction("void SetData(const string &in, const double &in)", asMETHOD(ExecutionManager, SetData<double>), asCALL_THISCALL_ASGLOBAL, this);
-    engine->RegisterGlobalFunction("void SetData(const string &in, const string &in)", asMETHOD(ExecutionManager, SetData<string>), asCALL_THISCALL_ASGLOBAL, this);
+    engine->RegisterGlobalFunction("void SetData(const string &in, const bool &in)", asMETHOD(ExecutionManager, SetBoolData), asCALL_THISCALL_ASGLOBAL, this);
+    engine->RegisterGlobalFunction("void SetData(const string &in, const int &in)", asMETHOD(ExecutionManager, SetIntData), asCALL_THISCALL_ASGLOBAL, this);
+    engine->RegisterGlobalFunction("void SetData(const string &in, const double &in)", asMETHOD(ExecutionManager, SetDoubleData), asCALL_THISCALL_ASGLOBAL, this);
+    engine->RegisterGlobalFunction("void SetData(const string &in, const string &in)", asMETHOD(ExecutionManager, SetStringData), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction("bool GetBoolData(const string &in)", asMETHODPR(ExecutionManager, GetData<bool>, (const string&), bool), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction("int GetIntData(const string &in)", asMETHODPR(ExecutionManager, GetData<int>, (const string&), int), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction("double GetDoubleData(const string &in)", asMETHODPR(ExecutionManager, GetData<double>, (const string&), double), asCALL_THISCALL_ASGLOBAL, this);

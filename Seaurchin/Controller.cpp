@@ -45,16 +45,27 @@ void ControlState::Update()
         airTrigger[i] = 0;
     }
 
-    // TODO replace libevdev with sdl input
-    while(libevdev_has_event_pending(inputDevice)){
-        struct input_event * evt = NULL;
-        // TODO handle desyncs
-        if(libevdev_next_event(inputDevice, LIBEVDEV_READ_FLAG_NORMAL, evt) == LIBEVDEV_READ_STATUS_SUCCESS){
-            if(evt->value){
-                // key was pressed
-                keyboardTrigger[evt->code] = true;
+    SDL_Event evt;
+    SDL_Scancode key;
+    while (SDL_PollEvent(&evt))
+    {
+        switch (evt.type)
+        {
+        case SDL_KEYDOWN:
+            key = evt.key.keysym.scancode;
+            if (key >= 0 && key < 256)
+            {
+                keyboardTrigger[key] = true;
+                keyboardCurrent[key] = true;
             }
-            keyboardCurrent[evt->code] = evt->value;
+            break;
+        case SDL_KEYUP:
+            key = evt.key.keysym.scancode;
+            if (key >= 0 && key < 256)
+            {
+                keyboardCurrent[key] = false;
+            }
+            break;
         }
     }
 
@@ -176,19 +187,4 @@ void ControlState::SetAirKeybindings(const vector<int>& keys)
     airCurrent = std::vector<bool>(keys.size());
     airLast = std::vector<bool>(keys.size());
     airTrigger = std::vector<bool>(keys.size());
-}
-
-bool ControlState::SetInputDevice(int fp)
-{
-    if(inputDevice != NULL){
-        int old_fd = libevdev_get_fd(inputDevice);
-        libevdev_free(inputDevice);
-        close(old_fd);
-    }
-
-    if(libevdev_new_from_fd(fp, &inputDevice) > 0){
-        return true;
-    }
-
-    return false;
 }

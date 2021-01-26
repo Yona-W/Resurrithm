@@ -17,7 +17,7 @@
 #include <map>
 #include <spdlog/spdlog.h>
 
-#include <libevdev-1.0/libevdev/libevdev.h>
+#include <SDL2/SDL_events.h>
 #include <boost/filesystem.hpp>
 
 class ExecutionManager final {
@@ -95,6 +95,10 @@ public:
 
     template<typename T>
     void SetData(const std::string &name, const T& data);
+    void SetBoolData(const std::string &name, const bool &data) { SetData(name, data); }
+    void SetIntData(const std::string &name, const int &data) { SetData(name, data); }
+    void SetDoubleData(const std::string &name, const double &data) { SetData(name, data); }
+    void SetStringData(const std::string &name, const std::string &data) { SetData(name, data); }
     template<typename T>
     T GetData(const std::string &name);
     template<typename T>

@@ -105,9 +105,9 @@ source_group("Built-in scene" FILES ${Builtin_Scene})
 set(Player
     "AutoPlayerProcessor.cpp"
     "PlayableProcessor.cpp"
-    "ScenePlayer.cpp"
-    "ScenePlayer.Draw.cpp"
-    "ScenePlayer.h"
+    #"ScenePlayer.cpp"
+    #"ScenePlayer.Draw.cpp"
+    #"ScenePlayer.h"
     "ScoreProcessor.h"
 )
 source_group("Player" FILES ${Player})
@@ -143,6 +143,14 @@ set(ALL_FILES
     ${Header_Files}
     ${Header_Library}
 )
+
+################################################################################
+# Libraries
+################################################################################
+
+# angelscript
+add_subdirectory(../library/angelscript/angelscript/projects/cmake ../library/build/angelscript)
+add_subdirectory(../library/glm ../library/build/glm)
 
 ################################################################################
 # Target

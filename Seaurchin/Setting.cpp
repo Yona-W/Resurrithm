@@ -17,16 +17,16 @@ void Setting::Load(const string &filename)
     auto log = spdlog::get("main");
     file = filename;
     if (!exists(rootDirectory / file)) {
-        log->info(u8"設定ファイルを作成しました");
+        log->info("Configuration file created");
         Save();
     }
     std::ifstream ifs((rootDirectory / file).string(), ios::in);
     auto pr = toml::parse(ifs);
     if (!pr.valid()) {
-        log->error(u8"設定ファイルの記述が不正です: {0}", pr.errorReason);
+        log->error("Error parsing configuration file", pr.errorReason);
     } else {
         settingTree = pr.value;
-        log->info(u8"設定ファイルを読み込みました");
+        log->info("Configuration file loaded");
     }
     ifs.close();
 }
@@ -41,7 +41,7 @@ void Setting::Save() const
     auto log = spdlog::get("main");
     std::ofstream ofs((rootDirectory / file).string(), ios::out);
     if (settingTree.valid()) settingTree.write(&ofs);
-    log->info(u8"設定ファイルを保存しました");
+    log->info("Saved configuration file");
     ofs.close();
 }
 
@@ -66,28 +66,28 @@ void SettingItemManager::LoadItemsFromToml(const path& file)
     auto pr = toml::parse(ifs);
     ifs.close();
     if (!pr.valid()) {
-        log->error(u8"設定定義 {0} は不正なファイルです", ConvertUnicodeToUTF8(file.wstring()));
+        log->error("The configuration definition {0} is invalid", ConvertUnicodeToUTF8(file.wstring()));
         log->error(pr.errorReason);
         return;
     }
     auto &root = pr.value;
     const auto items = root.find("SettingItems");
     if (!items || !items->is<toml::Array>()) {
-        log->warn(u8"設定定義 {0} に設定項目がありません", ConvertUnicodeToUTF8(file.wstring()));
+        log->warn(u8"The configuration definition {0} has no items", ConvertUnicodeToUTF8(file.wstring()));
         return;
     }
     for (const auto &item : items->as<vector<toml::Value>>()) {
         if (item.type() != toml::Value::TABLE_TYPE) continue;
         if (!item.has("Group")) {
-            log->error(u8"設定項目にグループ指定が存在しません。");
+            log->error("Missing group definition in setting item");
             continue;
         }
         if (!item.has("Key")) {
-            log->error(u8"設定項目にキー指定が存在しません。");
+            log->error(u8"Missing key definition in setting item");
             continue;
         }
         if (!item.has("Type")) {
-            log->error(u8"設定項目に種別指定が存在しません。");
+            log->error(u8"Missing type definition in setting item");
             continue;
         }
 
@@ -137,7 +137,7 @@ void SettingItemManager::LoadItemsFromToml(const path& file)
                 si = make_shared<BooleanListVectorSettingItem>(settingInstance, group, key);
                 break;
             default:
-                log->warn(u8"不明な設定タイプです: {0}", type);
+                log->warn("Unknown setting type: {0}", type);
                 continue;
         }
         si->Build(item);
@@ -176,7 +176,7 @@ SettingItem::SettingItem(const shared_ptr<Setting> setting, const string &igroup
     settingInstance = setting;
     group = igroup;
     key = ikey;
-    description = u8"説明はありません";
+    description = u8"No description.";
     findName = "";
 }
 
@@ -250,7 +250,7 @@ void IntegerSettingItem::Build(const toml::Value &table)
     if (r && r->is<vector<int64_t>>()) {
         auto v = r->as<vector<int64_t>>();
         if (v.size() != 2) {
-            log->warn(u8"整数型設定項目 {0}.{1} に対する範囲指定が不正です。", group, key);
+            log->warn("The range definition for {0}.{1} is invalid", group, key);
         } else {
             minValue = v[0];
             maxValue = v[1];
@@ -313,7 +313,7 @@ void FloatSettingItem::Build(const toml::Value &table)
     if (r && r->is<vector<double>>()) {
         auto v = r->as<vector<double>>();
         if (v.size() != 2) {
-            log->warn(u8"実数型設定項目 {0}.{1} に対する範囲指定が不正です。", group, key);
+            log->warn(u8"The range definition for {0}.{1} is invalid", group, key);
         } else {
             minValue = v[0];
             maxValue = v[1];
@@ -374,7 +374,7 @@ void BooleanSettingItem::Build(const toml::Value &table)
     if (r && r->is<vector<string>>()) {
         auto v = r->as<vector<string>>();
         if (v.size() != 2) {
-            log->warn(u8"真偽値型設定項目 {0}.{1} に対する値指定が不正です。", group, key);
+            log->warn(u8"The range definition for {0}.{1} is invalid", group, key);
         } else {
             truthy = v[0];
             falsy = v[1];
@@ -615,7 +615,7 @@ void IntegerListSettingItem::RetrieveValue()
     uint64_t cnt = 0;
     for (const auto &val : arr) {
         if (!val.is<int64_t>()) {
-            log->warn(u8"整数型リスト設定項目 {0}.{1} の第{2}要素が整数型ではありません。", group, key, cnt);
+            log->warn("Element {2} of list configuration item {0}.{1} is not an integer type.", group, key, cnt);
             continue;
         }
         values.push_back(val.as<int64_t>());
@@ -674,7 +674,7 @@ void FloatListSettingItem::RetrieveValue()
     uint64_t cnt = 0;
     for (const auto &val : arr) {
         if (!val.is<double>()) {
-            log->warn(u8"実数型リスト設定項目 {0}.{1} の第{2}要素が実数型ではありません。", group, key, cnt);
+            log->warn(u8"Element {2} of list configuration item {0}.{1} is not a float type.", group, key, cnt);
             continue;
         }
         values.push_back(val.as<double>());
@@ -733,7 +733,7 @@ void BooleanListSettingItem::RetrieveValue()
     uint64_t cnt = 0;
     for (const auto &val : arr) {
         if (!val.is<bool>()) {
-            log->warn(u8"真偽値型リスト設定項目 {0}.{1} の第{2}要素が真偽値型ではありません。", group, key, cnt);
+            log->warn(u8"Element {2} of list configuration item {0}.{1} is not a bool type.", group, key, cnt);
             continue;
         }
         values.push_back(val.as<bool>());
@@ -803,7 +803,7 @@ void IntegerListVectorSettingItem::RetrieveValue()
     uint64_t cnt = 0;
     for (const auto &list : arr) {
         if (!list.is<std::vector<int64_t>>()) {
-            log->warn(u8"整数型2重リスト設定項目 {0}.{1} の第{2}要素が整数型リストではありません。", group, key, cnt);
+            log->warn(u8"Element {2} of list {0}.{1} is not an integer list.", group, key, cnt);
             continue;
         }
 
@@ -883,7 +883,7 @@ void FloatListVectorSettingItem::RetrieveValue()
     uint64_t cnt = 0;
     for (const auto &list : arr) {
         if (!list.is<std::vector<double>>()) {
-            log->warn(u8"実数型2重リスト設定項目 {0}.{1} の第{2}要素が実数型リストではありません。", group, key, cnt);
+            log->warn(u8"Element {2} of list {0}.{1} is not a float list.", group, key, cnt);
             continue;
         }
 
@@ -963,7 +963,7 @@ void BooleanListVectorSettingItem::RetrieveValue()
     uint64_t cnt = 0;
     for (const auto &list : arr) {
         if (!list.is<std::vector<bool>>()) {
-            log->warn(u8"真偽値型2重リスト設定項目 {0}.{1} の第{2}要素が真偽値型リストではありません。", group, key, cnt);
+            log->warn(u8"Element {2} of list {0}.{1} is not a boolean list.", group, key, cnt);
             continue;
         }
 

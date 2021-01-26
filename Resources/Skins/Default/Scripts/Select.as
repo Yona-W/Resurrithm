@@ -212,15 +212,15 @@ class Title : CoroutineScene {
 
       if (IsKeyTriggered(Key::INPUT_A)) {
         SetData("AutoPlay", 1);
-        ShowMessage("オートプレイ: ON");
+        ShowMessage("Autoplay: ON");
       }
       if (IsKeyTriggered(Key::INPUT_M)) {
         SetData("AutoPlay", 0);
-        ShowMessage("オートプレイ: OFF");
+        ShowMessage("Autoplay: OFF");
       }
       if (IsKeyTriggered(Key::INPUT_S)) {
         SetData("AutoPlay", 2);
-        ShowMessage("オートプレイ: Air/Air-Actionのみ");
+        ShowMessage("Autoplay: Air only");
       }
 
       YieldFrame(1);
@@ -268,11 +268,11 @@ class CharacterSelect : CoroutineScene {
     @spBack = Sprite(skin.GetImage("White"));
     spBack.Apply("r:0, g:0, b:0, alpha:0.8");
 
-    @spTitle = TextSprite(skin.GetFont("Normal64"), "キャラクター・スキル設定");
+    @spTitle = TextSprite(skin.GetFont("Normal64"), "Character & Skill Settings");
     spTitle.SetAlignment(TextAlign::Center, TextAlign::Top);
     spTitle.Apply("x:640, y:12");
 
-    @spInfo = TextSprite(skin.GetFont("Normal32"), "カーソルキー左右でキャラクター変更、上下でスキル変更");
+    @spInfo = TextSprite(skin.GetFont("Normal32"), "Left / Right: Change Character; Up / Down: Change Skill");
     spInfo.SetAlignment(TextAlign::Center, TextAlign::Top);
     spInfo.Apply("x:640, y:688");
 

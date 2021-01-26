@@ -32,6 +32,8 @@
 #define SU_LANE_NOTE_WIDTH 192.0f
 #define SU_LANE_NOTE_HEIGHT 64.0f
 
+using namespace Rendering;
+
 enum class JudgeType {
     ShortNormal = 0,
     ShortEx,

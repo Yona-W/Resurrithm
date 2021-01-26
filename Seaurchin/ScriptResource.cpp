@@ -3,6 +3,7 @@
 #include "Misc.h"
 
 using namespace std;
+using namespace Rendering;
 
 SResource::SResource()
 = default;

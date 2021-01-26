@@ -4,10 +4,10 @@ class SettingScene : CoroutineScene {
   Image@ imgWhite, imgCursor;
 
   array<string> groups = {
-    "一般",
-    "グラフィック",
-    "音声",
-    "プレイ"
+    "General",
+    "Graphics",
+    "Audio",
+    "Gameplay"
   };
   array<array<SettingItem@>> settings = {
     {
@@ -106,7 +106,7 @@ class SettingScene : CoroutineScene {
       spDescriptions[i].SetText((i < availableCount) ? target[i].GetDescription() : "");
       spValues[i].SetText((i < availableCount) ? target[i].GetItemText() : "");
     }
-    if (availableCount == 0) spDescriptions[0].SetText("設定項目なし");
+    if (availableCount == 0) spDescriptions[0].SetText("No setting ite}m");
   }
 
   void UpdateCursorState() {

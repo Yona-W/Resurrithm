@@ -11,6 +11,7 @@
 
 using namespace std;
 using namespace crc32_constexpr;
+using namespace Rendering;
 
 // Applyのパーサ
 namespace parser_impl {
