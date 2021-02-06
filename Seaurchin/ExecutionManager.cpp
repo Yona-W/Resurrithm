@@ -67,6 +67,7 @@ ExecutionManager::ExecutionManager(const shared_ptr<Setting>& setting)
 
 void ExecutionManager::Initialize()
 {
+    shouldExit = false;
     auto log = spdlog::get("main");
     std::ifstream slfile;
     string procline;
@@ -85,22 +86,13 @@ void ExecutionManager::Initialize()
         log->warn("Configuration contains less than 16 slider key sets, using default.");
     }
 
-    auto loadedAirStringKeys = sharedSetting->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
-    if (loadedAirStringKeys.size() > 0) {
+    auto loadedAirKeys = sharedSetting->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
+    if (loadedAirKeys.size() > 0) {
         auto keys = std::vector<int>();
-        for (auto key : loadedSliderKeys) keys.push_back(key.as<int>());
+        for (auto key : loadedAirKeys) keys.push_back(key.as<int>());
         sharedControlState->SetAirKeybindings(keys);
     } else {
         log->warn(u8"No air keys defined, using default");
-    }
-
-    auto inputDevice = sharedSetting->ReadValue<std::string>("Play", "InputDevice", GetFirstKeyboardDevice());
-    auto inputdevice_fp = open(inputDevice.c_str(), O_NONBLOCK | O_RDONLY);
-    if(inputdevice_fp < 0){
-        log->warn("Could not open input device '{0}', input will not work!", inputdevice_fp);
-    }
-    else{
-        sharedControlState->SetInputDevice(inputdevice_fp);
     }
 
     // 拡張ライブラリ読み込み
@@ -324,6 +316,7 @@ void ExecutionManager::ExecuteSystemMenu()
         return;
     }
 
+    log->info("Loading system menu from script");
     AddScene(CreateSceneFromScriptType(type));
 
     type->Release();
@@ -333,7 +326,9 @@ void ExecutionManager::ExecuteSystemMenu()
 //Tick
 void ExecutionManager::Tick(const double delta)
 {
-    sharedControlState->Update();
+    if(!sharedControlState->Update()){
+        shouldExit = true;
+    }
 
     //シーン操作
     for (auto& scene : scenesPending) scenes.push_back(scene);
@@ -363,9 +358,12 @@ void ExecutionManager::Tick(const double delta)
 
 void ExecutionManager::Draw()
 {
-    SDL_RenderClear(renderer);
+    //auto log = spdlog::get("main");
+    //log->info("Drawing frame");
+
+    GPU_Clear(gpu);
     for (const auto& s : scenes) s->Draw();
-    SDL_RenderPresent(renderer);
+    GPU_Flip(gpu);
 }
 
 void ExecutionManager::AddScene(const shared_ptr<Scene>& scene)
@@ -406,43 +404,6 @@ shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptObject(asIScriptO
     }
     log->error(u8"{0} does not implement the Scene interface", type->GetName());
     return nullptr;
-}
-
-std::string ExecutionManager::GetFirstKeyboardDevice(){
-    auto log = spdlog::get("main");
-    std::string event_device_path = "/dev/input";
-    for(auto &entry : boost::filesystem::directory_iterator(event_device_path)){
-        const char *device_path = entry.path().string().c_str();
-        log->info("Trying device {0}", device_path);
-        int fd = open(device_path, O_RDONLY | O_NONBLOCK);
-        if(fd < 0){
-            log->error("Could not open device!");
-            continue;
-        }
-
-        struct libevdev *dev = NULL;
-        if(libevdev_new_from_fd(fd, &dev) < 0){
-            log->error("Failed treating device as input device");
-            libevdev_free(dev);
-            close(fd);
-            continue;
-        }
-
-        if(libevdev_has_event_type(dev, EV_KEY)){
-            log->info("{0} looks like a keyboard!", libevdev_get_name(dev));
-            libevdev_free(dev);
-            close(fd);
-            return(device_path);
-        }
-        else{
-            log->info("{0} is not a keyboard, trying next...", libevdev_get_name(dev));
-            libevdev_free(dev);
-            close(fd);
-            continue;
-        }
-    }
-    log->error("Ran out of devices and none of them look like a keyboard. Make sure your account has permissions to access input devices.");
-    return "";
 }
 
 #ifdef _WIN32

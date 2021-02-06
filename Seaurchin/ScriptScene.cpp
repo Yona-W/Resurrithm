@@ -229,7 +229,7 @@ void ScriptScene::TickSprite(const double delta)
 
 void ScriptScene::DrawSprite()
 {
-    for (auto& i : sprites) i->Draw();
+    for (auto& i : sprites) i->Draw(Rendering::gpu);
 }
 
 

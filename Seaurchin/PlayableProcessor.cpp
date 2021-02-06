@@ -105,11 +105,12 @@ void PlayableProcessor::Update(vector<shared_ptr<SusDrawableNoteData>>& notes)
     if (wasInHold && !holdCheck) player->EnqueueJudgeSound(JudgeSoundType::HoldingStop);
     if (!wasInAA && aaCheck) player->EnqueueJudgeSound(JudgeSoundType::AirHolding);
     if (wasInAA && !aaCheck) player->EnqueueJudgeSound(JudgeSoundType::AirHoldingStop);
-    player->airActionShown = aaCheck;
+    player->airActionPosition = currentState->GetAirPosition();
 
     wasInHold = holdCheck;
     wasInSlide = slideCheck;
     wasInAA = aaCheck;
+    //TODO herer
 }
 
 void PlayableProcessor::MovePosition(const double relative)
@@ -169,27 +170,19 @@ void PlayableProcessor::MovePosition(const double relative)
 void PlayableProcessor::Draw()
 {
     if (!imageHoldLight) return;
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
     for (auto i = 0; i < 16; i++){
         if (currentState->GetCurrentState(ControllerSource::Slider, i)){
 
-            SDL_FRect dstRect = {
+            GPU_Rect dstRect = {
                 player->widthPerLane * i,
                 player->laneBufferY + imageHoldLight->GetHeight() * 2, // maybe wrong
-                imageHoldLight->GetWidth(),
-                imageHoldLight->GetHeight() * 2 // apparently?
+                static_cast<float>(imageHoldLight->GetWidth()),
+                static_cast<float>(imageHoldLight->GetHeight() * 2) // apparently?
             };
 
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-            SDL_RenderCopyExF(
-                renderer,
-                imageHoldLight->GetTexture(),
-                NULL,
-                &dstRect,
-                0,
-                NULL,
-                SDL_FLIP_NONE);
+            GPU_Image *image = imageHoldLight->GetTexture();
+            GPU_SetBlendMode(image, GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
+            GPU_BlitRect(image, NULL, gpu, &dstRect);
         }
     }
 }

@@ -12,18 +12,11 @@ void Logger::Initialize()
 {
     using namespace spdlog;
 
-#ifdef _DEBUG
-    AllocConsole();
     sinks.push_back(make_shared<StandardOutputUnicodeSink>());
-#endif
     sinks.push_back(make_shared<sinks::basic_file_sink_mt>("Seaurchin.log", true));
     loggerMain = make_shared<logger>("main", begin(sinks), end(sinks));
     loggerMain->set_pattern("[%H:%M:%S.%e] [%L] %v");
-#if _DEBUG
     loggerMain->set_level(level::trace);
-#else
-    loggerMain->set_level(level::info);
-#endif
     register_logger(loggerMain);
 }
 

@@ -276,41 +276,35 @@ void SSprite::Tick(const double delta)
     pMover->Tick(delta);
 }
 
-void SSprite::Draw()
+void SSprite::Draw(GPU_Target *target)
 {
-    DrawBy(Transform, Color);
+    DrawBy(Transform, Color, target);
 }
 
-void SSprite::Draw(const Transform2D &parent, const ColorTint &color)
+void SSprite::Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target)
 {
     const auto tf = Transform.ApplyFrom(parent);
     const auto cl = Color.ApplyFrom(color);
-    DrawBy(tf, cl);
+    DrawBy(tf, cl, target);
 }
 
-void SSprite::DrawBy(const Transform2D &tf, const ColorTint &ct)
+void SSprite::DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target)
 {
     if (!Image) return;
-    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    GPU_Image *image = Image->GetTexture();
+    GPU_SetBlendMode(image, GPU_BLEND_NORMAL_ADD_ALPHA);
+    GPU_SetColor(image, SDL_Color{ct.R, ct.G, ct.B, ct.A});
 
-    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
+    GPU_BlitTransform(image,
+                      NULL,
+                      target,
+                      tf.X,
+                      tf.Y,
+                      tf.Angle,
+                      tf.ScaleX,
+                      tf.ScaleY);
 
-    SDL_FRect dstRect = {
-        tf.X - scaledOrigin.x,
-        tf.Y - scaledOrigin.y,
-        Image->GetWidth() * tf.ScaleX,
-        Image->GetHeight() * tf.ScaleY
-    };
-
-    SDL_RenderCopyExF(
-        renderer,
-        Image->GetTexture(),
-        NULL,
-        &dstRect,
-        tf.Angle,
-        &scaledOrigin,
-        SDL_FLIP_NONE);
+    GPU_SetColor(image, SDL_Color{255, 255, 255, 255});
 }
 
 SSprite * SSprite::Clone()
@@ -412,94 +406,76 @@ SShape::SShape()
 {
 }
 
-void SShape::DrawBy(const Transform2D & tf, const ColorTint & ct)
+void SShape::DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target)
 {
-    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    switch (Type) {
-        case SShapeType::Pixel:
-            SDL_RenderDrawPointF(renderer, tf.X, tf.Y);
-            break;
-        case SShapeType::Box: {
-            const glm::vec2 points[] = {
-                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
-                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
-                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle),
-                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle)
-            };
+    auto color = GPU_MakeColor(ct.R, ct.G, ct.B, ct.A);
+    GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
+    std::vector<float> vertices;
 
-            const Sint16 Xs[] = { points[0].x, points[1].x, points[2].x, points[3].x};
-            const Sint16 Ys[] = { points[0].y, points[1].y, points[2].y, points[3].y};
+    switch (Type)
+    {
+    case SShapeType::Pixel:
+        GPU_Pixel(target, tf.X, tf.Y, color);
+        break;
+    case SShapeType::BoxFill:
+    case SShapeType::Box:
+    {
+        const glm::vec2 points[] = {
+            glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
+            glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
+            glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle),
+            glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle)};
 
-            polygonRGBA(renderer, Xs, Ys, 4, ct.R, ct.G, ct.B, ct.A);
-            break;
+        for (auto point : points)
+        {
+            vertices.push_back(point.x);
+            vertices.push_back(point.y);
         }
-        case SShapeType::BoxFill: {
-            const glm::vec2 points[] = {
-                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
-                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(+Height * tf.ScaleY / 2.0f)), tf.Angle),
-                glm::rotate(glm::vec2(float(-Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle),
-                glm::rotate(glm::vec2(float(+Width * tf.ScaleX / 2.0f), float(-Height * tf.ScaleY / 2.0f)), tf.Angle)
-            };
-            const Sint16 Xs[] = { points[0].x, points[1].x, points[2].x, points[3].x};
-            const Sint16 Ys[] = { points[0].y, points[1].y, points[2].y, points[3].y};
-
-            filledPolygonRGBA(renderer, Xs, Ys, 4, ct.R, ct.G, ct.B, ct.A);
-            break;
+        if (Type == SShapeType::Box)
+        {
+            GPU_Polygon(target, 4, vertices.data(), color);
         }
-        case SShapeType::Oval: {
-            auto prev = glm::rotate(
-                glm::vec2(float(Width * tf.ScaleX / 2.0f * glm::cos(0)), float(Height * tf.ScaleY / 2.0f * glm::sin(0))),
-                float(tf.Angle)
-            );
-            for (auto i = 1; i <= 256; ++i) {
-                const auto angle = 2.0 * glm::pi<double>() / 256.0 * i;
-                const auto next = glm::rotate(
-                    glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(angle), Height * tf.ScaleY / 2.0 * glm::sin(angle)),
-                    float(tf.Angle)
-                );
-                SDL_RenderDrawLine(renderer, tf.X + prev.x, tf.Y - prev.y, tf.X + next.x, tf.Y - next.y);
-                prev = next;
-            }
-            break;
+        else
+        {
+            GPU_PolygonFilled(target, 4, vertices.data(), color);
         }
-        case SShapeType::OvalFill: {
-            auto prev = glm::rotate(
-                glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(0), Height * tf.ScaleY / 2.0 * glm::sin(0)),
-                float(tf.Angle)
-            );
-            for (auto i = 1; i <= 256; ++i) {
-                const auto angle = 2.0 * glm::pi<double>() / 256.0 * i;
-                const auto next = glm::rotate(
-                    glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(angle), Height * tf.ScaleY / 2.0 * glm::sin(angle)),
-                    float(tf.Angle)
-                );
-                filledTrigonRGBA(renderer, 
-                    tf.X,
-                    tf.Y,
-                    tf.X + prev.x,
-                    tf.Y - prev.y,
-                    tf.X + next.x,
-                    tf.Y - next.y,
-                    ct.R, ct.G, ct.B, ct.A
-                );
-                prev = next;
-            }
-            break;
+    }
+    break;
+    case SShapeType::Oval:
+    case SShapeType::OvalFill:
+    {
+        for (auto i = 0; i <= 256; ++i)
+        {
+            const auto angle = 2.0 * glm::pi<double>() / 256.0 * i;
+            const auto next = glm::rotate(
+                glm::vec2(Width * tf.ScaleX / 2.0 * glm::cos(angle), Height * tf.ScaleY / 2.0 * glm::sin(angle)),
+                float(tf.Angle));
+            vertices.push_back(next.x);
+            vertices.push_back(next.y);
         }
+        if (Type == SShapeType::Oval)
+        {
+            GPU_Polygon(target, 256, vertices.data(), color);
+        }
+        else
+        {
+            GPU_PolygonFilled(target, 256, vertices.data(), color);
+        }
+    }
+    break;
     }
 }
 
-void SShape::Draw()
+void SShape::Draw(GPU_Target *target)
 {
-    DrawBy(Transform, Color);
+    DrawBy(Transform, Color, target);
 }
 
-void SShape::Draw(const Transform2D &parent, const ColorTint &color)
+void SShape::Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target)
 {
     const auto tf = Transform.ApplyFrom(parent);
     const auto cl = Color.ApplyFrom(color);
-    DrawBy(tf, cl);
+    DrawBy(tf, cl, target);
 }
 
 SShape * SShape::Clone()
@@ -561,52 +537,43 @@ void STextSprite::Refresh()
     }
 }
 
-void STextSprite::DrawNormal(const Transform2D &tf, const ColorTint &ct)
+void STextSprite::DrawNormal(const Transform2D &tf, const ColorTint &ct, GPU_Target *drawTarget)
 {
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    //SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
-    if (isRich) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    } else {
-        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
-    }
     const auto tox = SU_TO_FLOAT(get<0>(size) / 2 * int(horizontalAlignment));
     const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
 
-    SDL_FPoint scaledOrigin = {(tf.OriginX + tox) * tf.ScaleX, (tf.OriginY + toy) * tf.ScaleY};
+    GPU_Image *image = target->GetImage();
 
-    SDL_FRect dstRect = {
-        tf.X - (tf.OriginX + tox) * tf.ScaleX,
-        tf.Y - (tf.OriginY + toy) * tf.ScaleY,
-        target->GetWidth() * tf.ScaleX,
-        target->GetHeight() * tf.ScaleY
-    };
+    GPU_SetBlendMode(image, GPU_BLEND_NORMAL_ADD_ALPHA);
 
-    SDL_RenderCopyExF(
-        renderer,
-        target->GetTexture(),
-        NULL,
-        &dstRect,
-        tf.Angle,
-        &scaledOrigin,
-        SDL_FLIP_NONE);
+    if(!isRich){
+        GPU_SetColor(image, SDL_Color{ct.R, ct.G, ct.B, ct.A});
+    }
+
+    GPU_BlitTransform(image,
+                      NULL,
+                      drawTarget,
+                      tf.X,
+                      tf.Y,
+                      tf.Angle,
+                      tf.ScaleX,
+                      tf.ScaleY);
+
+    GPU_SetColor(image, SDL_Color{255, 255, 255, 255});
 }
 
-void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct)
+void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct, GPU_Target *drawTarget)
 {
-    SDL_SetRenderTarget(renderer, scrollBuffer->GetTexture());
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_RenderClear(renderer);
+    GPU_Clear(scrollBuffer->GetTarget());
     if (scrollSpeed >= 0) {
         auto reach = -scrollPosition + int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
         while (reach < scrollWidth) {
-            const SDL_Rect srcRect = {0, 0, get<0>(size), get<1>(size)};
-            const SDL_Rect dstRect = {reach, 0, srcRect.w, srcRect.h};
-            SDL_RenderCopy(
-                renderer,
+            GPU_Rect srcRect = {0, 0, static_cast<float>(get<0>(size)), static_cast<float>(get<1>(size))};
+            GPU_Rect dstRect = {static_cast<float>(reach), 0, srcRect.w, srcRect.h};
+            GPU_BlitRect(
                 target->GetTexture(),
                 &srcRect,
+                scrollBuffer->GetTarget(),
                 &dstRect
             );
             reach += get<0>(size) + scrollMargin;
@@ -614,46 +581,29 @@ void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct)
     } else {
         auto reach = -scrollPosition - int(scrollPosition / (get<0>(size) + scrollMargin)) * (get<0>(size) + scrollMargin);
         while (reach > 0) {
-            const SDL_Rect srcRect = {0, 0, get<0>(size), get<1>(size)};
-            const SDL_Rect dstRect = {reach, 0, srcRect.w, srcRect.h};
-            SDL_RenderCopy(
-                renderer,
+            GPU_Rect srcRect = {0, 0, static_cast<float>(get<0>(size)), static_cast<float>(get<1>(size))};
+            GPU_Rect dstRect = {static_cast<float>(reach), 0, srcRect.w, srcRect.h};
+            GPU_BlitRect(
                 target->GetTexture(),
                 &srcRect,
+                scrollBuffer->GetTarget(),
                 &dstRect
             );
             reach -= get<0>(size) + scrollMargin;
         }
     }
 
-    SDL_SetRenderTarget(renderer, NULL);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    //SetDrawMode(DX_DRAWMODE_ANISOTROPIC);
-
-    if (isRich) {
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    } else {
-        SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
-    }
     const auto tox = SU_TO_FLOAT(scrollWidth / 2 * int(horizontalAlignment));
     const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
 
-    SDL_FPoint scaledOrigin = {(tf.OriginX + tox) * tf.ScaleX, (tf.OriginY + toy) * tf.ScaleY};
-    SDL_FRect dstRect = {
-        tf.X - scaledOrigin.x,
-        tf.Y - scaledOrigin.y,
-        Image->GetWidth() * tf.ScaleX,
-        Image->GetHeight() * tf.ScaleY
-    };
-
-    SDL_RenderCopyExF(
-        renderer,
-        scrollBuffer->GetTexture(),
-        NULL,
-        &dstRect,
-        tf.Angle,
-        &scaledOrigin,
-        SDL_FLIP_NONE);
+    GPU_BlitTransform(scrollBuffer->GetTexture(),
+                      NULL,
+                      drawTarget,
+                      tf.X + tox,
+                      tf.Y + toy,
+                      tf.Angle,
+                      tf.ScaleX,
+                      tf.ScaleY);
 }
 
 void STextSprite::SetFont(SFont * font)
@@ -714,25 +664,25 @@ void STextSprite::Tick(const double delta)
     if (isScrolling) scrollPosition += scrollSpeed * delta;
 }
 
-void STextSprite::Draw()
+void STextSprite::Draw(GPU_Target *drawTarget)
 {
     if (!target) return;
     if (isScrolling && target->GetWidth() >= scrollWidth) {
-        DrawScroll(Transform, Color);
+        DrawScroll(Transform, Color, drawTarget);
     } else {
-        DrawNormal(Transform, Color);
+        DrawNormal(Transform, Color, drawTarget);
     }
 }
 
-void STextSprite::Draw(const Transform2D & parent, const ColorTint & color)
+void STextSprite::Draw(const Transform2D & parent, const ColorTint & color, GPU_Target *drawTarget)
 {
     const auto tf = Transform.ApplyFrom(parent);
     const auto cl = Color.ApplyFrom(color);
     if (!target) return;
     if (isScrolling && target->GetWidth() >= scrollWidth) {
-        DrawScroll(tf, cl);
+        DrawScroll(tf, cl, drawTarget);
     } else {
-        DrawNormal(tf, cl);
+        DrawNormal(tf, cl, drawTarget);
     }
 }
 
@@ -891,28 +841,23 @@ void STextInput::RegisterType(asIScriptEngine *engine)
 
 // SSynthSprite -------------------------------------
 
-void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
+void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct, GPU_Target *drawTarget)
 {
     if (!target) return;
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    GPU_Image *image = target->GetTexture();
+    GPU_SetBlendMode(image, GPU_BLEND_NORMAL_ADD_ALPHA);
+    GPU_SetColor(image, SDL_Color{ct.R, ct.G, ct.B, ct.A});
 
-    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
-    SDL_FRect dstRect = {
-        tf.X - scaledOrigin.x,
-        tf.Y - scaledOrigin.y,
-        target->GetWidth() * tf.ScaleX,
-        target->GetHeight() * tf.ScaleY
-    };
+    GPU_BlitTransform(image,
+                      NULL,
+                      drawTarget,
+                      tf.X,
+                      tf.Y,
+                      tf.Angle,
+                      tf.ScaleX,
+                      tf.ScaleY);
 
-    SDL_RenderCopyExF(
-        renderer,
-        target->GetTexture(),
-        NULL,
-        &dstRect,
-        tf.Angle,
-        &scaledOrigin,
-        SDL_FLIP_NONE);
+    GPU_SetColor(image, SDL_Color{255, 255, 255, 255});
 }
 
 SSynthSprite::SSynthSprite(const int w, const int h)
@@ -938,11 +883,9 @@ void SSynthSprite::Transfer(SSprite *sprite)
 {
     if (!sprite) return;
 
-    SDL_SetRenderTarget(renderer, target->GetTexture());
-    sprite->Draw();
-    SDL_SetRenderTarget(renderer, NULL);
+    sprite->Draw(target->GetTarget());
 
-    sprite->Release();
+    //sprite->Release();
 }
 
 // ReSharper disable once CppMemberFunctionMayBeConst
@@ -950,28 +893,23 @@ void SSynthSprite::Transfer(SImage * image, const double x, const double y)
 {
     if (!image) return;
 
-    SDL_SetRenderTarget(renderer, target->GetTexture());
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    GPU_Image *texture = image->GetTexture();
+    GPU_SetBlendMode(texture, GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
+    GPU_Blit(texture, NULL, target->GetTarget(), x, y);
 
-    SDL_Rect rect = {x, y, image->GetWidth(), image->GetHeight()};
-    SDL_RenderCopy(renderer, image->GetTexture(), &rect, NULL);
-
-    SDL_SetRenderTarget(renderer, NULL);
-
-    image->Release();
+    //image->Release();
 }
 
-void SSynthSprite::Draw()
+void SSynthSprite::Draw(GPU_Target *target)
 {
-    DrawBy(Transform, Color);
+    DrawBy(Transform, Color, target);
 }
 
-void SSynthSprite::Draw(const Transform2D & parent, const ColorTint & color)
+void SSynthSprite::Draw(const Transform2D & parent, const ColorTint & color, GPU_Target *target)
 {
     const auto tf = Transform.ApplyFrom(parent);
     const auto cl = Color.ApplyFrom(color);
-    DrawBy(tf, cl);
+    DrawBy(tf, cl, target);
 }
 
 SSynthSprite* SSynthSprite::Clone()
@@ -1016,12 +954,9 @@ void SSynthSprite::RegisterType(asIScriptEngine * engine)
 
 // SClippingSprite ------------------------------------------
 
-void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
+void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct, GPU_Target *drawTarget)
 {
     if (!target) return;
-    SDL_SetRenderDrawColor(renderer, ct.R, ct.G, ct.B, ct.A);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
     const auto x = SU_TO_INT32(width * u1);
     const auto y = SU_TO_INT32(height * v1);
     const auto w = SU_TO_INT32(width * u2);
@@ -1036,14 +971,14 @@ void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct)
         target->GetHeight() * tf.ScaleY
     };
 
-    SDL_RenderCopyExF(
-        renderer,
-        target->GetTexture(),
-        &srcRect,
-        &dstRect,
-        tf.Angle,
-        &scaledOrigin,
-        SDL_FLIP_NONE);
+    GPU_BlitTransform(target->GetTexture(),
+                      NULL,
+                      drawTarget,
+                      tf.X,
+                      tf.Y,
+                      tf.Angle,
+                      tf.ScaleX,
+                      tf.ScaleY);
 }
 
 SClippingSprite::SClippingSprite(const int w, const int h)
@@ -1060,16 +995,16 @@ void SClippingSprite::SetRange(const double tx, const double ty, const double w,
     v2 = h;
 }
 
-void SClippingSprite::Draw()
+void SClippingSprite::Draw(GPU_Target *target)
 {
-    DrawBy(Transform, Color);
+    DrawBy(Transform, Color, target);
 }
 
-void SClippingSprite::Draw(const Transform2D & parent, const ColorTint & color)
+void SClippingSprite::Draw(const Transform2D & parent, const ColorTint & color, GPU_Target *target)
 {
     const auto tf = Transform.ApplyFrom(parent);
     const auto cl = Color.ApplyFrom(color);
-    DrawBy(tf, cl);
+    DrawBy(tf, cl, target);
 }
 
 SClippingSprite *SClippingSprite::Clone()
@@ -1119,31 +1054,21 @@ void SClippingSprite::RegisterType(asIScriptEngine * engine)
 }
 
 // SAnimeSprite -------------------------------------------
-void SAnimeSprite::DrawBy(const Transform2D &tf, const ColorTint &ct)
+void SAnimeSprite::DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target)
 {
     const auto at = images->GetCellTime() * images->GetFrameCount() - time;
-    SDL_Texture *tex = images->GetTexture();
+    GPU_Image *image = images->GetTexture();
 
-    SDL_Rect srcRect = images->GetRectAt(at);
+    GPU_Rect srcRect = images->GetRectAt(at);
 
-    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
-    SDL_FRect dstRect = {
-        tf.X - scaledOrigin.x,
-        tf.Y - scaledOrigin.y,
-        srcRect.w * tf.ScaleX,
-        srcRect.h * tf.ScaleY
-    };
-
-    SDL_SetRenderDrawColor(renderer, Color.R, Color.G, Color.B, Color.A);
-    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    SDL_RenderCopyExF(
-        renderer,
-        tex,
-        &srcRect,
-        &dstRect,
-        tf.Angle,
-        &scaledOrigin,
-        SDL_FLIP_NONE);
+    GPU_BlitTransform(image,
+                      &srcRect,
+                      target,
+                      tf.X,
+                      tf.Y,
+                      tf.Angle,
+                      tf.ScaleX,
+                      tf.ScaleY);
 }
 
 SAnimeSprite::SAnimeSprite(SAnimatedImage * img)
@@ -1160,16 +1085,16 @@ SAnimeSprite::~SAnimeSprite()
     if (images) images->Release();
 }
 
-void SAnimeSprite::Draw()
+void SAnimeSprite::Draw(GPU_Target *target)
 {
-    DrawBy(Transform, Color);
+    DrawBy(Transform, Color, target);
 }
 
-void SAnimeSprite::Draw(const Transform2D &parent, const ColorTint &color)
+void SAnimeSprite::Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target)
 {
     const auto tf = Transform.ApplyFrom(parent);
     const auto cl = Color.ApplyFrom(color);
-    DrawBy(tf, cl);
+    DrawBy(tf, cl, target);
 }
 
 void SAnimeSprite::Tick(const double delta)
@@ -1246,16 +1171,16 @@ void SContainer::Tick(const double delta)
     for (const auto &s : children) s->Tick(delta);
 }
 
-void SContainer::Draw()
+void SContainer::Draw(GPU_Target *target)
 {
-    for (const auto &s : children) s->Draw(Transform, Color);
+    for (const auto &s : children) s->Draw(Transform, Color, target);
 }
 
-void SContainer::Draw(const Transform2D & parent, const ColorTint &color)
+void SContainer::Draw(const Transform2D & parent, const ColorTint &color, GPU_Target *target)
 {
     const auto tf = Transform.ApplyFrom(parent);
     const auto cl = Color.ApplyFrom(color);
-    for (const auto &s : children) s->Draw(tf, cl);
+    for (const auto &s : children) s->Draw(tf, cl, target);
 }
 
 SContainer *SContainer::Clone()
@@ -1287,3 +1212,4 @@ void SContainer::RegisterType(asIScriptEngine *engine)
     engine->RegisterObjectMethod(SU_IF_CONTAINER, SU_IF_SPRITE "@ opImplCast()", asFUNCTION((CastReferenceType<SContainer, SSprite>)), asCALL_CDECL_OBJLAST);
     engine->RegisterObjectMethod(SU_IF_CONTAINER, "void AddChild(" SU_IF_SPRITE "@)", asMETHOD(SContainer, AddChild), asCALL_THISCALL);
 }
+ 

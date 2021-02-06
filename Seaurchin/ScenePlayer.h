@@ -101,8 +101,8 @@ class ScenePlayer : public SSprite {
     friend class PlayableProcessor;
 
 protected:
-    SDL_Surface *groundBufferSurface;
-    SDL_Texture *groundBufferTexture;
+    GPU_Image *groundBufferTexture;
+    GPU_Target *groundBufferTarget;
     ExecutionManager *manager;
     SoundManager * const soundManager; // soundManager のアドレスが不変、 soundManager の実体が持つ値は変わりうる
     boost::lockfree::queue<JudgeSoundType> judgeSoundQueue;
@@ -142,7 +142,7 @@ protected:
     SSound *soundTap {}, *soundExTap {}, *soundFlick {}, *soundAir {}, *soundAirDown {}, *soundAirAction {}, *soundAirLoop {};
     SSound *soundHoldLoop {}, *soundSlideLoop {}, *soundHoldStep {}, *soundSlideStep {};
     SSound *soundMetronome {};
-    SImage *imageLaneGround {}, *imageLaneJudgeLine {};
+    SImage *imageLaneGround {}, *imageLaneJudgeLine {}, *imageAirJudgeLine {};
     SImage *imageTap {}, *imageExTap {}, *imageFlick {}, *imageHellTap {};
     SImage *imageAir {}, *imageAirUp {}, *imageAirDown {};
     SImage *imageHold {}, *imageHoldStep {}, *imageHoldStrut {};
@@ -192,7 +192,7 @@ protected:
     const double airRollSpeed; // = 1.5
     PlayingState state = PlayingState::ScoreNotLoaded;
     PlayingState lastState;
-    bool airActionShown = false;
+    float airActionPosition;
     bool metronomeAvailable = true;
 
     void TickGraphics(double delta);
@@ -203,18 +203,17 @@ protected:
     void RemoveSlideEffect();
     void UpdateSlideEffect();
     void CalculateNotes(double time, double duration, double preced);
-    void DrawShortNotes(const std::shared_ptr<SusDrawableNoteData>& note) const;
-    void DrawAirNotes(const AirDrawQuery &query) const;
-    void DrawHoldNotes(const std::shared_ptr<SusDrawableNoteData>& note) const;
-    void DrawSlideNotes(const std::shared_ptr<SusDrawableNoteData>& note);
-    void DrawAirActionStart(const AirDrawQuery &query) const;
-    void DrawAirActionStep(const AirDrawQuery &query) const;
-    void DrawAirActionStepBox(const AirDrawQuery &query) const;
-    void DrawAirActionCover(const AirDrawQuery &query);
-    void DrawTap(float lane, int length, double relpos, int handle) const;
-    void DrawMeasureLine(const std::shared_ptr<SusDrawableNoteData>& note) const;
-    void Prepare3DDrawCall() const;
-    void DrawAerialNotes(const std::vector<std::shared_ptr<SusDrawableNoteData>>& notes);
+    void DrawShortNotes(const std::shared_ptr<SusDrawableNoteData>& note, GPU_Target *target) const;
+    void DrawAerialNotes(const std::vector<std::shared_ptr<SusDrawableNoteData>>& notes, GPU_Target *target);
+    void DrawAirNotes(const AirDrawQuery &query, GPU_Target *target) const;
+    void DrawHoldNotes(const std::shared_ptr<SusDrawableNoteData>& note, GPU_Target *target) const;
+    void DrawSlideNotes(const std::shared_ptr<SusDrawableNoteData>& note, GPU_Target *target);
+    void DrawAirActionStart(const AirDrawQuery &query, GPU_Target *target) const;
+    void DrawAirActionStep(const AirDrawQuery &query, GPU_Target *target) const;
+    void DrawAirActionStepBox(const AirDrawQuery &query, GPU_Target *target) const;
+    void DrawAirActionCover(const AirDrawQuery &query, GPU_Target *target);
+    void DrawTap(float lane, int length, double relpos, GPU_Image *image, GPU_Target *target) const;
+    void DrawMeasureLine(const std::shared_ptr<SusDrawableNoteData>& note, GPU_Target *target) const;
 
     void ProcessSound();
     void ProcessSoundQueue();
@@ -232,7 +231,7 @@ public:
     void SetPlayerResource(const std::string &name, SResource *resource);
     void SetLaneSprite(SSprite *spriteLane);
     void Tick(double delta) override;
-    void Draw() override;
+    void Draw(GPU_Target *target) override;
     void Finalize();
 
     void Initialize();

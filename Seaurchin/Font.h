@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <stdint.h>
-#include <freetype/freetype.h>
+#include <freetype2/freetype/freetype.h>
 #include <string>
 #include <fstream>
 #include <boost/filesystem.hpp>

@@ -6,20 +6,21 @@
 #include "Config.h"
 
 using namespace std;
+using namespace Rendering;
 
 static const uint16_t rectVertexIndices[] = { 0, 1, 3, 3, 1, 2 };
 static VERTEX3D groundVertices[] = {
-    { VGet(SU_LANE_X_MIN, SU_LANE_Y_GROUND, SU_LANE_Z_MAX), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.0f, 0.0f, 0.0f, 0.0f },
-{ VGet(SU_LANE_X_MAX, SU_LANE_Y_GROUND, SU_LANE_Z_MAX), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 1.0f, 0.0f, 0.0f, 0.0f },
-{ VGet(SU_LANE_X_MAX, SU_LANE_Y_GROUND, SU_LANE_Z_MIN_EXT), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 1.0f, 1.0f, 0.0f, 0.0f },
-{ VGet(SU_LANE_X_MIN, SU_LANE_Y_GROUND, SU_LANE_Z_MIN_EXT), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.0f, 1.0f, 0.0f, 0.0f }
+    {VGet(SU_LANE_X_MIN, SU_LANE_Y_GROUND, SU_LANE_Z_MAX), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.0f, 0.0f},
+    {VGet(SU_LANE_X_MAX, SU_LANE_Y_GROUND, SU_LANE_Z_MAX), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 1.0f, 0.0f},
+    {VGet(SU_LANE_X_MAX, SU_LANE_Y_GROUND, SU_LANE_Z_MIN_EXT), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 1.0f, 1.0f},
+    {VGet(SU_LANE_X_MIN, SU_LANE_Y_GROUND, SU_LANE_Z_MIN_EXT), VGet(0, 1, 0), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.0f, 1.0f}
 };
-
 
 void ScenePlayer::LoadResources()
 {
     imageLaneGround = dynamic_cast<SImage*>(resources["LaneGround"]);
     imageLaneJudgeLine = dynamic_cast<SImage*>(resources["LaneJudgeLine"]);
+    imageAirJudgeLine = dynamic_cast<SImage*>(resources["AirJudgeLine"]);
     imageTap = dynamic_cast<SImage*>(resources["Tap"]);
     imageExTap = dynamic_cast<SImage*>(resources["ExTap"]);
     imageFlick = dynamic_cast<SImage*>(resources["Flick"]);
@@ -81,8 +82,9 @@ void ScenePlayer::LoadResources()
     showSlideLine = setting->ReadValue("Play", "ShowSlideLine", true);
     slideLineThickness = setting->ReadValue("Play", "SlideLineThickness", 16.0) / 2.0;
     showAirActionJudge = setting->ReadValue("Play", "ShowAirActionJudgeLine", true);
-    slideLineColor = GetColor(scv[0].as<int>(), scv[1].as<int>(), scv[2].as<int>());
-    airActionJudgeColor = GetColor(aajcv[0].as<int>(), aajcv[1].as<int>(), aajcv[2].as<int>());
+
+    slideLineColor = GetColorU8(scv[0].as<int>(), scv[1].as<int>(), scv[2].as<int>(), 255);
+    airActionJudgeColor = GetColorU8(aajcv[0].as<int>(), aajcv[1].as<int>(), aajcv[2].as<int>(), 255);
 
     // 2^x制限があるのでここで計算
     const auto exty = laneBufferX * SU_LANE_ASPECT_EXT;
@@ -90,8 +92,16 @@ void ScenePlayer::LoadResources()
     while (exty > bufferY) bufferY *= 2.0f;
     const auto bufferV = SU_TO_FLOAT(exty / bufferY);
     for (auto i = 2; i < 4; i++) groundVertices[i].v = bufferV;
-    if (hGroundBuffer) DeleteGraph(hGroundBuffer);
-    hGroundBuffer = MakeScreen(SU_TO_INT32(laneBufferX), SU_TO_INT32(bufferY), TRUE);
+
+    if (groundBufferTarget) {
+        GPU_FreeTarget(groundBufferTarget);
+    }
+    if(groundBufferTexture){
+        GPU_FreeImage(groundBufferTexture);
+    }
+
+    groundBufferTexture = GPU_CreateImage(SU_TO_INT32(laneBufferX), SU_TO_INT32(bufferY), GPU_FormatEnum::GPU_FORMAT_RGBA);
+    groundBufferTarget = GPU_LoadTarget(groundBufferTexture);
 
     if (!spriteLane) {
         SSynthSprite *pSynthSprite = SSynthSprite::Factory(1024, 4224);
@@ -133,27 +143,20 @@ void ScenePlayer::TickGraphics(const double delta)
     UpdateSlideEffect();
 }
 
-void ScenePlayer::Draw()
+void ScenePlayer::Draw(GPU_Target *target)
 {
-    if (movieBackground) DrawExtendGraph(0, 0, SU_RES_WIDTH, SU_RES_HEIGHT, movieBackground, FALSE);
-
-    BEGIN_DRAW_TRANSACTION(hGroundBuffer);
-    ClearDrawScreen();
-
-    // 背景部
-    spriteLane->Draw();
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-    SetDrawBright(255, 255, 255);
+    GPU_Clear(groundBufferTarget);
+    spriteLane->Draw(groundBufferTarget);
     for (auto& note : seenData) {
         auto &type = note->Type;
-        if (type[size_t(SusNoteType::MeasureLine)]) DrawMeasureLine(note);
+        if (type[size_t(SusNoteType::MeasureLine)]) DrawMeasureLine(note, target);
     }
 
     // 下側のロングノーツ類
     for (auto& note : seenData) {
         auto &type = note->Type;
-        if (type[size_t(SusNoteType::Hold)]) DrawHoldNotes(note);
-        if (type[size_t(SusNoteType::Slide)]) DrawSlideNotes(note);
+        if (type[size_t(SusNoteType::Hold)]) DrawHoldNotes(note, target);
+        if (type[size_t(SusNoteType::Slide)]) DrawSlideNotes(note, target);
     }
 
     // 上側のショートノーツ類
@@ -162,35 +165,41 @@ void ScenePlayer::Draw()
 #define GET_BIT(num) (1UL << (int(num)))
         const auto mask = GET_BIT(SusNoteType::Tap) | GET_BIT(SusNoteType::ExTap) | GET_BIT(SusNoteType::AwesomeExTap) | GET_BIT(SusNoteType::Flick) | GET_BIT(SusNoteType::HellTap) | GET_BIT(SusNoteType::Grounded);
 #undef GET_BIT
-        if (type & mask) DrawShortNotes(note);
+        if (type & mask) DrawShortNotes(note, target);
     }
 
-    FINISH_DRAW_TRANSACTION;
-    Prepare3DDrawCall();
-    DrawPolygonIndexed3D(groundVertices, 4, rectVertexIndices, 2, hGroundBuffer, TRUE);
-    for (auto& i : sprites) i->Draw();
+    //Prepare3DDrawCall();
+    Render3DPolygon(groundBufferTexture, gpu, groundVertices, 4, rectVertexIndices, 2);
+    for (auto& i : sprites) i->Draw(target);
 
     //3D系ノーツ
-    Prepare3DDrawCall();
-    DrawAerialNotes(seenData);
+    //Prepare3DDrawCall();
+    DrawAerialNotes(seenData, target);
 
-    if (airActionShown && showAirActionJudge) {
-        SetDrawBlendMode(DX_BLENDMODE_ADD, 192);
-        SetUseZBuffer3D(FALSE);
-        DrawTriangle3D(
-            VGet(SU_LANE_X_MIN_EXT, SU_LANE_Y_AIR - 5, SU_LANE_Z_MIN - 5),
-            VGet(SU_LANE_X_MIN_EXT, SU_LANE_Y_AIR + 5, SU_LANE_Z_MIN + 5),
-            VGet(SU_LANE_X_MAX_EXT, SU_LANE_Y_AIR + 5, SU_LANE_Z_MIN + 5),
-            airActionJudgeColor, TRUE);
-        DrawTriangle3D(
-            VGet(SU_LANE_X_MIN_EXT, SU_LANE_Y_AIR - 5, SU_LANE_Z_MIN - 5),
-            VGet(SU_LANE_X_MAX_EXT, SU_LANE_Y_AIR + 5, SU_LANE_Z_MIN + 5),
-            VGet(SU_LANE_X_MAX_EXT, SU_LANE_Y_AIR - 5, SU_LANE_Z_MIN - 5),
-            airActionJudgeColor, TRUE);
+    if (airActionPosition >= 0 && showAirActionJudge) {
+        float airActionScaledPosition = (airActionPosition - 0.5) * 10;
+        GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
+
+        float verts[] = {
+            SU_LANE_X_MIN_EXT, SU_LANE_Y_AIR - 5, SU_LANE_Z_MIN, 0, 0,
+            SU_LANE_X_MIN_EXT, SU_LANE_Y_AIR + 5, SU_LANE_Z_MIN, 0, 1,
+            SU_LANE_X_MAX_EXT, SU_LANE_Y_AIR + 5, SU_LANE_Z_MIN, 1, 0,
+            SU_LANE_X_MAX_EXT, SU_LANE_Y_AIR - 5, SU_LANE_Z_MIN, 1, 1
+        };
+
+        uint16_t indices[] = {
+            0, 1, 3,
+            3, 1, 2
+        };
+
+        GPU_TriangleBatch(imageAirJudgeLine->GetTexture(), target,
+                          4, verts,
+                          2, indices,
+                          GPU_BATCH_XYZ_ST);
     }
 }
 
-void ScenePlayer::DrawAerialNotes(const vector<shared_ptr<SusDrawableNoteData>>& notes)
+void ScenePlayer::DrawAerialNotes(const vector<shared_ptr<SusDrawableNoteData>>& notes, GPU_Target *target)
 {
     vector<AirDrawQuery> airdraws, covers;
     for (const auto &note : seenData) {
@@ -236,32 +245,32 @@ void ScenePlayer::DrawAerialNotes(const vector<shared_ptr<SusDrawableNoteData>>&
     for (const auto &query : airdraws) {
         switch (query.Type) {
             case AirDrawType::Air:
-                DrawAirNotes(query);
+                DrawAirNotes(query, target);
                 break;
             case AirDrawType::AirActionStart:
-                DrawAirActionStart(query);
+                DrawAirActionStart(query, target);
                 break;
             case AirDrawType::AirActionStep:
-                DrawAirActionStep(query);
+                DrawAirActionStep(query, target);
                 break;
             default: break;
         }
     }
-    for (const auto &query : covers) DrawAirActionCover(query);
+    for (const auto &query : covers) DrawAirActionCover(query, target);
     for (const auto &query : airdraws) {
-        if (query.Type == AirDrawType::AirActionStep) DrawAirActionStepBox(query);
+        if (query.Type == AirDrawType::AirActionStep) DrawAirActionStepBox(query, target);
     }
 }
 
 // position は 0 ~ 16
 void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData>& target, const JudgeType type)
 {
-    Prepare3DDrawCall();
+    //Prepare3DDrawCall();
     const auto position = target->StartLane + target->Length / 2.0f;
     const auto x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, position / 16.0f);
     switch (type) {
         case JudgeType::ShortNormal: {
-            const auto spawnAt = ConvWorldPosToScreenPos(VGet(x, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
+            const auto spawnAt = WorldToScreen(VGet(x, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
             animeTap->AddRef();
             auto sp = SAnimeSprite::Factory(animeTap);
             sp->Apply("origX:128, origY:224");
@@ -276,7 +285,7 @@ void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData>& target
             break;
         }
         case JudgeType::ShortEx: {
-            const auto spawnAt = ConvWorldPosToScreenPos(VGet(x, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
+            const auto spawnAt = WorldToScreen(VGet(x, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
             animeExTap->AddRef();
             auto sp = SAnimeSprite::Factory(animeExTap);
             sp->Apply("origX:128, origY:256");
@@ -292,7 +301,7 @@ void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData>& target
             break;
         }
         case JudgeType::SlideTap: {
-            const auto spawnAt = ConvWorldPosToScreenPos(VGet(x, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
+            const auto spawnAt = WorldToScreen(VGet(x, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
             animeSlideTap->AddRef();
             auto sp = SAnimeSprite::Factory(animeSlideTap);
             sp->Apply("origX:128, origY:224");
@@ -307,7 +316,7 @@ void ScenePlayer::SpawnJudgeEffect(const shared_ptr<SusDrawableNoteData>& target
             break;
         }
         case JudgeType::Action: {
-            const auto spawnAt = ConvWorldPosToScreenPos(VGet(x, SU_LANE_Y_AIR, SU_LANE_Z_MIN));
+            const auto spawnAt = WorldToScreen(VGet(x, SU_LANE_Y_AIR, SU_LANE_Z_MIN));
             animeAirAction->AddRef();
             auto sp = SAnimeSprite::Factory(animeAirAction);
             sp->Apply("origX:128, origY:128");
@@ -352,7 +361,7 @@ void ScenePlayer::RemoveSlideEffect()
 
 void ScenePlayer::UpdateSlideEffect()
 {
-    Prepare3DDrawCall();
+    //Prepare3DDrawCall();
     auto it = slideEffects.begin();
     while (it != slideEffects.end()) {
         auto note = (*it).first;
@@ -390,7 +399,7 @@ void ScenePlayer::UpdateSlideEffect()
                 const auto t = (currentTime - lst) / (cst - lst);
                 const auto x = glm::mix(get<1>(lastSegmentPosition), get<1>(segmentPosition), t);
                 const auto absx = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, x);
-                const auto at = ConvWorldPosToScreenPos(VGet(absx, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
+                const auto at = WorldToScreen(VGet(absx, SU_LANE_Y_GROUND, SU_LANE_Z_MIN));
                 effect->Transform.X = at.x;
                 effect->Transform.Y = at.y;
                 comp = true;
@@ -403,9 +412,9 @@ void ScenePlayer::UpdateSlideEffect()
 }
 
 
-void ScenePlayer::DrawShortNotes(const shared_ptr<SusDrawableNoteData>& note) const
+void ScenePlayer::DrawShortNotes(const shared_ptr<SusDrawableNoteData>& note, GPU_Target *target) const
 {
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
+    GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
     const auto relpos = 1.0 - note->ModifiedPosition / seenDuration;
     const auto length = note->Length;
 #ifdef SU_ENABLE_NOTE_HORIZONTAL_MOVING
@@ -414,27 +423,27 @@ void ScenePlayer::DrawShortNotes(const shared_ptr<SusDrawableNoteData>& note) co
 #else
     const auto slane = float(note->StartLane);
 #endif
-    SImage *handleToDraw = nullptr;
+    SImage *image = imageTap;
 
     const auto &type = note->Type;
     if (type[size_t(SusNoteType::Tap)]) {
-        handleToDraw = imageTap;
+        image = imageTap;
     } else if (type[size_t(SusNoteType::ExTap)] || type[size_t(SusNoteType::AwesomeExTap)]) {
-        handleToDraw = imageExTap;
+        image = imageExTap;
     } else if (type[size_t(SusNoteType::Flick)]) {
-        handleToDraw = imageFlick;
+        image = imageFlick;
     } else if (type[size_t(SusNoteType::HellTap)]) {
-        handleToDraw = imageHellTap;
+        image = imageHellTap;
     } else if (type[size_t(SusNoteType::Air)] && type[size_t(SusNoteType::Grounded)]) {
-        handleToDraw = imageAir;
+        image = imageAir;
     }
 
     //64*3 x 64 を描画するから1/2でやる必要がある
 
-    if (handleToDraw) DrawTap(slane, SU_TO_INT32(length), relpos, handleToDraw->GetHandle());
+    if (image) DrawTap(slane, SU_TO_INT32(length), relpos, image->GetTexture(), target);
 }
 
-void ScenePlayer::DrawAirNotes(const AirDrawQuery &query) const
+void ScenePlayer::DrawAirNotes(const AirDrawQuery &query, GPU_Target *target) const
 {
     auto note = query.Note;
     const auto length = note->Length;
@@ -452,7 +461,7 @@ void ScenePlayer::DrawAirNotes(const AirDrawQuery &query) const
     }
     const auto roll = SU_TO_FLOAT(note->Type.test(size_t(SusNoteType::Up)) ? refroll : 0.5 - refroll);
     const auto xadjust = note->Type.test(size_t(SusNoteType::Left)) ? -80.0f : (note->Type.test(size_t(SusNoteType::Right)) ? 80.0f : 0.0f);
-    const auto handle = note->Type.test(size_t(SusNoteType::Up)) ? imageAirUp->GetHandle() : imageAirDown->GetHandle();
+    const auto texture = note->Type.test(size_t(SusNoteType::Up)) ? imageAirUp->GetTexture() : imageAirDown->GetTexture();
 
     VERTEX3D vertices[] = {
         {
@@ -460,37 +469,35 @@ void ScenePlayer::DrawAirNotes(const AirDrawQuery &query) const
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            0.0f, roll, 0.0f, 0.0f
+            0.0f, roll
         },
         {
             VGet(right + xadjust, SU_LANE_Y_AIRINDICATE, z),
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            1.0f, roll, 0.0f, 0.0f
+            1.0f, roll
         },
         {
             VGet(right, SU_LANE_Y_GROUND, z),
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            1.0f, roll + 0.5f, 0.0f, 0.0f
+            1.0f, roll + 0.5f
         },
         {
             VGet(left, SU_LANE_Y_GROUND, z),
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            0.0f, roll + 0.5f, 0.0f, 0.0f
+            0.0f, roll + 0.5f
         }
     };
-    Prepare3DDrawCall();
-    SetUseZBuffer3D(FALSE);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-    DrawPolygonIndexed3D(vertices, 4, rectVertexIndices, 2, handle, TRUE);
+    //Prepare3DDrawCall();
+    Render3DPolygon(texture, target, vertices, 4, rectVertexIndices, 2);
 }
 
-void ScenePlayer::DrawHoldNotes(const shared_ptr<SusDrawableNoteData>& note) const
+void ScenePlayer::DrawHoldNotes(const shared_ptr<SusDrawableNoteData>& note, GPU_Target *target) const
 {
     const auto length = note->Length;
     const auto slane = note->StartLane;
@@ -505,12 +512,14 @@ void ScenePlayer::DrawHoldNotes(const shared_ptr<SusDrawableNoteData>& note) con
     auto head = relpos;
     auto tail = reltailpos;
     if (!(head < 0 && tail < 0) && !(head >= cullingLimit && tail >= cullingLimit)) {
+
+        GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_MOD_ALPHA);
         if (!begin) { // 判定前
-            SetDrawBlendMode(DX_BLENDMODE_ADD, 239);
+            GPU_SetTargetRGBA(target, 255, 255, 255, 239);
         } else if (activated) { // 判定中 : Hold時
-            SetDrawBlendMode(DX_BLENDMODE_ADD, 255);
+            GPU_SetTargetRGBA(target, 255, 255, 255, 255);
         } else { // 判定中 : 非Hold時
-            SetDrawBlendMode(DX_BLENDMODE_ADD, 175);
+            GPU_SetTargetRGBA(target, 255, 255, 255, 179);
         }
 
         if (begin && activated) {
@@ -523,20 +532,27 @@ void ScenePlayer::DrawHoldNotes(const shared_ptr<SusDrawableNoteData>& note) con
 
         const auto y1 = SU_TO_FLOAT(laneBufferY * head);
         const auto y2 = SU_TO_FLOAT(laneBufferY * tail);
-        const auto srcY = SU_TO_INT32((relpos - head) / wholelen * imageHoldStrut->GetHeight());
-        const auto height = SU_TO_INT32(len / wholelen * imageHoldStrut->GetHeight());
+        const auto srcY = SU_TO_FLOAT((relpos - head) / wholelen);
+        //const auto height = SU_TO_FLOAT(len / wholelen * imageHoldStrut->GetHeight());
 
-        DrawRectModiGraphF(
-            slane * widthPerLane, y1,
-            (slane + length) * widthPerLane, y1,
-            (slane + length) * widthPerLane, y2,
-            slane * widthPerLane, y2,
-            0, srcY, SU_TO_INT32(noteImageBlockX), height,
-            imageHoldStrut->GetHandle(), TRUE
-        );
+        float verts[] = {
+            // Format: x, y, u, v
+            slane * widthPerLane, y1, 0, 0,
+            (slane + length) * widthPerLane, y1, 1, 0,
+            (slane + length) * widthPerLane, y2, 1, srcY,
+            slane * widthPerLane, y2, 0, srcY
+        };
+
+        uint16_t tris[] = {
+            0, 1, 3,
+            1, 3, 2
+        };
+
+        GPU_TriangleBatch(imageHoldStrut->GetTexture(), target,
+        4, verts,
+        2, tris,
+        GPU_BATCH_XY_ST);
     }
-
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
 
     for (int i = note->ExtraData.size() - 1; i >= 0; --i) {
         const auto &ex = note->ExtraData[i];
@@ -547,18 +563,18 @@ void ScenePlayer::DrawHoldNotes(const shared_ptr<SusDrawableNoteData>& note) con
         const auto relendpos = 1.0 - ex->ModifiedPosition / seenDuration;
         const int len = SU_TO_INT32(length);
         if (ex->Type.test(size_t(SusNoteType::Start))) {
-            DrawTap(slane, len, relendpos, imageHold->GetHandle());
+            DrawTap(slane, len, relendpos, imageHold->GetTexture(), target);
         } else {
-            DrawTap(slane, len, relendpos, imageHoldStep->GetHandle());
+            DrawTap(slane, len, relendpos, imageHoldStep->GetTexture(), target);
         }
     }
     if (!(note->OnTheFlyData[size_t(NoteAttribute::Finished)]/* && ノーツがAttack以上の判定*/)) {
         const int len = SU_TO_INT32(length);
-        DrawTap(slane, len, relpos, imageHold->GetHandle());
+        DrawTap(slane, len, relpos, imageHold->GetTexture(), target);
     }
 }
 
-void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData>& note)
+void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData>& note, GPU_Target *target)
 {
     auto lastStep = note;
     auto offsetTimeInBlock = 0.0; /* そのslideElementの、不可視中継点のつながり等を考慮した時の先頭位置、的な */
@@ -732,25 +748,37 @@ void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData>& note)
         lastStep = slideElement;
     }
 
-    if (!begin) { // 判定前
-        SetDrawBlendMode(DX_BLENDMODE_ADD, 239);
-    } else if (activated) { // 判定中 : Slide時
-        SetDrawBlendMode(DX_BLENDMODE_ADD, 255);
-    } else { // 判定中 : 非Slide時
-        SetDrawBlendMode(DX_BLENDMODE_ADD, 175);
+    GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_MOD_ALPHA);
+    if (!begin)
+    { // 判定前
+        GPU_SetTargetRGBA(target, 255, 255, 255, 239);
+    }
+    else if (activated)
+    { // 判定中 : Hold時
+        GPU_SetTargetRGBA(target, 255, 255, 255, 255);
+    }
+    else
+    { // 判定中 : 非Hold時
+        GPU_SetTargetRGBA(target, 255, 255, 255, 179);
     }
 
-    SetUseBackCulling(FALSE);
-    DrawPolygonIndexed2D(slideVertices.data(), slideVertices.size(), slideIndices.data(), drawcount, imageSlideStrut->GetHandle(), TRUE);
+    Render2DPolygon(imageSlideStrut->GetTexture(), target, slideVertices.data(), slideVertices.size(), slideIndices.data(), drawcount);
 
     // 中心線
-    if (showSlideLine) {
-        if (!begin) { // 判定前
-            SetDrawBlendMode(DX_BLENDMODE_ALPHA, 239);
-        } else if (activated) { // 判定中 : Hold時
-            SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
-        } else { // 判定中 : 非Hold時
-            SetDrawBlendMode(DX_BLENDMODE_ALPHA, 175);
+    if (showSlideLine)
+    {
+        GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_MOD_ALPHA);
+        if (!begin)
+        { // 判定前
+            GPU_SetTargetRGBA(target, 255, 255, 255, 239);
+        }
+        else if (activated)
+        { // 判定中 : Hold時
+            GPU_SetTargetRGBA(target, 255, 255, 255, 255);
+        }
+        else
+        { // 判定中 : 非Hold時
+            GPU_SetTargetRGBA(target, 255, 255, 255, 179);
         }
 
         lastStep = note;
@@ -791,17 +819,17 @@ void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData>& note)
                         }
                     }
 
-                    DrawTriangleAA(
+                    GPU_TriFilled(target, 
                         SU_TO_FLOAT(lastSegmentRelativeX * laneBufferX - slideLineThickness), SU_TO_FLOAT(laneBufferY * lastSegmentRelativeY),
                         SU_TO_FLOAT(lastSegmentRelativeX * laneBufferX + slideLineThickness), SU_TO_FLOAT(laneBufferY * lastSegmentRelativeY),
                         SU_TO_FLOAT(currentSegmentRelativeX * laneBufferX - slideLineThickness), SU_TO_FLOAT(laneBufferY * currentSegmentRelativeY),
-                        slideLineColor, 16
+                        {slideLineColor.r, slideLineColor.a, slideLineColor.b, slideLineColor.a}
                     );
-                    DrawTriangleAA(
+                    GPU_TriFilled(target, 
                         SU_TO_FLOAT(lastSegmentRelativeX * laneBufferX + slideLineThickness), SU_TO_FLOAT(laneBufferY * lastSegmentRelativeY),
                         SU_TO_FLOAT(currentSegmentRelativeX * laneBufferX - slideLineThickness), SU_TO_FLOAT(laneBufferY * currentSegmentRelativeY),
                         SU_TO_FLOAT(currentSegmentRelativeX * laneBufferX + slideLineThickness), SU_TO_FLOAT(laneBufferY * currentSegmentRelativeY),
-                        slideLineColor, 16
+                        {slideLineColor.r, slideLineColor.a, slideLineColor.b, slideLineColor.a}
                     );
                 }
                 lastSegmentPosition = segmentPosition;
@@ -813,7 +841,6 @@ void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData>& note)
     }
 
     // Tap
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
     for (int si = note->ExtraData.size() - 1; si >= 0; --si) {
         const auto &slideElement = note->ExtraData[si];
         if (slideElement->Type.test(size_t(SusNoteType::Control))) continue;
@@ -825,19 +852,19 @@ void ScenePlayer::DrawSlideNotes(const shared_ptr<SusDrawableNoteData>& note)
         if (currentStepRelativeY >= 0 && currentStepRelativeY < cullingLimit) {
             const int length = SU_TO_INT32(slideElement->Length);
             if (slideElement->Type.test(size_t(SusNoteType::Start))) {
-                DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlide->GetHandle());
+                DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlide->GetTexture(), target);
             } else {
-                DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlideStep->GetHandle());
+                DrawTap(slideElement->StartLane, length, currentStepRelativeY, imageSlideStep->GetTexture(), target);
             }
         }
     }
     if (!(note->OnTheFlyData[size_t(NoteAttribute::Finished)]/* && ノーツがAttack以上の判定*/)) {
         const int length = SU_TO_INT32(note->Length);
-        DrawTap(note->StartLane, length, 1.0 - note->ModifiedPosition / seenDuration, imageSlide->GetHandle());
+        DrawTap(note->StartLane, length, 1.0 - note->ModifiedPosition / seenDuration, imageSlide->GetTexture(), target);
     }
 }
 
-void ScenePlayer::DrawAirActionStart(const AirDrawQuery &query) const
+void ScenePlayer::DrawAirActionStart(const AirDrawQuery &query, GPU_Target *target) const
 {
     const auto lastStep = query.Note;
     const auto lastStepRelativeY = query.Z;
@@ -851,40 +878,38 @@ void ScenePlayer::DrawAirActionStart(const AirDrawQuery &query) const
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            0.9375f, 1.0f, 1.0f, 0.0f
+            0.9375f, 1.0f
         },
         {
             VGet(center - 10, SU_TO_FLOAT(SU_LANE_Y_AIR * lastStep->ExtraAttribute->HeightScale), aasz),
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            0.9375f, 0.0f, 0.0f, 0.0f
+            0.9375f, 0.0f
         },
         {
             VGet(center + 10, SU_TO_FLOAT(SU_LANE_Y_AIR * lastStep->ExtraAttribute->HeightScale), aasz),
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            1.0000f, 0.0f, 0.0f, 0.0f
+            1.0000f, 0.0f
         },
         {
             VGet(center + 10, SU_LANE_Y_GROUND, aasz),
             VGet(0, 0, -1),
             GetColorU8(255, 255, 255, 255),
             GetColorU8(0, 0, 0, 0),
-            1.0000f, 1.0f, 0.0f, 0.0f
+            1.0000f, 1.0f
         },
     };
-    DrawPolygonIndexed3D(vertices, 4, rectVertexIndices, 2, imageAirAction->GetHandle(), TRUE);
+    Render3DPolygon(imageAirAction->GetTexture(), target, vertices, 4, rectVertexIndices, 2);
 }
 
-void ScenePlayer::DrawAirActionStepBox(const AirDrawQuery &query) const
+void ScenePlayer::DrawAirActionStepBox(const AirDrawQuery &query, GPU_Target *target) const
 {
     const auto slideElement = query.Note;
     const auto currentStepRelativeY = query.Z;
 
-    SetUseZBuffer3D(TRUE);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
     if (!slideElement->Type.test(size_t(SusNoteType::Invisible))) {
         const auto atLeft = (slideElement->StartLane) / 16.0;
         const auto atRight = (slideElement->StartLane + slideElement->Length) / 16.0;
@@ -894,30 +919,30 @@ void ScenePlayer::DrawAirActionStepBox(const AirDrawQuery &query) const
         const auto color = GetColorU8(255, 255, 255, 255);
         const auto yBase = SU_TO_FLOAT(SU_LANE_Y_AIR * slideElement->ExtraAttribute->HeightScale);
         VERTEX3D vertices[] = {
-            { VGet(left, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 1.0f, 0.0f, 0.0f },
-        { VGet(left, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 0.0f, 0.0f, 0.0f },
-        { VGet(left, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 0.25f, 0.0f, 0.0f },
-        { VGet(left, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.125f, 0.25f, 0.0f, 0.0f },
-        { VGet(left, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.208f, 1.0f, 0.0f, 0.0f },
-        { VGet(left, yBase + 40, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.208f, 0.5f, 0.0f, 0.0f },
-        { VGet(left, yBase, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 0.0f, 0.0f, 0.0f },
-        { VGet(left, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.125f, 0.0f, 0.0f, 0.0f },
-        { VGet(left, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 1.0f, 0.0f, 0.0f },
-        { VGet(left, yBase + 40, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 0.5f, 0.0f, 0.0f },
+            { VGet(left, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 1.0f },
+        { VGet(left, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 0.0f },
+        { VGet(left, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 0.25f },
+        { VGet(left, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.125f, 0.25f },
+        { VGet(left, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.208f, 1.0f },
+        { VGet(left, yBase + 40, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.208f, 0.5f },
+        { VGet(left, yBase, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 0.0f },
+        { VGet(left, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.125f, 0.0f },
+        { VGet(left, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 1.0f },
+        { VGet(left, yBase + 40, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.0f, 0.5f },
 
-        { VGet(right, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 1.0f, 0.0f, 0.0f },
-        { VGet(right, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 0.0f, 0.0f, 0.0f },
-        { VGet(right, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 0.25f, 0.0f, 0.0f },
-        { VGet(right, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.5f, 0.25f, 0.0f, 0.0f },
-        { VGet(right, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 1.0f, 0.0f, 0.0f },
-        { VGet(right, yBase + 40, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 0.5f, 0.0f, 0.0f },
-        { VGet(right, yBase, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 0.0f, 0.0f, 0.0f },
-        { VGet(right, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.5f, 0.0f, 0.0f, 0.0f },
-        { VGet(right, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.416f, 1.0f, 0.0f, 0.0f },
-        { VGet(right, yBase + 40, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.416f, 0.5f, 0.0f, 0.0f },
+        { VGet(right, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 1.0f },
+        { VGet(right, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 0.0f },
+        { VGet(right, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 0.25f },
+        { VGet(right, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.5f, 0.25f },
+        { VGet(right, yBase + 20, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 1.0f },
+        { VGet(right, yBase + 40, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 0.5f },
+        { VGet(right, yBase, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.625f, 0.0f },
+        { VGet(right, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.5f, 0.0f },
+        { VGet(right, yBase + 20, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.416f, 1.0f },
+        { VGet(right, yBase + 40, z + 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.416f, 0.5f },
 
-        { VGet(left, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.125f, 0.5f, 0.0f, 0.0f },
-        { VGet(right, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.5f, 0.5f, 0.0f, 0.0f },
+        { VGet(left, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.125f, 0.5f },
+        { VGet(right, yBase, z - 20), VGet(0, 0, -1), color, GetColorU8(0, 0, 0, 0), 0.5f, 0.5f },
         };
         uint16_t indices[] = {
             // 本当は上2ついらないけどindex計算が面倒なので放置
@@ -952,18 +977,16 @@ void ScenePlayer::DrawAirActionStepBox(const AirDrawQuery &query) const
             14, 15, 19,
             14, 19, 18,
         };
-        SetUseZBuffer3D(TRUE);
-        DrawPolygonIndexed3D(vertices, 22, indices + 6, 16, imageAirAction->GetHandle(), TRUE);
+        // TODO this is the only draw call that needs depth testing reee
+        Render3DPolygon(imageAirAction->GetTexture(), target, vertices, 22, indices + 6, 16); // i don't understand why +6 but whatever
     }
 }
 
-void ScenePlayer::DrawAirActionStep(const AirDrawQuery &query) const
+void ScenePlayer::DrawAirActionStep(const AirDrawQuery &query, GPU_Target *target) const
 {
     const auto slideElement = query.Note;
     const auto currentStepRelativeY = query.Z;
 
-    SetUseZBuffer3D(TRUE);
-    SetDrawBlendMode(DX_BLENDMODE_ALPHA, 255);
     if (!slideElement->Type.test(size_t(SusNoteType::Invisible))) {
         const auto atLeft = (slideElement->StartLane) / 16.0;
         const auto atRight = (slideElement->StartLane + slideElement->Length) / 16.0;
@@ -972,21 +995,20 @@ void ScenePlayer::DrawAirActionStep(const AirDrawQuery &query) const
         const auto z = glm::mix(SU_LANE_Z_MAX, SU_LANE_Z_MIN, currentStepRelativeY);
         const auto yBase = SU_TO_FLOAT(SU_LANE_Y_AIR * slideElement->ExtraAttribute->HeightScale);
         VERTEX3D vertices[] = {
-            VERTEX3D { VGet(left, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 1.0f, 0.0f, 0.0f },
-            VERTEX3D { VGet(left, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 0.0f, 0.0f, 0.0f },
-            VERTEX3D { VGet(right, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 1.0f, 0.0f, 0.0f },
-            VERTEX3D { VGet(right, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 0.0f, 0.0f, 0.0f },
+            VERTEX3D { VGet(left, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 1.0f },
+            VERTEX3D { VGet(left, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.625f, 0.0f },
+            VERTEX3D { VGet(right, SU_LANE_Y_GROUND, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 1.0f },
+            VERTEX3D { VGet(right, yBase, z), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 0.0f },
         };
         uint16_t indices[] = {
             0, 1, 3,
             0, 3, 2,
         };
-        SetUseZBuffer3D(FALSE);
-        DrawPolygonIndexed3D(vertices, 4, indices, 2, imageAirAction->GetHandle(), TRUE);
+        Render3DPolygon(imageAirAction->GetTexture(), target, vertices, 4, rectVertexIndices, 2);
     }
 }
 
-void ScenePlayer::DrawAirActionCover(const AirDrawQuery &query)
+void ScenePlayer::DrawAirActionCover(const AirDrawQuery &query, GPU_Target *target)
 {
     const auto slideElement = query.Note;
     const auto lastStep = query.PreviousNote;
@@ -1006,8 +1028,6 @@ void ScenePlayer::DrawAirActionCover(const AirDrawQuery &query)
 
         if ((currentSegmentRelativeY >= 0 || lastSegmentRelativeY >= 0)
             && (currentSegmentRelativeY < cullingLimit || lastSegmentRelativeY < cullingLimit)) {
-            SetUseZBuffer3D(FALSE);
-            SetUseBackCulling(FALSE);
             const auto back = glm::mix(SU_LANE_Z_MAX, SU_LANE_Z_MIN, currentSegmentRelativeY);
             const auto front = glm::mix(SU_LANE_Z_MAX, SU_LANE_Z_MIN, lastSegmentRelativeY);
             const auto backLeft = get<1>(segmentPosition) - currentSegmentLength / 32.0;
@@ -1021,22 +1041,22 @@ void ScenePlayer::DrawAirActionCover(const AirDrawQuery &query)
             const auto pbz = SU_TO_FLOAT(glm::mix(lastStep->ExtraAttribute->HeightScale, slideElement->ExtraAttribute->HeightScale, currentTimeInBlock));
             const auto pfz = SU_TO_FLOAT(glm::mix(lastStep->ExtraAttribute->HeightScale, slideElement->ExtraAttribute->HeightScale, lastTimeInBlock));
             VERTEX3D vertices[] = {
-                VERTEX3D { VGet(pfl, SU_LANE_Y_AIR * pfz, front), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 1.0f, 1.0f, 0.0f },
-                VERTEX3D { VGet(pbl, SU_LANE_Y_AIR * pbz, back), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 0.0f, 0.0f, 0.0f },
-                VERTEX3D { VGet(pbr, SU_LANE_Y_AIR * pbz, back), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.9375f, 0.0f, 0.0f, 0.0f },
-                VERTEX3D { VGet(pfr, SU_LANE_Y_AIR * pfz, front), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.9375f, 1.0f, 0.0f, 0.0f },
+                VERTEX3D { VGet(pfl, SU_LANE_Y_AIR * pfz, front), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 1.0f },
+                VERTEX3D { VGet(pbl, SU_LANE_Y_AIR * pbz, back), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.875f, 0.0f },
+                VERTEX3D { VGet(pbr, SU_LANE_Y_AIR * pbz, back), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.9375f, 0.0f },
+                VERTEX3D { VGet(pfr, SU_LANE_Y_AIR * pfz, front), VGet(0, 0, -1), GetColorU8(255, 255, 255, 255), GetColorU8(0, 0, 0, 0), 0.9375f, 1.0f },
             };
-            DrawPolygonIndexed3D(vertices, 4, rectVertexIndices, 2, imageAirAction->GetHandle(), TRUE);
+            Render3DPolygon(imageAirAction->GetTexture(), target, vertices, 4, rectVertexIndices, 2);
 
-            vertices[0].pos.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(lastSegmentPosition)) - 10;
-            vertices[1].pos.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(segmentPosition)) - 10;
-            vertices[2].pos.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(segmentPosition)) + 10;
-            vertices[3].pos.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(lastSegmentPosition)) + 10;
+            vertices[0].position.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(lastSegmentPosition)) - 10;
+            vertices[1].position.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(segmentPosition)) - 10;
+            vertices[2].position.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(segmentPosition)) + 10;
+            vertices[3].position.x = glm::mix(SU_LANE_X_MIN, SU_LANE_X_MAX, get<1>(lastSegmentPosition)) + 10;
             vertices[0].u = 0.9375f; vertices[0].v = 1.0f;
             vertices[1].u = 0.9375f; vertices[1].v = 0.0f;
             vertices[2].u = 1.0000f; vertices[2].v = 0.0f;
             vertices[3].u = 1.0000f; vertices[3].v = 1.0f;
-            DrawPolygonIndexed3D(vertices, 4, rectVertexIndices, 2, imageAirAction->GetHandle(), TRUE);
+            Render3DPolygon(imageAirAction->GetTexture(), target, vertices, 4, rectVertexIndices, 2);
         }
 
         lastSegmentPosition = segmentPosition;
@@ -1046,28 +1066,31 @@ void ScenePlayer::DrawAirActionCover(const AirDrawQuery &query)
     }
 }
 
-void ScenePlayer::DrawTap(const float lane, const int length, const double relpos, const int handle) const
+void ScenePlayer::DrawTap(const float lane, const int length, const double relpos, GPU_Image *image, GPU_Target *target) const
 {
     for (auto i = 0; i < length * 2; i++) {
         const auto type = i ? (i == length * 2 - 1 ? 2 : 1) : 0;
-        DrawRectRotaGraph3F(
-            (lane * 2 + i) * widthPerLane / 2, SU_TO_FLOAT(laneBufferY * relpos),
-            SU_TO_INT32(noteImageBlockX * type), (0),
-            SU_TO_INT32(noteImageBlockX), SU_TO_INT32(noteImageBlockY),
-            0, noteImageBlockY / 2,
-            actualNoteScaleX, actualNoteScaleY, 0,
-            handle, TRUE, FALSE);
+        GPU_Rect srcRect = {
+            noteImageBlockX * type, 0, 
+            noteImageBlockX, noteImageBlockY
+        };
+        GPU_Rect dstRect = {
+            static_cast<float>((lane * 2 + i) * widthPerLane / 2), static_cast<float>(laneBufferY * relpos),
+            noteImageBlockX, noteImageBlockY
+        };
+
+        GPU_BlitTransformX(
+            image, &srcRect, target,
+            (lane * 2 + i) * widthPerLane / 2, SU_TO_FLOAT(laneBufferY * relpos), // x y
+            0, noteImageBlockY / 2, // center x y
+            0,
+            actualNoteScaleX, actualNoteScaleY
+        );
     }
 }
 
-void ScenePlayer::DrawMeasureLine(const shared_ptr<SusDrawableNoteData>& note) const
+void ScenePlayer::DrawMeasureLine(const shared_ptr<SusDrawableNoteData>& note, GPU_Target *target) const
 {
     const auto relpos = SU_TO_FLOAT(1.0 - note->ModifiedPosition / seenDuration);
-    DrawLineAA(0, relpos * laneBufferY, laneBufferX, relpos * laneBufferY, GetColor(255, 255, 255), 6);
-}
-
-void ScenePlayer::Prepare3DDrawCall() const
-{
-    SetUseLighting(FALSE);
-    SetCameraPositionAndTarget_UpVecY(VGet(0, SU_TO_FLOAT(cameraY), SU_TO_FLOAT(cameraZ)), VGet(0, SU_LANE_Y_GROUND, SU_TO_FLOAT(cameraTargetZ)));
+    GPU_RectangleFilled(target, 0, relpos * laneBufferY - 3, laneBufferX, relpos * laneBufferY + 3, {255, 255, 255, 128});
 }

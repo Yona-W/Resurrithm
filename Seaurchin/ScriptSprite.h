@@ -8,6 +8,7 @@
 #include <SDL2/SDL2_gfxPrimitives.h>
 
 #include "Misc.h"
+#include "Rendering.h"
 #include "ScriptSpriteMisc.h"
 #include "ScriptResource.h"
 
@@ -76,7 +77,7 @@ public:
     static bool SetField(SSprite* obj, FieldID id, double value);
 
 private:
-    virtual void DrawBy(const Transform2D &tf, const ColorTint &ct);
+    virtual void DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target);
 
 protected:
     int reference;
@@ -136,8 +137,8 @@ public:
     void AbortMove(bool terminate);
 
     virtual void Tick(double delta);
-    virtual void Draw();
-    virtual void Draw(const Transform2D &parent, const ColorTint &color);
+    virtual void Draw(GPU_Target *target);
+    virtual void Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target);
     virtual SSprite* Clone();
 
     static SSprite* Factory();
@@ -165,7 +166,7 @@ private :
     typedef SSprite Base;
 
 private:
-    void DrawBy(const Transform2D &tf, const ColorTint &ct) override;
+    void DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target) override;
 
 public:
     SShapeType Type;
@@ -177,8 +178,8 @@ public:
     bool SetWidth(double value) { if (value < -100000 || 100000 < value) return false; Width = value; return true; }
     bool SetHeight(double value) { if (value < -100000 || 100000 < value) return false; Height = value; return true; }
 
-    void Draw() override;
-    void Draw(const Transform2D &parent, const ColorTint &color) override;
+    void Draw(GPU_Target *target) override;
+    void Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target) override;
     SShape* Clone() override;
 
     static SShape* Factory();
@@ -209,8 +210,8 @@ protected:
     bool isRich;
 
     void Refresh();
-    void DrawNormal(const Transform2D &tf, const ColorTint &ct);
-    void DrawScroll(const Transform2D &tf, const ColorTint &ct);
+    void DrawNormal(const Transform2D &tf, const ColorTint &ct, GPU_Target *drawTarget);
+    void DrawScroll(const Transform2D &tf, const ColorTint &ct, GPU_Target *drawTarget);
 
 public:
     SFont * Font;
@@ -227,8 +228,8 @@ public:
     STextSprite();
     ~STextSprite() override;
     void Tick(double delta) override;
-    void Draw() override;
-    void Draw(const Transform2D &parent, const ColorTint &color) override;
+    void Draw(GPU_Target *target) override;
+    void Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target) override;
     STextSprite *Clone() override;
 
     static STextSprite* Factory();
@@ -252,7 +253,7 @@ public:
     void SetFont(SFont *font);
 
     void Activate() const;
-    void Draw() override;
+    void Draw(GPU_Target *target) override;
     void Tick(double delta) override;
 
     std::string GetUTF8String() const;
@@ -269,7 +270,7 @@ protected:
     int width;
     int height;
 
-    void DrawBy(const Transform2D &tf, const ColorTint &ct) override;
+    void DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target) override;
 
 public:
     SSynthSprite(int w, int h);
@@ -281,8 +282,8 @@ public:
     void Clear();
     void Transfer(SSprite *sprite);
     void Transfer(SImage *image, double x, double y);
-    void Draw() override;
-    void Draw(const Transform2D &parent, const ColorTint &color) override;
+    void Draw(GPU_Target *target) override;
+    void Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target) override;
     SSynthSprite *Clone() override;
 
     static SSynthSprite *Factory(int w, int h);
@@ -298,7 +299,7 @@ protected:
     double u1, v1;
     double u2, v2;
 
-    void DrawBy(const Transform2D &tf, const ColorTint &ct) override;
+    void DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target) override;
 
 public:
     SClippingSprite(int w, int h);
@@ -314,8 +315,8 @@ public:
     double GetV2() const { return v2; }
 
     void SetRange(double tx, double ty, double w, double h);
-    void Draw() override;
-    void Draw(const Transform2D &parent, const ColorTint &color) override;
+    void Draw(GPU_Target *target) override;
+    void Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target) override;
     SClippingSprite *Clone() override;
 
     static SClippingSprite *Factory(int w, int h);
@@ -332,7 +333,7 @@ protected:
     double speed;
     double time;
 
-    void DrawBy(const Transform2D &tf, const ColorTint &ct) override;
+    void DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *target) override;
 
 public:
     SAnimeSprite(SAnimatedImage *img);
@@ -344,8 +345,8 @@ public:
     double GetLoopCount() const { return SU_TO_DOUBLE(loopCount); }
     double GetSpeed() const { return speed; }
 
-    void Draw() override;
-    void Draw(const Transform2D &parent, const ColorTint &color) override;
+    void Draw(GPU_Target *target) override;
+    void Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target) override;
     void Tick(double delta) override;
     SAnimeSprite *Clone() override;
 
@@ -371,8 +372,8 @@ public:
     void AddChild(SSprite *child);
     void Dismiss() override;
     void Tick(double delta) override;
-    void Draw() override;
-    void Draw(const Transform2D &parent, const ColorTint &color) override;
+    void Draw(GPU_Target *target) override;
+    void Draw(const Transform2D &parent, const ColorTint &color, GPU_Target *target) override;
     SContainer *Clone() override;
 
     static SContainer* Factory();

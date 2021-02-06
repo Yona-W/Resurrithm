@@ -47,20 +47,20 @@ bool AngelScript::FinishBuildModule()
 
 bool AngelScript::CheckMetaData(asITypeInfo *type, const string &meta)
 {
-    return false;
-    /* TODO
     const auto df = builder.GetMetadataForType(type->GetTypeId());
-    return df == meta;
-    */
+    for(auto specified : df){
+        if (specified == meta) return true;
+    }
+    return false;
 }
 
 bool AngelScript::CheckMetaData(asIScriptFunction *func, const string &meta)
 {
-    return false;
-    /*
     const auto df = builder.GetMetadataForFunc(func);
-    return df == meta;
-    */
+    for(auto specified : df){
+        if (specified == meta) return true;
+    }
+    return false;
 }
 
 asIScriptObject *AngelScript::InstantiateObject(asITypeInfo * type) const

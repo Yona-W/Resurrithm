@@ -32,22 +32,17 @@ void PreInitialize(){
 }
 
 bool Initialize(){
-
-    SDL_Window *window_ptr;
-    SDL_Renderer *renderer_ptr;
-    if(!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)){
+    int status = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
+    if(status != 0){
         logger->LogError("Failed to initialize SDL");
         return false;
     }
 
-    if(SDL_CreateWindowAndRenderer(
-        SU_RES_WIDTH,
-        SU_RES_HEIGHT,
-        SDL_WINDOW_OPENGL,
-        &window_ptr,
-        &renderer_ptr))
+    GPU_SetPreInitFlags(GPU_INIT_DISABLE_DOUBLE_BUFFER | GPU_INIT_DISABLE_VSYNC);
+    Rendering::gpu = GPU_Init(SU_RES_WIDTH, SU_RES_HEIGHT, GPU_DEFAULT_INIT_FLAGS);
+    if(Rendering::gpu)
     {
-        SDL_SetWindowTitle(window, (SU_APP_NAME " " SU_APP_VERSION));
+        //SDL_SetWindowTitle(, (SU_APP_NAME " " SU_APP_VERSION));
         logger->LogInfo("Window created");
     }
     else{
@@ -74,10 +69,12 @@ bool Initialize(){
 void Run(){
     using namespace std::chrono;
 
-    manager->AddScene(std::static_pointer_cast<Scene>(std::make_shared<SceneDebug>()));
+    //manager->AddScene(std::static_pointer_cast<Scene>(std::make_shared<SceneDebug>()));
     auto start_time = high_resolution_clock::now();
-    bool run = true;
-    while(run){
+    logger->LogInfo("Running system menu");
+    manager->EnumerateSkins();
+    manager->ExecuteSkin();
+    while(!manager->shouldExit){
         auto frame_start = high_resolution_clock::now();
         const auto delta_time = duration_cast<nanoseconds>(start_time - frame_start).count() / 1e9;
         manager->Tick(delta_time);
@@ -91,8 +88,7 @@ void Terminate(){
     MoverFunctionExpressionManager::Finalize();
     if(setting) setting->Save();
 
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    GPU_Quit();
 
     logger->LogInfo("Terminating...");
     if(logger) logger->Terminate();

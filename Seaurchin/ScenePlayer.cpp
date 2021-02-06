@@ -135,8 +135,8 @@ void ScenePlayer::Finalize()
     delete processor;
     delete bgmStream;
 
-    SDL_FreeSurface(groundBufferSurface);
-    SDL_DestroyTexture(groundBufferTexture);
+    GPU_FreeImage(groundBufferTexture);
+    GPU_FreeTarget(groundBufferTarget);
     // if (movieBackground) DeleteGraph(movieBackground); ok fuck movie backgrounds
     judgeSoundThread.join();
 }
@@ -627,8 +627,8 @@ void ScenePlayer::AdjustCamera(const double cy, const double cz, const double ct
 
 void ScenePlayer::GetMetrics(ScenePlayerMetrics *metrics)
 {
-    const auto left = ConvWorldPosToScreenPosD({ SU_LANE_X_MIN, SU_LANE_Y_GROUND, SU_LANE_Z_MIN });
-    const auto right = ConvWorldPosToScreenPosD({ SU_LANE_X_MAX, SU_LANE_Y_GROUND, SU_LANE_Z_MIN });
+    VECTOR left = WorldToScreen({ SU_LANE_X_MIN, SU_LANE_Y_GROUND, SU_LANE_Z_MIN });
+    VECTOR right = WorldToScreen({ SU_LANE_X_MAX, SU_LANE_Y_GROUND, SU_LANE_Z_MIN });
     metrics->JudgeLineLeftX = left.x;
     metrics->JudgeLineLeftY = left.y;
     metrics->JudgeLineRightX = right.x;

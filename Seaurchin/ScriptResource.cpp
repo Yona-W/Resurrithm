@@ -26,13 +26,13 @@ void SResource::Release()
 SImage::SImage(SDL_Surface *ptr)
 {
     surfacePtr = ptr;
-    texturePtr = SDL_CreateTextureFromSurface(renderer, ptr);
+    texturePtr = GPU_CopyImageFromSurface(surfacePtr);
 }
 
 SImage::~SImage()
 {
     if (surfacePtr) SDL_FreeSurface(surfacePtr);
-    if (texturePtr) SDL_DestroyTexture(texturePtr);
+    if (texturePtr) GPU_FreeImage(texturePtr);
 }
 
 int SImage::GetWidth()
@@ -56,7 +56,7 @@ SImage * SImage::CreateBlankImage(int width, int height)
 
 SImage * SImage::CreateLoadedImageFromFile(const string &file, const bool async)
 {
-    auto result = new SImage(IMG_Load(file.c_str()));
+    auto result = new SImage(GPU_LoadSurface(file.c_str()));
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -66,7 +66,7 @@ SImage * SImage::CreateLoadedImageFromFile(const string &file, const bool async)
 SImage * SImage::CreateLoadedImageFromMemory(void * buffer, size_t size)
 {
     auto rw = SDL_RWFromMem(buffer, size);
-    auto result = new SImage(IMG_Load_RW(rw, true));
+    auto result = new SImage(GPU_LoadSurface_RW(rw, true));
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -75,10 +75,15 @@ SImage * SImage::CreateLoadedImageFromMemory(void * buffer, size_t size)
 
 // SRenderTarget -----------------------------
 
-SRenderTarget::SRenderTarget(const int width, const int height)
-    : SImage(0)
+SRenderTarget::SRenderTarget(int width, int height)
 {
-    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
+    texturePtr = GPU_CreateImage(width, height, GPU_FormatEnum::GPU_FORMAT_RGBA);
+    target = GPU_LoadTarget(texturePtr);
+}
+
+SRenderTarget::~SRenderTarget(){
+    GPU_FreeImage(texturePtr);
+    GPU_FreeTarget(target);
 }
 
 SRenderTarget * SRenderTarget::CreateBlankTarget(const int width, const int height)
@@ -126,7 +131,7 @@ SAnimatedImage::SAnimatedImage(const int w, const int h, const int count, const 
 SAnimatedImage::~SAnimatedImage()
 {
     SDL_FreeSurface(surfacePtr);
-    SDL_DestroyTexture(texturePtr);
+    GPU_FreeImage(texturePtr);
 }
 
 SAnimatedImage * SAnimatedImage::CreateLoadedImageFromFile(const std::string & file, const int w, const int h, const int count, const double time)
@@ -134,8 +139,8 @@ SAnimatedImage * SAnimatedImage::CreateLoadedImageFromFile(const std::string & f
     auto result = new SAnimatedImage(w, h, count, time);
     result->AddRef();
 
-    result->surfacePtr = IMG_Load(file.c_str());
-    result->texturePtr = SDL_CreateTextureFromSurface(renderer, result->surfacePtr);
+    result->surfacePtr = GPU_LoadSurface(file.c_str());
+    result->texturePtr = GPU_CopyImageFromSurface(result->surfacePtr);
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
@@ -147,8 +152,8 @@ SAnimatedImage * SAnimatedImage::CreateLoadedImageFromMemory(void * buffer, cons
     result->AddRef();
 
     auto rw = SDL_RWFromMem(buffer, size);
-    result->surfacePtr = IMG_Load_RW(rw, true);
-    result->texturePtr = SDL_CreateTextureFromSurface(renderer, result->surfacePtr);
+    result->surfacePtr = GPU_LoadSurface_RW(rw, true);
+    result->texturePtr = GPU_CopyImageFromSurface(result->surfacePtr);
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
@@ -172,10 +177,9 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
     uint32_t mx = 0;
     auto line = 1;
     if (rt) {
-        SDL_SetRenderTarget(renderer, rt->GetTexture());
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        GPU_Target *target = rt->GetTarget();
+        GPU_Clear(target);
+        GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
     }
     const auto *ccp = reinterpret_cast<const uint8_t*>(utf8Str.c_str());
     while (*ccp) {
@@ -204,27 +208,12 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
         if (!sg) continue;
 
         if (rt) {
-            SDL_Rect srcRect = {sg->GlyphX, sg->GlyphY, sg->GlyphWidth, sg->GlyphHeight};
-            SDL_Rect dstRect = {sg->BearX, sg->BearY, sg->GlyphWidth, sg->GlyphHeight};
-            SDL_RenderCopy(renderer, Images[sg->ImageNumber]->GetTexture(), &srcRect, &dstRect);
+            GPU_Rect srcRect = {static_cast<float>(sg->GlyphX), static_cast<float>(sg->GlyphY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
+            GPU_Rect dstRect = {static_cast<float>(sg->BearX), static_cast<float>(sg->BearY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
+            GPU_BlitRect(Images[sg->ImageNumber]->GetTexture(), &srcRect, rt->GetTarget(), &dstRect);
         }
         
-        /*
-        DrawRectGraph(
-            cx + sg->BearX, // DestX
-            cy + sg->BearY, // DestY
-            sg->GlyphX, // SrcX
-            sg->GlyphY, // SrcY
-            sg->GlyphWidth, // Src / Dst Width
-            sg->GlyphHeight, // Src / Dst Height
-            Images[sg->ImageNumber]->GetHandle(), // Image
-            TRUE, // Transparency
-            FALSE); // Invert?
-        */
         cx += sg->WholeAdvance;
-    }
-    if (rt) {
-        SDL_SetRenderTarget(renderer, NULL);
     }
     mx = max(mx, cx);
     double my = line * size;
@@ -247,11 +236,9 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
     float cw = 1;
 
     if (rt) {
-        SDL_SetRenderTarget(renderer, rt->GetTexture());
-        SDL_RenderClear(renderer);
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, cr, cg, cb, ca);
-        //SetDrawMode(DX_DRAWMODE_ANISOTROPIC); // Not sure how to translate this tbh
+        GPU_Target *target = rt->GetTarget();
+        GPU_Clear(target);
+        GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
     }
     auto ccp = utf8Str.begin();
     bx::smatch match;
@@ -337,12 +324,11 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
         const auto sg = glyphs[gi];
         if (!sg) continue;
         if (rt) {
-            SDL_SetRenderDrawColor(renderer, cr, cg, cb, ca);
-            SDL_Rect srcRect = {sg->GlyphX, sg->GlyphY, sg->GlyphWidth, sg->GlyphHeight};
-            SDL_Rect dstRect = {sg->BearX, sg->BearY, sg->GlyphWidth, sg->GlyphHeight};
-            SDL_RenderCopy(renderer, Images[sg->ImageNumber]->GetTexture(), &srcRect, &dstRect);
+            GPU_Rect srcRect = {static_cast<float>(sg->GlyphX), static_cast<float>(sg->GlyphY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
+            GPU_Rect dstRect = {static_cast<float>(sg->BearX), static_cast<float>(sg->BearY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
+
+            GPU_BlitRect(Images[sg->ImageNumber]->GetTexture(), &srcRect, rt->GetTarget(), &dstRect);
             cx += sg->WholeAdvance;
-            SDL_SetRenderTarget(renderer, NULL);
         }
     }
     mx = max(mx, cx);

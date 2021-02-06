@@ -30,18 +30,16 @@ private:
 
     std::vector<int> sliderKeybindings[16];
     std::vector<int> airKeybindings;
-
-    struct libevdev *inputDevice;
-
 public:
     void Initialize();
     void Terminate();
-    void Update();
+    bool Update();
 
     bool GetTriggerState(ControllerSource source, int number);
     bool GetCurrentState(ControllerSource source, int number);
     bool GetLastState(ControllerSource source, int number);
+    float GetAirPosition();
+
     void SetSliderKeybindings(int sliderNumber, const std::vector<int>& keys);
     void SetAirKeybindings(const std::vector<int>& keys);
-    bool SetInputDevice(int fp);
 };

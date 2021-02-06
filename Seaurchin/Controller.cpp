@@ -34,7 +34,7 @@ void ControlState::Terminate()
 {
 }
 
-void ControlState::Update()
+bool ControlState::Update()
 {
     // 生のキーボード入力
     memcpy(keyboardLast, keyboardCurrent, sizeof(bool) * 256);
@@ -66,6 +66,8 @@ void ControlState::Update()
                 keyboardCurrent[key] = false;
             }
             break;
+        case SDL_QUIT:
+            return false; // ugly af tbh
         }
     }
 
@@ -96,6 +98,7 @@ void ControlState::Update()
             airTrigger[airLane] = true;
         }
     }
+    return true;
 }
 
 bool ControlState::GetTriggerState(const ControllerSource source, const int number)
@@ -172,6 +175,20 @@ bool ControlState::GetLastState(const ControllerSource source, const int number)
             }
     }
     return false;
+}
+
+float ControlState::GetAirPosition(){
+    int held = 0;
+    int count = airCurrent.size();
+    float sum = 0;
+    for(int i = 0; i < count; i++){
+        if(airCurrent[i]){
+            held++;
+            sum += i;
+        }
+    }
+
+    return held == 0 ? -1 : sum / (held * count);
 }
 
 void ControlState::SetSliderKeybindings(const int sliderNumber, const vector<int>& keys)

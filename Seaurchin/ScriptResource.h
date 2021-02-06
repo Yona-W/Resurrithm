@@ -5,7 +5,7 @@
 #include "Setting.h"
 #include "ScriptSpriteMisc.h"
 
-#include <SDL2/SDL_image.h>
+#include <SDL_gpu.h>
 #include <boost/range.hpp>
 
 #define SU_IF_IMAGE "Image"
@@ -33,16 +33,17 @@ public:
 class SImage : public SResource {
 protected:
     SDL_Surface *surfacePtr;
-    SDL_Texture *texturePtr;
+    GPU_Image *texturePtr;
 public:
     explicit SImage(SDL_Surface *surfacePtr);
+    SImage(){};
     ~SImage() override;
 
     int GetWidth();
     int GetHeight();
 
     SDL_Surface *GetSurface(){return surfacePtr;}
-    SDL_Texture *GetTexture(){return texturePtr;}
+    GPU_Image *GetTexture(){return texturePtr;}
 
     static SImage* CreateBlankImage(int width, int height);
     static SImage* CreateLoadedImageFromFile(const std::string &file, bool async);
@@ -52,12 +53,13 @@ public:
 //描画タゲ
 class SRenderTarget : public SImage {
     private:
-    SDL_Texture *texture;
-    SDL_Renderer *renderer;
-public:
-    SRenderTarget(int w, int h);
-    SDL_Texture *GetTexture();
-    static SRenderTarget* CreateBlankTarget(int width, int height);
+        GPU_Target *target;
+    public:
+        SRenderTarget(int w, int h);
+        ~SRenderTarget();
+        GPU_Target *GetTarget(){return target;}
+        GPU_Image *GetImage(){return texturePtr;};
+        static SRenderTarget *CreateBlankTarget(int width, int height);
 };
 
 /*
@@ -84,16 +86,13 @@ protected:
     int cellHeight = 0;
     int frameCount = 0;
     double secondsPerFrame = 0.1;
-
-    SDL_Texture *texturePtr;
-
 public:
     SAnimatedImage(int w, int h, int count, double time);
     ~SAnimatedImage() override;
 
     double GetCellTime() const { return secondsPerFrame; }
     int GetFrameCount() const { return frameCount; }
-    SDL_Rect GetRectAt(const double time) { return {int(time / secondsPerFrame) * cellWidth, 0, cellWidth, cellHeight}; }
+    GPU_Rect GetRectAt(const double time) { return {static_cast<float>((time / secondsPerFrame) * cellWidth), 0, static_cast<float>(cellWidth), static_cast<float>(cellHeight)}; }
 
     static SAnimatedImage *CreateLoadedImageFromFile(const std::string &file, int w, int h, int count, double time);
     static SAnimatedImage *CreateLoadedImageFromMemory(void *buffer, size_t size, int w, int h, int count, double time);
@@ -104,6 +103,7 @@ class SFont : public SResource {
 protected:
     int size = 0;
     std::unordered_map<uint32_t, Sif2Glyph*> glyphs;
+    GPU_Target *target;
 
 public:
     std::vector<SImage*> Images;

@@ -69,7 +69,6 @@ void AutoPlayerProcessor::Update(vector<shared_ptr<SusDrawableNoteData>> &notes)
     if (wasInHold && !holdCheck) player->EnqueueJudgeSound(JudgeSoundType::HoldingStop);
     if (!wasInAA && aaCheck) player->EnqueueJudgeSound(JudgeSoundType::AirHolding);
     if (wasInAA && !aaCheck) player->EnqueueJudgeSound(JudgeSoundType::AirHoldingStop);
-    player->airActionShown = aaCheck;
 
     wasInHold = holdCheck;
     wasInSlide = slideCheck;

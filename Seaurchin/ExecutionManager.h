@@ -76,8 +76,6 @@ public:
     CharacterManager* GetCharacterManagerUnsafe() const { return characters.get(); }
     SkillManager* GetSkillManagerUnsafe() const { return skills.get(); }
 
-    std::string GetFirstKeyboardDevice();
-
     #ifdef _WIN32
     std::tuple<bool, LRESULT> CustomWindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) const;
     #endif
@@ -104,6 +102,8 @@ public:
     template<typename T>
     T GetData(const std::string &name, const T& defaultValue);
     bool ExistsData(const std::string &name) { return optionalData.find(name) != optionalData.end(); }
+
+    bool shouldExit;
 
 private:
     bool CheckSkinStructure(const boost::filesystem::path& name) const;

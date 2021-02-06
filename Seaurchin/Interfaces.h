@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include <libevdev-1.0/libevdev/libevdev.h>
 #include <string>
 #define SU_IF_KEY "Key"
 #define SU_IF_SEVERITY "Severity"
