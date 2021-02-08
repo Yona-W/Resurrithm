@@ -34,6 +34,7 @@ int UTF8to16( const char* s, wchar_t* w ) {
   return q-q0;
 }
 
+/*
 wstring ConvertUTF8ToUnicode(const string &utf8Str)
 {
     auto len = utf8Str.length();
@@ -55,6 +56,7 @@ string ConvertUnicodeToUTF8(const wstring &utf16Str)
     delete[] buffer;
     return ret;
 }
+*/
 
 void ScriptSceneWarnOutOf(const string &funcName, const string &type, asIScriptContext *ctx)
 {

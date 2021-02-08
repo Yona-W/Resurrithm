@@ -44,11 +44,11 @@ class Title : CoroutineScene {
     @font64 = skin.GetFont("Normal64");
 
     @imgWhite = skin.GetImage("White");
-    @imgDxLib = skin.GetImage("SDL_logo");
+    @imgDxLib = skin.GetImage("LogoSdl");
     @imgBoost = skin.GetImage("LogoBoost");
     @imgFreeType = skin.GetImage("LogoFreeType");
     @imgAngelScript = skin.GetImage("LogoAngelScript");
-    @imgSeaurchin = skin.GetImage("ResurrithmLogo");
+    @imgSeaurchin = skin.GetImage("LogoResurrithm");
     @imgCursorMenu = skin.GetImage("CursorMenu");
     @smCursor = skin.GetSound("SoundCursor");
     @mixSE = GetDefaultMixer("SE");
@@ -71,13 +71,11 @@ class Title : CoroutineScene {
 
     array<Sprite@> dxl = {
       TextSprite(font64, "Powered by"),
-      TextSprite(fontLatin, "SDL2"),
       Sprite(imgDxLib)
     };
-    dxl[0].Apply("x:416, y:92, r:0, g:0, b: 0, alpha:0");
-    dxl[1].Apply("x:416, y:162, r:0, g:0, b: 0, alpha:0");
-    dxl[2].Apply("x:200, y:200, origY:102, alpha:0");
-    dxl[2].HasAlpha = false;
+    dxl[0].Apply("x:400, y:100, r:0, g:0, b: 0, alpha:0");
+    dxl[1].Apply("x:700, y:200, origY:100, alpha:0");
+    dxl[1].HasAlpha = false;
     for(int i = 0; i < dxl.length(); i++) {
       for(uint j = 0; j < moverList.length(); ++j) {
         dxl[i].AddMove(moverKeyList[j], moverList[j]);
@@ -116,14 +114,14 @@ class Title : CoroutineScene {
     spLogo.AddMove("alpha:{begin:0, end:1, time:0.5}");
     AddSprite(spLogo);
 
-    @spTitle = ClipSprite(640, 128);
-    TextSprite @buffer = TextSprite(font64, "Based on Seaurchin");
+    @spTitle = ClipSprite(1000, 256);
+    TextSprite @buffer = TextSprite(font64, "Resurrithm");
+    TextSprite @buffer2 = TextSprite(font32, "Based on Seaurchin");
     buffer.Apply("r:0, g:0, b:0");
+    buffer2.Apply("r:0, g:0, b:0, y:55");
     spTitle.Transfer(buffer);
-    buffer.SetText("Resurrithm");
-    buffer.Apply("y:64");
-    spTitle.Transfer(buffer);
-    spTitle.Apply("origY:64, x:640, y:360, z:1");
+    spTitle.Transfer(buffer2);
+    spTitle.Apply("origY:64, origX:0, x:700, y:360, z:1, alpha:0");
     spTitle.SetRange(0, 0, 0, 1);
     AddSprite(spTitle);
 
@@ -137,7 +135,7 @@ class Title : CoroutineScene {
 
     for(int i = 0; i < 3; i++) {
       menu[i].Apply(dictionary = {
-        {"x", 0/*-320*/}, {"y", 400 + 64 * i},
+        {"x", -50}, {"y", 400 + 64 * i},
         {"origX", 160},
         {"r", 0}, {"g", 0}, {"b", 0}
       });
@@ -150,7 +148,7 @@ class Title : CoroutineScene {
     moverList[0].Apply("time", 1);
 
     @moverList[1] = moverList[0].Clone();
-    moverList[1].Apply("end", 1.5);
+    moverList[1].Apply("end", 1);
 
     @moverList[2] = moverList[1].Clone();
     moverList[2].Clear();
@@ -180,11 +178,12 @@ class Title : CoroutineScene {
         spLogo.AddMove("x:{func:out_sine, @end:-260, time:0.5}");
         spLogo.AddMove("scaleX:{func:out_sine, end:0.4, time:0.5}");
         spLogo.AddMove("scaleY:{func:out_sine, end:0.4, time:0.5}");
-        spLogo.AddMove("y:{func:out_sine, @end:-240, time:0.5, wait:0.5}");
+        spLogo.AddMove("y:{func:out_sine, @end:-160, time:0.5, wait:0.5}");
+        spTitle.AddMove("alpha:{func:out_sine, @end:1, time:0.5}");
         spTitle.AddMove("x:{func:out_sine, @end:-200, time:0.5}");
         spTitle.AddMove("u2:{func:out_sine, end:1.0, time:0.5}");
         spTitle.AddMove("v2:{func:out_sine, end:1.0, time:0.5}");
-        spTitle.AddMove("y:{func:out_sine, @end:-240, time:0.5, wait:0.5}");
+        spTitle.AddMove("y:{func:out_sine, @end:-140, time:0.5, wait:0.5}");
         YieldTime(1.0);
         break;
       }

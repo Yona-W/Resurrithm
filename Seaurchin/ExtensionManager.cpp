@@ -26,7 +26,7 @@ void ExtensionManager::LoadExtensions()
         LoadDll(filename);
     }
 
-    spdlog::get("main")->info(u8"エクステンション総数: {0}", dllInstances.size());
+    spdlog::info(u8"エクステンション総数: {0}", dllInstances.size());
 }
 
 void ExtensionManager::LoadDll(wstring path)

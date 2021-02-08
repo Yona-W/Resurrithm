@@ -40,13 +40,13 @@ void CharacterInstance::LoadAbilities()
 {
     using namespace boost::algorithm;
     using namespace boost::filesystem;
-    auto log = spdlog::get("main");
+    
     const auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 
     const auto &abilities = skillSource->GetDetail(skillSource->CurrentLevel).Abilities;
     for (const auto &def : abilities) {
         vector<string> params;
-        auto scrpath = abroot / ConvertUTF8ToUnicode(def.Name + ".as");
+        auto scrpath = abroot / (def.Name + ".as");
 
         auto abo = LoadAbilityObject(scrpath);
         if (!abo) continue;
@@ -100,10 +100,10 @@ void CharacterInstance::CreateImageSet()
 asIScriptObject* CharacterInstance::LoadAbilityObject(const boost::filesystem::path& filepath)
 {
     using namespace boost::filesystem;
-    auto log = spdlog::get("main");
+    
     auto abroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ABILITY_DIR;
 
-    const auto modulename = ConvertUnicodeToUTF8(filepath.wstring().c_str());
+    const auto modulename = filepath.string().c_str();
     auto mod = scriptInterface->GetExistModule(modulename);
     if (!mod) {
         scriptInterface->StartBuildModule(modulename, [=](string inc, string from, CScriptBuilder *b) {
@@ -131,7 +131,7 @@ asIScriptObject* CharacterInstance::LoadAbilityObject(const boost::filesystem::p
         break;
     }
     if (!type) {
-        log->critical(u8"アビリティーにEntryPointがありません");
+        spdlog::critical(u8"アビリティーにEntryPointがありません");
         return nullptr;
     }
 

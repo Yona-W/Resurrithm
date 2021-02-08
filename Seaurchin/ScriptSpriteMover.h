@@ -55,7 +55,9 @@ public:
     bool Apply(const std::string &key, const std::string &value);
 
     bool Tick(double delta);
-    bool Execute() const { return SSprite::SetField(target, fieldID, pFunction->Execute(variables)); }
+    bool Execute() const { 
+        return SSprite::SetField(target, fieldID, pFunction->Execute(variables));
+    }
     bool Abort();
 
 private:

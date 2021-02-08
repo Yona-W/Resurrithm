@@ -6,7 +6,9 @@
 #include "ScriptSpriteMisc.h"
 
 #include <SDL_gpu.h>
+#include <SDL2/SDL_image.h>
 #include <boost/range.hpp>
+#include <png.h>
 
 #define SU_IF_IMAGE "Image"
 #define SU_IF_FONT "Font"
@@ -32,20 +34,18 @@ public:
 //画像
 class SImage : public SResource {
 protected:
-    SDL_Surface *surfacePtr;
     GPU_Image *texturePtr;
 public:
-    explicit SImage(SDL_Surface *surfacePtr);
+    explicit SImage(GPU_Image *texturePtr);
     SImage(){};
     ~SImage() override;
 
     int GetWidth();
     int GetHeight();
 
-    SDL_Surface *GetSurface(){return surfacePtr;}
     GPU_Image *GetTexture(){return texturePtr;}
 
-    static SImage* CreateBlankImage(int width, int height);
+    static SImage* CreateBlankImage(uint16_t width, uint16_t height);
     static SImage* CreateLoadedImageFromFile(const std::string &file, bool async);
     static SImage* CreateLoadedImageFromMemory(void *buffer, size_t size);
 };
@@ -88,7 +88,6 @@ protected:
     double secondsPerFrame = 0.1;
 public:
     SAnimatedImage(int w, int h, int count, double time);
-    ~SAnimatedImage() override;
 
     double GetCellTime() const { return secondsPerFrame; }
     int GetFrameCount() const { return frameCount; }

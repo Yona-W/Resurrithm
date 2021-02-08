@@ -47,7 +47,7 @@ path MusicsManager::GetSelectedScorePath()
     const auto ci = manager->GetData<int>("Selected:Category");
     const auto mi = manager->GetData<int>("Selected:Music");
     const auto vi = manager->GetData<int>("Selected:Variant");
-    auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(categories[ci]->GetName());
+    auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / categories[ci]->GetName();
     result /= categories[ci]->Musics[mi]->Scores[vi]->Path;
     return result;
 }
@@ -71,8 +71,11 @@ void MusicsManager::CreateMusicCache()
             for (const auto& file : make_iterator_range(directory_iterator(mdir), {})) {
                 if (is_directory(file)) continue;
                 if (file.path().extension() != ".sus") continue;     //これ大文字どうすんの
+                spdlog::info("Loading .sus file: {0}", file.path().string());
+
                 analyzer->Reset();
                 analyzer->LoadFromFile(file.path().string(), true);
+
                 auto music = find_if(category->Musics.begin(), category->Musics.end(), [&](const std::shared_ptr<MusicMetaInfo> info) {
                     return info->SongId == analyzer->SharedMetaData.USongId;
                 });
@@ -81,12 +84,12 @@ void MusicsManager::CreateMusicCache()
                     (*music)->SongId = analyzer->SharedMetaData.USongId;
                     (*music)->Name = analyzer->SharedMetaData.UTitle;
                     (*music)->Artist = analyzer->SharedMetaData.UArtist;
-                    (*music)->JacketPath = mdir.path().filename() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UJacketFileName);
+                    (*music)->JacketPath = mdir.path().filename() / analyzer->SharedMetaData.UJacketFileName;
                 }
                 auto score = make_shared<MusicScoreInfo>();
                 score->Path = mdir.path().filename() / file.path().filename();
-                score->BackgroundPath = ConvertUTF8ToUnicode(analyzer->SharedMetaData.UBackgroundFileName);
-                score->WavePath = ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
+                score->BackgroundPath = analyzer->SharedMetaData.UBackgroundFileName;
+                score->WavePath = analyzer->SharedMetaData.UWaveFileName;
                 score->Designer = analyzer->SharedMetaData.UDesigner;
                 score->BpmToShow = analyzer->SharedMetaData.ShowBpm;
                 score->Difficulty = analyzer->SharedMetaData.DifficultyType;
@@ -118,7 +121,7 @@ MusicSelectionCursor *MusicsManager::CreateMusicSelectionCursor()
 CategoryInfo::CategoryInfo(const path& cpath)
 {
     categoryPath = cpath;
-    name = ConvertUnicodeToUTF8(categoryPath.filename().wstring());
+    name = categoryPath.filename().string();
 }
 
 CategoryInfo::~CategoryInfo()
@@ -222,16 +225,16 @@ string MusicSelectionCursor::GetMusicJacketFileName(const int32_t relativeIndex)
 {
     const auto music = GetMusicAt(relativeIndex);
     if (!music || music->JacketPath.empty()) return "";
-    const auto result = (Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / music->JacketPath).wstring();
-    return ConvertUnicodeToUTF8(result);
+    const auto result = (Setting::GetRootDirectory() / SU_MUSIC_DIR / GetCategoryName(0) / music->JacketPath).string();
+    return result;
 }
 
 string MusicSelectionCursor::GetBackgroundFileName(const int32_t relativeIndex) const
 {
     const auto variant = GetScoreVariantAt(relativeIndex);
     if (!variant || variant->BackgroundPath.empty()) return "";
-    auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / ConvertUTF8ToUnicode(GetCategoryName(0)) / variant->Path.parent_path() / variant->BackgroundPath;
-    return ConvertUnicodeToUTF8(result.wstring());
+    auto result = Setting::GetRootDirectory() / SU_MUSIC_DIR / GetCategoryName(0) / variant->Path.parent_path() / variant->BackgroundPath;
+    return result.string();
 }
 
 int MusicSelectionCursor::GetDifficulty(const int32_t relativeIndex) const

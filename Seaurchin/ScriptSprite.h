@@ -108,18 +108,90 @@ public:
     void SetImage(SImage *img);
     const SImage* GetImage() const;
 
-    bool SetPosX(double value) { if (value < -100000 || 100000 < value) return false; Transform.X = SU_TO_FLOAT(value); return true; }
-    bool SetPosY(double value) { if (value < -100000 || 100000 < value) return false; Transform.Y = SU_TO_FLOAT(value); return true; }
-    bool SetZIndex(double value) { if (value < -100000 || 100000 < value) return false; ZIndex = SU_TO_INT32(value); return true; }
-    bool SetOriginX(double value) { if (value < -100000 || 100000 < value) return false; Transform.OriginX = SU_TO_FLOAT(value); return true; }
-    bool SetOriginY(double value) { if (value < -100000 || 100000 < value) return false; Transform.OriginY = SU_TO_FLOAT(value); return true; }
-    bool SetAngle(double value) { if (value < -100000 || 100000 < value) return false; Transform.Angle = SU_TO_FLOAT(value); return true; }
-    bool SetScaleX(double value) { if (value < 0 || 1024 < value) return false; Transform.ScaleX = SU_TO_FLOAT(value); return true; }
-    bool SetScaleY(double value) { if (value < 0 || 1024 < value) return false; Transform.ScaleY = SU_TO_FLOAT(value); return true; }
-    bool SetAlpha(double value) { if (value < 0.0 || 1.0 < value) return false; Color.A = SU_TO_UINT8(value * 255); return true; }
-    bool SetColorR(double value) { if (value < 0.0 || 255 < value) return false;  Color.R = SU_TO_UINT8(value); return true; }
-    bool SetColorG(double value) { if (value < 0.0 || 255 < value) return false;  Color.G = SU_TO_UINT8(value); return true; }
-    bool SetColorB(double value) { if (value < 0.0 || 255 < value) return false;  Color.B = SU_TO_UINT8(value); return true; }
+    bool SetPosX(double value)
+    {
+        if (value < -100000 || 100000 < value)
+            return false;
+        Transform.X = SU_TO_FLOAT(value);
+        return true;
+    }
+    bool SetPosY(double value)
+    {
+        if (value < -100000 || 100000 < value)
+            return false;
+        Transform.Y = SU_TO_FLOAT(value);
+        return true;
+    }
+    bool SetZIndex(double value)
+    {
+        if (value < -100000 || 100000 < value)
+            return false;
+        ZIndex = SU_TO_INT32(value);
+        return true;
+    }
+    bool SetOriginX(double value)
+    {
+        if (value < -100000 || 100000 < value)
+            return false;
+        Transform.OriginX = SU_TO_FLOAT(value);
+        return true;
+    }
+    bool SetOriginY(double value)
+    {
+        if (value < -100000 || 100000 < value)
+            return false;
+        Transform.OriginY = SU_TO_FLOAT(value);
+        return true;
+    }
+    bool SetAngle(double value)
+    {
+        if (value < -100000 || 100000 < value)
+            return false;
+        Transform.Angle = SU_TO_FLOAT(value);
+        return true;
+    }
+    bool SetScaleX(double value)
+    {
+        if (value < 0 || 1024 < value)
+            return false;
+        Transform.ScaleX = SU_TO_FLOAT(value);
+        return true;
+    }
+    bool SetScaleY(double value)
+    {
+        if (value < 0 || 1024 < value)
+            return false;
+        Transform.ScaleY = SU_TO_FLOAT(value);
+        return true;
+    }
+    bool SetAlpha(double value)
+    {
+        if (value < 0.0 || 1.0 < value)
+            return false;
+        Color.A = SU_TO_UINT8(value * 255);
+        return true;
+    }
+    bool SetColorR(double value)
+    {
+        if (value < 0.0 || 255 < value)
+            return false;
+        Color.R = SU_TO_UINT8(value);
+        return true;
+    }
+    bool SetColorG(double value)
+    {
+        if (value < 0.0 || 255 < value)
+            return false;
+        Color.G = SU_TO_UINT8(value);
+        return true;
+    }
+    bool SetColorB(double value)
+    {
+        if (value < 0.0 || 255 < value)
+            return false;
+        Color.B = SU_TO_UINT8(value);
+        return true;
+    }
 
     bool Apply(FieldID id, double value);
     void Apply(const std::string &dict);

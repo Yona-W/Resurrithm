@@ -38,9 +38,9 @@ void SoundSample::SetVolume(const double vol)
     BASS_SampleSetInfo(hSample, &si);
 }
 
-SoundSample *SoundSample::CreateFromFile(const wstring &fileNameW, const int maxChannels)
+SoundSample *SoundSample::CreateFromFile(const string &fileName, const int maxChannels)
 {
-    const auto handle = BASS_SampleLoad(FALSE, fileNameW.c_str(), 0, 0, maxChannels, BASS_SAMPLE_OVER_POS | BASS_UNICODE);
+    const auto handle = BASS_SampleLoad(FALSE, fileName.c_str(), 0, 0, maxChannels, BASS_SAMPLE_OVER_POS | BASS_UNICODE);
     const auto result = new SoundSample(handle);
     return result;
 }
@@ -167,17 +167,15 @@ void SoundMixerStream::SetVolume(const double vol) const
 // SoundManager -----------------------------
 SoundManager::SoundManager()
 {
-    auto log = spdlog::get("main");
-
     #ifdef _WIN32
     if (!BASS_Init(-1, 44100, 0, GetMainWindowHandle(), nullptr)) {
     #else
     if (!BASS_Init(-1, 44100, 0, nullptr, nullptr)) {
     #endif
-        log->critical(u8"BASS failed to initialize");
+        spdlog::critical(u8"BASS failed to initialize");
         abort();
     }
-    spdlog::get("main")->info(u8"BASS initialized");
+    spdlog::info(u8"BASS initialized");
 }
 
 SoundManager::~SoundManager()

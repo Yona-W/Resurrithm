@@ -23,31 +23,32 @@ void SResource::Release()
 
 // SImage ----------------------
 
-SImage::SImage(SDL_Surface *ptr)
+SImage::SImage(GPU_Image *ptr)
 {
-    surfacePtr = ptr;
-    texturePtr = GPU_CopyImageFromSurface(surfacePtr);
+    texturePtr = ptr;
+    if(texturePtr){
+        GPU_SetBlending(texturePtr, true);
+    }
 }
 
 SImage::~SImage()
 {
-    if (surfacePtr) SDL_FreeSurface(surfacePtr);
     if (texturePtr) GPU_FreeImage(texturePtr);
 }
 
 int SImage::GetWidth()
 {
-    return surfacePtr->w;
+    return texturePtr->w;
 }
 
 int SImage::GetHeight()
 {
-    return surfacePtr->h;
+    return texturePtr->h;
 }
 
-SImage * SImage::CreateBlankImage(int width, int height)
+SImage * SImage::CreateBlankImage(uint16_t width, uint16_t height)
 {
-    auto result = new SImage(SDL_CreateRGBSurface(0, width, height, 8, 0, 0, 0, 0));
+    auto result = new SImage(GPU_CreateImage(width, height, GPU_FormatEnum::GPU_FORMAT_RGBA));
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -56,7 +57,11 @@ SImage * SImage::CreateBlankImage(int width, int height)
 
 SImage * SImage::CreateLoadedImageFromFile(const string &file, const bool async)
 {
-    auto result = new SImage(GPU_LoadSurface(file.c_str()));
+    auto surface = IMG_Load(file.c_str());
+    auto result = new SImage(GPU_CopyImageFromSurface(surface));
+    SDL_FreeSurface(surface);
+    spdlog::info("Created image from file: {0}", file);
+
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -66,7 +71,11 @@ SImage * SImage::CreateLoadedImageFromFile(const string &file, const bool async)
 SImage * SImage::CreateLoadedImageFromMemory(void * buffer, size_t size)
 {
     auto rw = SDL_RWFromMem(buffer, size);
-    auto result = new SImage(GPU_LoadSurface_RW(rw, true));
+    auto surface = IMG_Load_RW(rw, true);
+    auto result = new SImage(GPU_CopyImageFromSurface(surface));
+    SDL_FreeSurface(surface);
+    spdlog::info("Created image from memory");
+
     result->AddRef();
 
     BOOST_ASSERT(result->GetRefCount() == 1);
@@ -78,11 +87,14 @@ SImage * SImage::CreateLoadedImageFromMemory(void * buffer, size_t size)
 SRenderTarget::SRenderTarget(int width, int height)
 {
     texturePtr = GPU_CreateImage(width, height, GPU_FormatEnum::GPU_FORMAT_RGBA);
+    GPU_SetBlending(texturePtr, true);
+    GPU_SetBlendMode(texturePtr, GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
+    spdlog::info("Creating target");
     target = GPU_LoadTarget(texturePtr);
+    spdlog::info("Created target");
 }
 
 SRenderTarget::~SRenderTarget(){
-    GPU_FreeImage(texturePtr);
     GPU_FreeTarget(target);
 }
 
@@ -128,19 +140,18 @@ SAnimatedImage::SAnimatedImage(const int w, const int h, const int count, const 
     secondsPerFrame = time;
 }
 
-SAnimatedImage::~SAnimatedImage()
-{
-    SDL_FreeSurface(surfacePtr);
-    GPU_FreeImage(texturePtr);
-}
-
 SAnimatedImage * SAnimatedImage::CreateLoadedImageFromFile(const std::string & file, const int w, const int h, const int count, const double time)
 {
     auto result = new SAnimatedImage(w, h, count, time);
     result->AddRef();
 
-    result->surfacePtr = GPU_LoadSurface(file.c_str());
-    result->texturePtr = GPU_CopyImageFromSurface(result->surfacePtr);
+    auto surface = IMG_Load(file.c_str());
+    result->texturePtr = GPU_CopyImageFromSurface(surface);
+    SDL_FreeSurface(surface);
+
+    spdlog::info("Created animated image from file: {0}", file);
+
+    GPU_SetBlending(result->texturePtr, true);
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
@@ -152,8 +163,13 @@ SAnimatedImage * SAnimatedImage::CreateLoadedImageFromMemory(void * buffer, cons
     result->AddRef();
 
     auto rw = SDL_RWFromMem(buffer, size);
-    result->surfacePtr = GPU_LoadSurface_RW(rw, true);
-    result->texturePtr = GPU_CopyImageFromSurface(result->surfacePtr);
+    auto surface = IMG_Load_RW(rw, true);
+    result->texturePtr = GPU_CopyImageFromSurface(surface);
+    SDL_FreeSurface(surface);
+
+    spdlog::info("Created animated image from memory");
+
+    GPU_SetBlending(result->texturePtr, true);
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
@@ -180,6 +196,9 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
         GPU_Target *target = rt->GetTarget();
         GPU_Clear(target);
         GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
+        for(auto image : Images){
+            GPU_SetColor(image->GetTexture(), GPU_MakeColor(255, 255, 255, 255));
+        }
     }
     const auto *ccp = reinterpret_cast<const uint8_t*>(utf8Str.c_str());
     while (*ccp) {
@@ -209,7 +228,7 @@ tuple<double, double, int> SFont::RenderRaw(SRenderTarget *rt, const string &utf
 
         if (rt) {
             GPU_Rect srcRect = {static_cast<float>(sg->GlyphX), static_cast<float>(sg->GlyphY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
-            GPU_Rect dstRect = {static_cast<float>(sg->BearX), static_cast<float>(sg->BearY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
+            GPU_Rect dstRect = {static_cast<float>(sg->BearX + cx), static_cast<float>(sg->BearY + cy), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
             GPU_BlitRect(Images[sg->ImageNumber]->GetTexture(), &srcRect, rt->GetTarget(), &dstRect);
         }
         
@@ -327,7 +346,11 @@ tuple<double, double, int> SFont::RenderRich(SRenderTarget *rt, const string &ut
             GPU_Rect srcRect = {static_cast<float>(sg->GlyphX), static_cast<float>(sg->GlyphY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
             GPU_Rect dstRect = {static_cast<float>(sg->BearX), static_cast<float>(sg->BearY), static_cast<float>(sg->GlyphWidth), static_cast<float>(sg->GlyphHeight)};
 
-            GPU_BlitRect(Images[sg->ImageNumber]->GetTexture(), &srcRect, rt->GetTarget(), &dstRect);
+            auto texture = Images[sg->ImageNumber]->GetTexture();
+            GPU_SetColor(texture, GPU_MakeColor(cr, cg, cb, ca));
+            GPU_SetBlending(texture, true);
+
+            GPU_BlitRect(texture, &srcRect, rt->GetTarget(), &dstRect);
             cx += sg->WholeAdvance;
         }
     }
@@ -361,14 +384,18 @@ SFont * SFont::CreateLoadedFontFromFile(const string & file)
         font.read(reinterpret_cast<char*>(info), sizeof(Sif2Glyph));
         result->glyphs[info->Codepoint] = info;
     }
+
     uint32_t size;
     for (auto i = 0; i < header.Images; i++) {
         font.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
         const auto pngdata = new uint8_t[size];
         font.read(reinterpret_cast<char*>(pngdata), size);
+
         result->Images.push_back(SImage::CreateLoadedImageFromMemory(pngdata, size));
         delete[] pngdata;
     }
+
+    spdlog::info("Created font from file: {0}", file);
 
     BOOST_ASSERT(result->GetRefCount() == 1);
     return result;
@@ -452,7 +479,7 @@ SSound * SSound::CreateSound(SoundManager *smanager)
 
 SSound * SSound::CreateSoundFromFile(SoundManager *smanager, const std::string &file, const int simul)
 {
-    const auto hs = SoundSample::CreateFromFile(ConvertUTF8ToUnicode(file), simul);
+    const auto hs = SoundSample::CreateFromFile(file, simul);
     auto result = new SSound(hs);
     result->AddRef();
 

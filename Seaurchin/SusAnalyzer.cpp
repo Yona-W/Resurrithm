@@ -88,8 +88,8 @@ void SusAnalyzer::Reset()
 {
     errorCallbacks.clear();
     errorCallbacks.emplace_back([](auto type, auto message) {
-        auto log = spdlog::get("main");
-        log->error(message);
+        
+        spdlog::error(message);
     });
 
     ticksPerBeat = 192;
@@ -134,14 +134,14 @@ void SusAnalyzer::SetMessageCallBack(const function<void(string, string)>& func)
 //あと列挙済みファイルを流し込む前提でエラーチェックしない
 void SusAnalyzer::LoadFromFile(const string &fileName, const bool analyzeOnlyMetaData)
 {
-    auto log = spdlog::get("main");
+    
     ifstream file;
     string rawline;
     xp::smatch match;
     uint32_t line = 0;
 
     Reset();
-    if (!analyzeOnlyMetaData) log->info(u8"Parsing {0}", fileName);
+    if (!analyzeOnlyMetaData) spdlog::info(u8"Parsing {0}", fileName);
 
     file.open(fileName, ios::in);
 
@@ -153,17 +153,19 @@ void SusAnalyzer::LoadFromFile(const string &fileName, const bool analyzeOnlyMet
         ++line;
         if (rawline.empty() || rawline[0] != '#') continue;
 
+        rawline.erase(std::prev(rawline.end()));
+
         if (xp::regex_match(rawline, match, regexSusCommand)) {
             ProcessCommand(match, analyzeOnlyMetaData, line);
         } else if (xp::regex_match(rawline, match, regexSusData)) {
             if (!analyzeOnlyMetaData || boost::starts_with(rawline, "#BPM")) ProcessData(match, line);
         } else {
-            MakeMessage(line, "SUS line valid but could not be parsed");
+            MakeMessage(line, "SUS line valid but could not be parsed: " + rawline);
         }
     }
     file.close();
 
-    if (!analyzeOnlyMetaData) log->info(u8"End");
+    if (!analyzeOnlyMetaData) spdlog::info(u8"End");
     if (!analyzeOnlyMetaData) {
         // いい感じにソート
         stable_sort(notes.begin(), notes.end(), [](tuple<SusRelativeNoteTime, SusRawNoteData> a, tuple<SusRelativeNoteTime, SusRawNoteData> b) {
@@ -398,11 +400,11 @@ void SusAnalyzer::ProcessRequest(const string &cmd, const uint32_t line)
             ticksPerBeat = ConvertInteger(params[1]);
             break;
         case "enable_priority"_crc32:
-            MakeMessage(line, "Setting priority");
+            //MakeMessage(line, "Setting priority");
             SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::EnableDrawPriority)] = ConvertBoolean(params[1]);
             break;
         case "enable_moving_lane"_crc32:
-            MakeMessage(line, "Enabling lane movement");
+            //MakeMessage(line, "Enabling lane movement");
             SharedMetaData.ExtraFlags[size_t(SusMetaDataFlags::EnableMovingLane)] = ConvertBoolean(params[1]);
             break;
         case "segments_per_second"_crc32:

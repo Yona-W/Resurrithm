@@ -34,8 +34,10 @@
 
 #define SU_FONT_SYSTEM "ＭＳ ゴシック"
 
-#define SU_RES_WIDTH 1920
-#define SU_RES_HEIGHT 1080
+//#define SU_RES_WIDTH 1920
+//#define SU_RES_HEIGHT 1080
+#define SU_RES_WIDTH 1280
+#define SU_RES_HEIGHT 720
 
 #define SU_EFX_PMAX 1024
 

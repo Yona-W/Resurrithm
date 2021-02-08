@@ -1,7 +1,6 @@
 #include "Main.h"
 
 std::shared_ptr<Setting> setting;
-std::shared_ptr<Logger> logger;
 std::unique_ptr<ExecutionManager> manager;
 
 using namespace Rendering;
@@ -9,7 +8,7 @@ using namespace Rendering;
 int main(int argc, char **argv){
     PreInitialize();
     if(!Initialize()){
-        logger->LogError("Initialization failed.");
+        spdlog::error("Initialization failed.");
         Terminate();
         return 1;
     }
@@ -21,38 +20,34 @@ int main(int argc, char **argv){
 }
 
 void PreInitialize(){
-    logger = std::make_shared<Logger>();
-    logger->Initialize();
-    logger->LogDebug("Logging initialized");
-
     setting = std::make_shared<Setting>();
     setting->Load(SU_SETTING_FILE);
-
-    logger->LogDebug("Pre-init successful, settings loaded");
+    spdlog::debug("Pre-init successful, settings loaded");
 }
 
 bool Initialize(){
     int status = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
     if(status != 0){
-        logger->LogError("Failed to initialize SDL");
+        spdlog::error("Failed to initialize SDL");
         return false;
     }
 
-    GPU_SetPreInitFlags(GPU_INIT_DISABLE_DOUBLE_BUFFER | GPU_INIT_DISABLE_VSYNC);
+    GPU_SetDebugLevel(GPU_DebugLevelEnum::GPU_DEBUG_LEVEL_MAX);
+    GPU_SetPreInitFlags(GPU_INIT_DISABLE_VSYNC);
     Rendering::gpu = GPU_Init(SU_RES_WIDTH, SU_RES_HEIGHT, GPU_DEFAULT_INIT_FLAGS);
     if(Rendering::gpu)
     {
         //SDL_SetWindowTitle(, (SU_APP_NAME " " SU_APP_VERSION));
-        logger->LogInfo("Window created");
+        spdlog::info("Window created");
     }
     else{
-        logger->LogError("Window creation failed.");
+        spdlog::error("Window creation failed.");
         return false;
     }
 
     MoverFunctionExpressionManager::Initialize();
     if(!easing::RegisterDefaultMoverFunctionExpressions()){
-        logger->LogError("Failed to initialize easing functions");
+        spdlog::error("Failed to initialize easing functions");
         return false;
     }
 
@@ -61,7 +56,7 @@ bool Initialize(){
 
     SSpriteMover::StrTypeId = manager->GetScriptInterfaceUnsafe()->GetEngine()->GetTypeIdByDecl("string");
 
-    logger->LogDebug("Initialization complete");
+    spdlog::info("Initialization complete");
 
     return true;
 }
@@ -70,13 +65,14 @@ void Run(){
     using namespace std::chrono;
 
     //manager->AddScene(std::static_pointer_cast<Scene>(std::make_shared<SceneDebug>()));
-    auto start_time = high_resolution_clock::now();
-    logger->LogInfo("Running system menu");
+    auto last_frame = high_resolution_clock::now();
+    spdlog::info("Running system menu");
     manager->EnumerateSkins();
     manager->ExecuteSkin();
     while(!manager->shouldExit){
         auto frame_start = high_resolution_clock::now();
-        const auto delta_time = duration_cast<nanoseconds>(start_time - frame_start).count() / 1e9;
+        const auto delta_time = duration_cast<nanoseconds>(frame_start - last_frame).count() / 1e9;
+        last_frame = frame_start;
         manager->Tick(delta_time);
         manager->Draw();
     }
@@ -90,6 +86,5 @@ void Terminate(){
 
     GPU_Quit();
 
-    logger->LogInfo("Terminating...");
-    if(logger) logger->Terminate();
+    spdlog::info("Terminating...");
 }

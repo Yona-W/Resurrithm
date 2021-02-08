@@ -196,11 +196,11 @@ void ScriptScene::TickCoroutine(const double delta)
             delete c;
             i = coroutines.erase(i);
         } else if (result == asEXECUTION_EXCEPTION) {
-            auto log = spdlog::get("main");
+            
             int col;
             const char *at;
             const auto row = c->GetContext()->GetExceptionLineNumber(&col, &at);
-            log->error(u8"{0} ({1:d}行{2:d}列): {3}", at, row, col, c->GetContext()->GetExceptionString());
+            spdlog::error(u8"{0} ({1:d}行{2:d}列): {3}", at, row, col, c->GetContext()->GetExceptionString());
             abort();
         } else {
             ++i;

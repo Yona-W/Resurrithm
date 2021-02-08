@@ -7,12 +7,12 @@ using namespace std;
 using namespace boost::filesystem;
 
 // ReSharper disable once CppParameterNeverUsed
-bool SkinHolder::IncludeScript(std::wstring include, std::wstring from, CScriptBuilder *builder)
+bool SkinHolder::IncludeScript(std::string include, std::string from, CScriptBuilder *builder)
 {
     return false;
 }
 
-SkinHolder::SkinHolder(const wstring &name, const shared_ptr<AngelScript> &script, const std::shared_ptr<SoundManager>& sound)
+SkinHolder::SkinHolder(const string &name, const shared_ptr<AngelScript> &script, const std::shared_ptr<SoundManager>& sound)
     : scriptInterface(script)
     , soundInterface(sound)
     , skinName(name)
@@ -24,7 +24,7 @@ SkinHolder::~SkinHolder()
 
 void SkinHolder::Initialize()
 {
-    auto log = spdlog::get("main");
+    
     scriptInterface->StartBuildModule("SkinLoader",
         [this](string inc, string from, CScriptBuilder *b) {
         if (!exists(skinRoot / SU_SCRIPT_DIR / inc)) return false;
@@ -44,7 +44,7 @@ void SkinHolder::Initialize()
         break;
     }
     if (!ep) {
-        log->critical(u8"スキンにEntryPointがありません");
+        spdlog::critical(u8"Skin script doesn't have an EntryPoint");
         mod->Discard();
         return;
     }
@@ -59,12 +59,14 @@ void SkinHolder::Initialize()
 
 void SkinHolder::Terminate()
 {
+    /* TODO add back and fix leak lol
     // ReSharper disable CppDeclaratorNeverUsed
     for (const auto &it : images) BOOST_ASSERT(it.second->GetRefCount() == 1);
     for (const auto &it : sounds) BOOST_ASSERT(it.second->GetRefCount() == 1);
     for (const auto &it : fonts) BOOST_ASSERT(it.second->GetRefCount() == 1);
     for (const auto &it : animatedImages) BOOST_ASSERT(it.second->GetRefCount() == 1);
     // ReSharper restore CppDeclaratorNeverUsed
+    */
 
     for (const auto &it : images) it.second->Release();
     for (const auto &it : sounds) it.second->Release();
@@ -72,11 +74,11 @@ void SkinHolder::Terminate()
     for (const auto &it : animatedImages) it.second->Release();
 }
 
-asIScriptObject* SkinHolder::ExecuteSkinScript(const wstring &file, const bool forceReload)
+asIScriptObject* SkinHolder::ExecuteSkinScript(const string &file, const bool forceReload)
 {
-    auto log = spdlog::get("main");
+    
     //お茶を濁せ
-    const auto modulename = ConvertUnicodeToUTF8(file);
+    const auto modulename = file;
     auto mod = scriptInterface->GetExistModule(modulename);
     if (!mod || forceReload) {
         scriptInterface->StartBuildModule(modulename,
@@ -106,7 +108,7 @@ asIScriptObject* SkinHolder::ExecuteSkinScript(const wstring &file, const bool f
         break;
     }
     if (!type) {
-        log->critical(u8"スキンにEntryPointがありません");
+        spdlog::critical(u8"Skin script doesn't have an EntryPoint");
         return nullptr;
     }
 
@@ -118,7 +120,7 @@ asIScriptObject* SkinHolder::ExecuteSkinScript(const wstring &file, const bool f
 void SkinHolder::LoadSkinImage(const string &key, const string &filename)
 {
     if (images[key]) images[key]->Release();
-    images[key] = SImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8((skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename)).wstring()), false);
+    images[key] = SImage::CreateLoadedImageFromFile((skinRoot / SU_IMAGE_DIR / filename).string(), false);
 }
 
 void SkinHolder::LoadSkinImageFromMem(const string &key, void *buffer, const size_t size)
@@ -130,7 +132,7 @@ void SkinHolder::LoadSkinImageFromMem(const string &key, void *buffer, const siz
 void SkinHolder::LoadSkinFont(const string &key, const string &filename)
 {
     if (fonts[key]) fonts[key]->Release();
-    fonts[key] = SFont::CreateLoadedFontFromFile(ConvertUnicodeToUTF8((skinRoot / SU_FONT_DIR / ConvertUTF8ToUnicode(filename)).wstring()));
+    fonts[key] = SFont::CreateLoadedFontFromFile((skinRoot / SU_FONT_DIR / filename).string());
 }
 
 void SkinHolder::LoadSkinFontFromMem(const string &key, void *buffer, const size_t size)
@@ -142,7 +144,7 @@ void SkinHolder::LoadSkinFontFromMem(const string &key, void *buffer, const size
 void SkinHolder::LoadSkinSound(const std::string & key, const std::string & filename)
 {
     if (sounds[key]) sounds[key]->Release();
-    sounds[key] = SSound::CreateSoundFromFile(soundInterface.get(), ConvertUnicodeToUTF8((skinRoot / SU_SOUND_DIR / ConvertUTF8ToUnicode(filename)).wstring()), 1);
+    sounds[key] = SSound::CreateSoundFromFile(soundInterface.get(), (skinRoot / SU_SOUND_DIR / filename).string(), 1);
 }
 
 void SkinHolder::LoadSkinSoundFromMem(const string &key, const void *buffer, const size_t size)
@@ -154,7 +156,7 @@ void SkinHolder::LoadSkinSoundFromMem(const string &key, const void *buffer, con
 void SkinHolder::LoadSkinAnime(const std::string & key, const std::string & filename, const int w, const int h, const int c, const double time)
 {
     if (animatedImages[key]) animatedImages[key]->Release();
-    animatedImages[key] = SAnimatedImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8((skinRoot / SU_IMAGE_DIR / ConvertUTF8ToUnicode(filename)).wstring()), w, h, c, time);
+    animatedImages[key] = SAnimatedImage::CreateLoadedImageFromFile(((skinRoot / SU_IMAGE_DIR / filename).string()), w, h, c, time);
 }
 
 void SkinHolder::LoadSkinAnimeFromMem(const string &key, void *buffer, const size_t size, const int w, const int h, const int c, const double time)

@@ -39,7 +39,7 @@ public:
     void StopSound() override;
     void SetVolume(double vol) override;
 
-    static SoundSample *CreateFromFile(const std::wstring &fileNameW, int maxChannels = 16);
+    static SoundSample *CreateFromFile(const std::string &fileNameW, int maxChannels = 16);
     void SetLoop(bool looping) const;
 };
 

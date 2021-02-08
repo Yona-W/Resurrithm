@@ -14,8 +14,8 @@ void SceneDebug::Tick(const double delta)
 void SceneDebug::Draw()
 {
     /*
-    auto log = spdlog::get("main");
-    log->info(reinterpret_cast<const char*>(L"%2.1f fps\n"), fps);
+    
+    spdlog::info(reinterpret_cast<const char*>(L"%2.1f fps\n"), fps);
     */
 }
 

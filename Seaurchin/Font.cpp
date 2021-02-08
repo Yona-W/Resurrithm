@@ -38,7 +38,7 @@ Rect RectPacker::Insert(const int w, const int h)
 void Sif2Creator::InitializeFace(const string& fontpath)
 {
     // boost::filesystem::path up = ConvertUTF8ToUnicode(fontpath);
-    auto log = spdlog::get("main");
+    
     if (faceMemory) return;
     ifstream fontfile(fontpath, ios::in | ios::binary);
     fontfile.seekg(0, ios_base::end);
@@ -51,7 +51,7 @@ void Sif2Creator::InitializeFace(const string& fontpath)
     // error = FT_New_Face(freetype, up.string().c_str(), 0, &face);
     error = FT_New_Memory_Face(freetype, faceMemory, faceMemorySize, 0, &face);
     if (error) {
-        log->error(u8"フォント {0} を読み込めませんでした", fontpath);
+        spdlog::error(u8"フォント {0} を読み込めませんでした", fontpath);
         delete[] faceMemory;
         faceMemory = nullptr;
         return;
@@ -216,12 +216,12 @@ Sif2Creator::~Sif2Creator()
 void Sif2Creator::CreateSif2(const Sif2CreatorOption &option, const boost::filesystem::path outputPath)
 {
     using namespace boost::filesystem;
-    auto log = spdlog::get("main");
+    
     const auto cachepath = Setting::GetRootDirectory() / SU_DATA_DIR / SU_CACHE_DIR;
 
     InitializeFace(option.FontPath);
     RequestFace(option.Size);
-    log->info(u8"フォント\"{0:s}\"内に{1:d}グリフあります", face->family_name, face->num_glyphs);
+    spdlog::info(u8"フォント\"{0:s}\"内に{1:d}グリフあります", face->family_name, face->num_glyphs);
 
     currentSize = option.Size;
     OpenSif2(outputPath);

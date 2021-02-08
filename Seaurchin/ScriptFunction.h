@@ -26,7 +26,7 @@ struct CoroutineWait {
                 if (Time > 0.0) Time -= delta;
                 return Time > 0.0;
             default:
-                spdlog::get("main")->critical(u8"CoroutineWaitのステータスが不正です");
+                spdlog::critical(u8"CoroutineWaitのステータスが不正です");
                 abort();
         }
     }

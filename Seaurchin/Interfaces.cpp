@@ -149,35 +149,27 @@ void InterfacesRegisterEnum(ExecutionManager *exm)
 
 // その他適当な関数
 
-void InterfacesExitApplication()
-{
-    #ifdef _WIN32
-    const auto hwnd = GetMainWindowHandle();
-    PostMessage(hwnd, WM_CLOSE, 0, 0);
-    #endif //_WIN32
-}
-
 void InterfacesWriteLog(ScriptLogSeverity severity, const string & message)
 {
-    auto log = spdlog::get("main");
+    
     switch (severity) {
         case ScriptLogSeverity::Trace:
-            log->trace(message);
+            spdlog::trace(message);
             break;
         case ScriptLogSeverity::Debug:
-            log->debug(message);
+            spdlog::debug(message);
             break;
         case ScriptLogSeverity::Info:
-            log->info(message);
+            spdlog::info(message);
             break;
         case ScriptLogSeverity::Warning:
-            log->warn(message);
+            spdlog::warn(message);
             break;
         case ScriptLogSeverity::Error:
-            log->error(message);
+            spdlog::error(message);
             break;
         case ScriptLogSeverity::Critical:
-            log->critical(message);
+            spdlog::critical(message);
             break;
     }
 }

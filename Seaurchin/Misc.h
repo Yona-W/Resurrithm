@@ -34,8 +34,10 @@ To* CastReferenceType(From *from)
 
 using PropList = std::vector<std::tuple<std::string, std::string>>;
 
+/*
 std::wstring ConvertUTF8ToUnicode(const std::string &utf8Str);
 std::string ConvertUnicodeToUTF8(const std::wstring &utf16Str);
+*/
 void ScriptSceneWarnOutOf(const std::string &funcName, const std::string &type, asIScriptContext *ctx);
 double ToDouble(const char *str);
 double NormalizedFmod(double x, double y);

@@ -14,19 +14,19 @@ Setting::Setting()
 
 void Setting::Load(const string &filename)
 {
-    auto log = spdlog::get("main");
+    
     file = filename;
     if (!exists(rootDirectory / file)) {
-        log->info("Configuration file created");
+        spdlog::info("Configuration file created");
         Save();
     }
     std::ifstream ifs((rootDirectory / file).string(), ios::in);
     auto pr = toml::parse(ifs);
     if (!pr.valid()) {
-        log->error("Error parsing configuration file", pr.errorReason);
+        spdlog::error("Error parsing configuration file", pr.errorReason);
     } else {
         settingTree = pr.value;
-        log->info("Configuration file loaded");
+        spdlog::info("Configuration file loaded");
     }
     ifs.close();
 }
@@ -38,10 +38,10 @@ std::string Setting::GetRootDirectory()
 
 void Setting::Save() const
 {
-    auto log = spdlog::get("main");
+    
     std::ofstream ofs((rootDirectory / file).string(), ios::out);
     if (settingTree.valid()) settingTree.write(&ofs);
-    log->info("Saved configuration file");
+    spdlog::info("Saved configuration file");
     ofs.close();
 }
 
@@ -60,34 +60,34 @@ void SettingItemManager::LoadItemsFromToml(const path& file)
     using namespace boost::filesystem;
     using namespace crc32_constexpr;
 
-    auto log = spdlog::get("main");
+    
 
     std::ifstream ifs(file.string(), ios::in);
     auto pr = toml::parse(ifs);
     ifs.close();
     if (!pr.valid()) {
-        log->error("The configuration definition {0} is invalid", ConvertUnicodeToUTF8(file.wstring()));
-        log->error(pr.errorReason);
+        spdlog::error("The configuration definition {0} is invalid", file.string());
+        spdlog::error(pr.errorReason);
         return;
     }
     auto &root = pr.value;
     const auto items = root.find("SettingItems");
     if (!items || !items->is<toml::Array>()) {
-        log->warn(u8"The configuration definition {0} has no items", ConvertUnicodeToUTF8(file.wstring()));
+        spdlog::warn(u8"The configuration definition {0} has no items", file.string());
         return;
     }
     for (const auto &item : items->as<vector<toml::Value>>()) {
         if (item.type() != toml::Value::TABLE_TYPE) continue;
         if (!item.has("Group")) {
-            log->error("Missing group definition in setting item");
+            spdlog::error("Missing group definition in setting item");
             continue;
         }
         if (!item.has("Key")) {
-            log->error(u8"Missing key definition in setting item");
+            spdlog::error(u8"Missing key definition in setting item");
             continue;
         }
         if (!item.has("Type")) {
-            log->error(u8"Missing type definition in setting item");
+            spdlog::error(u8"Missing type definition in setting item");
             continue;
         }
 
@@ -137,7 +137,7 @@ void SettingItemManager::LoadItemsFromToml(const path& file)
                 si = make_shared<BooleanListVectorSettingItem>(settingInstance, group, key);
                 break;
             default:
-                log->warn("Unknown setting type: {0}", type);
+                spdlog::warn("Unknown setting type: {0}", type);
                 continue;
         }
         si->Build(item);
@@ -244,13 +244,13 @@ void IntegerSettingItem::Build(const toml::Value &table)
 {
     SettingItem::Build(table);
 
-    auto log = spdlog::get("main");
+    
 
     const auto r = table.find("Range");
     if (r && r->is<vector<int64_t>>()) {
         auto v = r->as<vector<int64_t>>();
         if (v.size() != 2) {
-            log->warn("The range definition for {0}.{1} is invalid", group, key);
+            spdlog::warn("The range definition for {0}.{1} is invalid", group, key);
         } else {
             minValue = v[0];
             maxValue = v[1];
@@ -307,13 +307,13 @@ void FloatSettingItem::Build(const toml::Value &table)
 {
     SettingItem::Build(table);
 
-    auto log = spdlog::get("main");
+    
 
     const auto r = table.find("Range");
     if (r && r->is<vector<double>>()) {
         auto v = r->as<vector<double>>();
         if (v.size() != 2) {
-            log->warn(u8"The range definition for {0}.{1} is invalid", group, key);
+            spdlog::warn(u8"The range definition for {0}.{1} is invalid", group, key);
         } else {
             minValue = v[0];
             maxValue = v[1];
@@ -368,13 +368,13 @@ void BooleanSettingItem::Build(const toml::Value &table)
 {
     SettingItem::Build(table);
 
-    auto log = spdlog::get("main");
+    
 
     const auto r = table.find("Values");
     if (r && r->is<vector<string>>()) {
         auto v = r->as<vector<string>>();
         if (v.size() != 2) {
-            log->warn(u8"The range definition for {0}.{1} is invalid", group, key);
+            spdlog::warn(u8"The range definition for {0}.{1} is invalid", group, key);
         } else {
             truthy = v[0];
             falsy = v[1];
@@ -610,12 +610,12 @@ void IntegerListSettingItem::RetrieveValue()
     for (const auto &val : defaultValues) arr.push_back(val);
     arr = settingInstance->ReadValue(group, key, arr);
 
-    auto log = spdlog::get("main");
+    
 
     uint64_t cnt = 0;
     for (const auto &val : arr) {
         if (!val.is<int64_t>()) {
-            log->warn("Element {2} of list configuration item {0}.{1} is not an integer type.", group, key, cnt);
+            spdlog::warn("Element {2} of list configuration item {0}.{1} is not an integer type.", group, key, cnt);
             continue;
         }
         values.push_back(val.as<int64_t>());
@@ -669,12 +669,12 @@ void FloatListSettingItem::RetrieveValue()
     for (const auto &val : defaultValues) arr.push_back(val);
     arr = settingInstance->ReadValue(group, key, arr);
 
-    auto log = spdlog::get("main");
+    
 
     uint64_t cnt = 0;
     for (const auto &val : arr) {
         if (!val.is<double>()) {
-            log->warn(u8"Element {2} of list configuration item {0}.{1} is not a float type.", group, key, cnt);
+            spdlog::warn(u8"Element {2} of list configuration item {0}.{1} is not a float type.", group, key, cnt);
             continue;
         }
         values.push_back(val.as<double>());
@@ -728,12 +728,12 @@ void BooleanListSettingItem::RetrieveValue()
     for (const auto &val : defaultValues) arr.push_back(toml::Value(val));
     arr = settingInstance->ReadValue(group, key, arr);
 
-    auto log = spdlog::get("main");
+    
 
     uint64_t cnt = 0;
     for (const auto &val : arr) {
         if (!val.is<bool>()) {
-            log->warn(u8"Element {2} of list configuration item {0}.{1} is not a bool type.", group, key, cnt);
+            spdlog::warn(u8"Element {2} of list configuration item {0}.{1} is not a bool type.", group, key, cnt);
             continue;
         }
         values.push_back(val.as<bool>());
@@ -798,12 +798,12 @@ void IntegerListVectorSettingItem::RetrieveValue()
     }
     arr = settingInstance->ReadValue(group, key, arr);
 
-    auto log = spdlog::get("main");
+    
 
     uint64_t cnt = 0;
     for (const auto &list : arr) {
         if (!list.is<std::vector<int64_t>>()) {
-            log->warn(u8"Element {2} of list {0}.{1} is not an integer list.", group, key, cnt);
+            spdlog::warn(u8"Element {2} of list {0}.{1} is not an integer list.", group, key, cnt);
             continue;
         }
 
@@ -878,12 +878,12 @@ void FloatListVectorSettingItem::RetrieveValue()
     }
     arr = settingInstance->ReadValue(group, key, arr);
 
-    auto log = spdlog::get("main");
+    
 
     uint64_t cnt = 0;
     for (const auto &list : arr) {
         if (!list.is<std::vector<double>>()) {
-            log->warn(u8"Element {2} of list {0}.{1} is not a float list.", group, key, cnt);
+            spdlog::warn(u8"Element {2} of list {0}.{1} is not a float list.", group, key, cnt);
             continue;
         }
 
@@ -958,12 +958,12 @@ void BooleanListVectorSettingItem::RetrieveValue()
     }
     arr = settingInstance->ReadValue(group, key, arr);
 
-    auto log = spdlog::get("main");
+    
 
     uint64_t cnt = 0;
     for (const auto &list : arr) {
         if (!list.is<std::vector<bool>>()) {
-            log->warn(u8"Element {2} of list {0}.{1} is not a boolean list.", group, key, cnt);
+            spdlog::warn(u8"Element {2} of list {0}.{1} is not a boolean list.", group, key, cnt);
             continue;
         }
 

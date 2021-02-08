@@ -171,7 +171,7 @@ bool MoverFunctionExpressionManager::Register(const std::string &key, const std:
 
     MoverFunctionExpressionSharedPtr pFunction;
     if (!ParseMoverFunctionExpression(pFunction, expression) || !pFunction) {
-        spdlog::get("main")->error(u8"\"{0}\" 関数 (\"{1}\") の登録に失敗しました。", key, expression);
+        spdlog::error(u8"\"{0}\" 関数 (\"{1}\") の登録に失敗しました。", key, expression);
         return false;
     }
 
@@ -187,7 +187,7 @@ bool MoverFunctionExpressionManager::Register(const std::string &key, MoverFunct
 bool MoverFunctionExpressionManager::Register(const std::string &key, const MoverFunctionExpressionSharedPtr &pFunction)
 {
     if (list.find(key) != list.end()) {
-        spdlog::get("main")->warn(u8"\"{0}\" 関数は既に登録されています。", key);
+        spdlog::warn(u8"\"{0}\" 関数は既に登録されています。", key);
         return false;
     }
 

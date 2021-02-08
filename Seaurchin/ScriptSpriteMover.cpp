@@ -197,7 +197,7 @@ bool MoverObject::Apply(const string &key, double value)
         wait = value;
         break;
     default:
-        spdlog::get("main")->warn(u8"SpriteMover に実数引数を持つプロパティ \"{0}\" は設定できません。", key);
+        spdlog::warn(u8"Property \"{0}\" with a real number argument cannot be set for SpriteMover", key);
         return false;
     }
     return true;
@@ -210,14 +210,14 @@ bool MoverObject::Apply(const string &key, const string &value)
     {
         MoverFunctionExpressionSharedPtr pFunc;
         if (!MoverFunctionExpressionManager::GetInstance().Find(value, pFunc) || !pFunc) {
-            spdlog::get("main")->error(u8"キー \"{0}\" に対応する MoverFunction が見つかりませんでした。", value);
+            spdlog::error(u8"Could not fina a mover function for key \"{0}\"", value);
             return false;
         }
         pFunction = pFunc;
         break;
     }
     default:
-        spdlog::get("main")->warn(u8"SpriteMover に 文字列引数を持つプロパティ \"{0}\" は設定できません。", key);
+        spdlog::warn(u8"Property \"{0}\" with a string argument cannot be set for SpriteMover", key);
         return false;
     }
     return true;
@@ -286,16 +286,16 @@ void SSpriteMover::Tick(const double delta)
         auto &pMover = *it;
         if (!pMover->Tick(delta)) {
             // TODO: ログ
-            spdlog::get("main")->error(u8"Tick処理に失敗");
+            spdlog::error(u8"Tick processing failed");
 
-            continue;
+            break;
         }
 
         const auto state = pMover->GetState();
         if (state == MoverObject::StateID::Working || state == MoverObject::StateID::Done) {
             if (!pMover->Execute()) {
                 // TODO: ログ
-                spdlog::get("main")->error(u8"Mover死す");
+                spdlog::error(u8"Mover dead");
 
                 pMover->Release();
                 it = moves.erase(it);
@@ -327,7 +327,7 @@ void SSpriteMover::Tick(const double delta)
 bool SSpriteMover::AddMove(const std::string &dict)
 {
     if (!parser_impl::ParseMover(dict, this)) {
-        spdlog::get("main")->warn(u8"AddMoveのパースに失敗しました。 : \"{0}\"", dict);
+        spdlog::warn(u8"Failed to parse AddMove: \"{0}\"", dict);
         return false;
     }
 
@@ -350,14 +350,14 @@ bool SSpriteMover::AddMove(const std::string &key, const CScriptDictionary *dict
         const auto StrTypeID = SSpriteMover::StrTypeId;
         if (i.GetTypeId() == StrTypeID && i.GetValue(&sv, StrTypeID)) {
             if (!pMover->Apply(key, sv)) {
-                spdlog::get("main")->warn(u8"キー \"{0}\" にする値 \"{1}\" (as string) の設定に失敗しました。", key, sv);
+                spdlog::warn(u8"Key \"{0}\" could not be set to value \"{1}\" (as string)", key, sv);
             }
         } else if (i.GetValue(dv)) {
             if (!pMover->Apply(key, dv)) {
-                spdlog::get("main")->warn(u8"キー \"{0}\" にする値 \"{1}\" (as double) の設定に失敗しました。", key, dv);
+                spdlog::warn(u8"キー \"{0}\" could not be set to value \"{1}\"", key, dv);
             }
         } else {
-            spdlog::get("main")->warn(u8"キー \"{0}\" に対し有効な値が設定できませんでした。", key);
+            spdlog::warn(u8"Failed to set a valid value for key \"{0}\"", key);
         }
 
         ++i;

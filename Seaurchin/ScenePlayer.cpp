@@ -179,7 +179,7 @@ void ScenePlayer::LoadWorker()
 
 
     // 動画・音声の読み込み
-    auto file = boost::filesystem::path(scorefile).parent_path() / ConvertUTF8ToUnicode(analyzer->SharedMetaData.UWaveFileName);
+    auto file = boost::filesystem::path(scorefile).parent_path() / analyzer->SharedMetaData.UWaveFileName;
     bgmStream = SoundStream::CreateFromFile(file.wstring());
     state = PlayingState::ReadyToStart;
 
@@ -443,7 +443,7 @@ void ScenePlayer::ProcessSoundQueue()
 void ScenePlayer::Load()
 {
     if (loadWorkerThread.joinable()) {
-        spdlog::get("main")->error(u8"ScenePlayer::Loadは実行中です。");
+        spdlog::error(u8"ScenePlayer::Loadは実行中です。");
         return;
     }
 

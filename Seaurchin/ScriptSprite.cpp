@@ -119,7 +119,7 @@ bool SSprite::GetField(const SSprite* pSprite, FieldID id, double &value)
 bool SSprite::SetField(SSprite* pSprite, FieldID id, double value)
 {
     if (!pSprite) {
-        spdlog::get("main")->critical(u8"なんで");
+        spdlog::critical(u8"なんで");
         return false;
     }
 
@@ -228,7 +228,7 @@ void SSprite::Apply(const CScriptDictionary *dict)
         const auto key = i.GetKey();
         const auto id = SSprite::GetFieldId(key);
         double dv = 0;
-        if(i.GetValue(dv)) if(!Apply(id, dv)) spdlog::get("main")->warn(u8"プロパティに \"{0}\" は設定できません。", key);
+        if(i.GetValue(dv)) if(!Apply(id, dv)) spdlog::warn(u8"プロパティに \"{0}\" は設定できません。", key);
         ++i;
     }
 
@@ -292,19 +292,18 @@ void SSprite::DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target *tar
 {
     if (!Image) return;
     GPU_Image *image = Image->GetTexture();
-    GPU_SetBlendMode(image, GPU_BLEND_NORMAL_ADD_ALPHA);
-    GPU_SetColor(image, SDL_Color{ct.R, ct.G, ct.B, ct.A});
 
-    GPU_BlitTransform(image,
+    GPU_SetColor(image, SDL_Color{ct.R, ct.G, ct.B, ct.A});
+    GPU_BlitTransformX(image,
                       NULL,
                       target,
                       tf.X,
                       tf.Y,
+                      tf.OriginX,
+                      tf.OriginY,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);
-
-    GPU_SetColor(image, SDL_Color{255, 255, 255, 255});
 }
 
 SSprite * SSprite::Clone()
@@ -524,6 +523,8 @@ void STextSprite::Refresh()
         return;
     }
 
+    spdlog::info("Refreshing text sprite: {0}", Text);
+
     size = isRich ? Font->RenderRich(nullptr, Text, Color) : Font->RenderRaw(nullptr, Text);
     if (isScrolling) {
         scrollBuffer = new SRenderTarget(scrollWidth, int(get<1>(size)));
@@ -550,16 +551,16 @@ void STextSprite::DrawNormal(const Transform2D &tf, const ColorTint &ct, GPU_Tar
         GPU_SetColor(image, SDL_Color{ct.R, ct.G, ct.B, ct.A});
     }
 
-    GPU_BlitTransform(image,
+    GPU_BlitTransformX(image,
                       NULL,
                       drawTarget,
                       tf.X,
                       tf.Y,
+                      tf.OriginX,
+                      tf.OriginY,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);
-
-    GPU_SetColor(image, SDL_Color{255, 255, 255, 255});
 }
 
 void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct, GPU_Target *drawTarget)
@@ -595,12 +596,15 @@ void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct, GPU_Tar
 
     const auto tox = SU_TO_FLOAT(scrollWidth / 2 * int(horizontalAlignment));
     const auto toy = SU_TO_FLOAT(get<1>(size) / 2 * int(verticalAlignment));
+    GPU_SetColor(scrollBuffer->GetTexture(), GPU_MakeColor(ct.R, ct.G, ct.B, ct.A));
 
-    GPU_BlitTransform(scrollBuffer->GetTexture(),
+    GPU_BlitTransformX(scrollBuffer->GetTexture(),
                       NULL,
                       drawTarget,
                       tf.X + tox,
                       tf.Y + toy,
+                      tf.OriginX,
+                      tf.OriginY,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);
@@ -737,7 +741,7 @@ STextSprite *STextSprite::Factory(SFont *img, const string &str)
     auto result = new STextSprite();
     result->AddRef();
 
-    result->SetText(str);
+    result->SetText(str.length() == 0 ? " " : str);
     {
         if(img) img->AddRef();
         result->SetFont(img);
@@ -848,16 +852,16 @@ void SSynthSprite::DrawBy(const Transform2D & tf, const ColorTint & ct, GPU_Targ
     GPU_SetBlendMode(image, GPU_BLEND_NORMAL_ADD_ALPHA);
     GPU_SetColor(image, SDL_Color{ct.R, ct.G, ct.B, ct.A});
 
-    GPU_BlitTransform(image,
+    GPU_BlitTransformX(image,
                       NULL,
                       drawTarget,
                       tf.X,
                       tf.Y,
+                      tf.OriginX,
+                      tf.OriginY,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);
-
-    GPU_SetColor(image, SDL_Color{255, 255, 255, 255});
 }
 
 SSynthSprite::SSynthSprite(const int w, const int h)
@@ -962,20 +966,16 @@ void SClippingSprite::DrawBy(const Transform2D & tf, const ColorTint & ct, GPU_T
     const auto w = SU_TO_INT32(width * u2);
     const auto h = SU_TO_INT32(height * v2);
 
-    SDL_Rect srcRect = {x, y, w, h};
-    SDL_FPoint scaledOrigin = {tf.OriginX * tf.ScaleX, tf.OriginY * tf.ScaleY};
-    SDL_FRect dstRect = {
-        tf.X - scaledOrigin.x,
-        tf.Y - scaledOrigin.y,
-        target->GetWidth() * tf.ScaleX,
-        target->GetHeight() * tf.ScaleY
-    };
+    auto texture = target->GetTexture();
+    GPU_SetColor(texture, SDL_Color{ct.R, ct.G, ct.B, ct.A});
 
-    GPU_BlitTransform(target->GetTexture(),
+    GPU_BlitTransformX(texture,
                       NULL,
                       drawTarget,
                       tf.X,
                       tf.Y,
+                      tf.OriginX,
+                      tf.OriginY,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);
@@ -1061,11 +1061,13 @@ void SAnimeSprite::DrawBy(const Transform2D &tf, const ColorTint &ct, GPU_Target
 
     GPU_Rect srcRect = images->GetRectAt(at);
 
-    GPU_BlitTransform(image,
+    GPU_BlitTransformX(image,
                       &srcRect,
                       target,
                       tf.X,
                       tf.Y,
+                      tf.OriginX,
+                      tf.OriginY,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);

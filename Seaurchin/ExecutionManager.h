@@ -37,7 +37,7 @@ private:
 
     std::vector<std::shared_ptr<Scene>> scenes;
     std::vector<std::shared_ptr<Scene>> scenesPending;
-    std::vector<std::wstring> skinNames;
+    std::vector<std::string> skinNames;
     std::unique_ptr<SkinHolder> skin;
     std::unordered_map<std::string, boost::any> optionalData;
     DrawableResult lastResult;
@@ -85,6 +85,7 @@ public:
     bool ExecuteScene(asIScriptObject *sceneObject);
     void ExecuteSystemMenu();
     void Fire(const std::string &message);
+    void ExitApplication();
     void WriteLog(const std::string &message) const;
     ScenePlayer *CreatePlayer();
     SSoundMixer *GetDefaultMixer(const std::string &name) const;

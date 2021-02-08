@@ -79,16 +79,16 @@ asIScriptObject *AngelScript::InstantiateObject(asITypeInfo * type) const
 void AngelScript::ScriptMessageCallback(const asSMessageInfo * message) const
 {
     using namespace std;
-    auto log = spdlog::get("main");
+    
     switch (message->type) {
         case asMSGTYPE_INFORMATION:
-            log->info(u8"{0} ({1:d}行{2:d}列): {3}", message->section, message->row, message->col, message->message);
+            spdlog::info(u8"{0} ({1:d}行{2:d}列): {3}", message->section, message->row, message->col, message->message);
             break;
         case asMSGTYPE_WARNING:
-            log->warn(u8"{0} ({1:d}行{2:d}列): {3}", message->section, message->row, message->col, message->message);
+            spdlog::warn(u8"{0} ({1:d}行{2:d}列): {3}", message->section, message->row, message->col, message->message);
             break;
         case asMSGTYPE_ERROR:
-            log->error(u8"{0} ({1:d}行{2:d}列): {3}", message->section, message->row, message->col, message->message);
+            spdlog::error(u8"{0} ({1:d}行{2:d}列): {3}", message->section, message->row, message->col, message->message);
             break;
     }
 }

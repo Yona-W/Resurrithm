@@ -61,22 +61,22 @@ class SettingScene : CoroutineScene {
     AddSprite(spBack);
 
     @spGroup = TextSprite(font64, "");
-    spGroup.Apply("r:0, g:0, b:0, x:640, y:16, z:1");
-    spGroup.SetAlignment(TextAlign::Center, TextAlign::Top);
+    spGroup.Apply("r:128, g:128, b:128, x:150, y:16, z:1");
+    spGroup.SetAlignment(TextAlign::Left, TextAlign::Top);
     AddSprite(spGroup);
 
     @spCursor = Sprite(imgCursor);
-    spCursor.Apply("x:640, y:108, origX:512, origY:20, z:-1");
+    spCursor.Apply("x:640, y:108, origX:512, origY:0, z:-1");
     AddSprite(spCursor);
 
     for(int i = 0; i < 10; i++) {
-      int y = 108 + 4 + 48 * i;
+      int y = 108 + 6 + 48 * i;
       @spDescriptions[i] = TextSprite(font32, "");
-      spDescriptions[i].Apply("r:0, g:0, b:0, x:384, y:" + y);
-      spDescriptions[i].SetAlignment(TextAlign::Center, TextAlign::Center);
+      spDescriptions[i].Apply("r:0, g:0, b:0, x:150, y:" + y);
+      spDescriptions[i].SetAlignment(TextAlign::Left, TextAlign::Center);
       @spValues[i] = TextSprite(font32, "");
-      spValues[i].Apply("r:0, g:0, b:0, x:896, y:" + y);
-      spValues[i].SetAlignment(TextAlign::Center, TextAlign::Center);
+      spValues[i].Apply("r:0, g:0, b:0, x:900, y:" + y);
+      spValues[i].SetAlignment(TextAlign::Left, TextAlign::Center);
       AddSprite(spDescriptions[i]);
       AddSprite(spValues[i]);
     }
@@ -101,22 +101,22 @@ class SettingScene : CoroutineScene {
   void LoadSettingGroup(int index) {
     @target = @settings[index];
     availableCount = target.length();
-    spGroup.SetText("← " + groups[index] + " →");
+    spGroup.SetText(groups[index]);
     for(int i = 0; i < 10; i++) {
       spDescriptions[i].SetText((i < availableCount) ? target[i].GetDescription() : "");
       spValues[i].SetText((i < availableCount) ? target[i].GetItemText() : "");
     }
-    if (availableCount == 0) spDescriptions[0].SetText("No setting ite}m");
+    if (availableCount == 0) spDescriptions[0].SetText("No settings");
   }
 
   void UpdateCursorState() {
     if (isSelectingGroup) {
       spCursor.AddMove("alpha:{begin:1, end:0, time:0.2}");
-      spGroup.Apply("b:255");
-      spGroup.SetText("← " + groups[selGroup] + " →");
+      spGroup.Apply("r: 100,g:150,b:100");
+      spGroup.SetText(groups[selGroup]);
     } else {
       spCursor.AddMove("alpha:{begin:0, end:1, time:0.2}");
-      spGroup.Apply("b:0");
+      spGroup.Apply("r:128,g:128,b:128");
       spGroup.SetText(groups[selGroup]);
     }
   }
@@ -125,7 +125,7 @@ class SettingScene : CoroutineScene {
     while(true) {
       if (IsKeyTriggered(Key::INPUT_UP)) {
         if (!isSelectingGroup && selected <= 0) {
-          selected = 0;
+          selected = -1;
           isSelectingGroup = true;
           UpdateCursorState();
         } else {
@@ -140,12 +140,13 @@ class SettingScene : CoroutineScene {
           selected = 0;
           isSelectingGroup = false;
           UpdateCursorState();
-        } else {
-          if (++selected >= availableCount) selected--;
-          int cy = 108 + 48 * selected;
-          spCursor.AddMove("x:{end:640, time:0.2, func:out_sine}");
-          spCursor.AddMove("y:{end:" + cy + ", time:0.2, func:out_sine}");
         }
+        else{
+          if (++selected >= availableCount) selected--;
+        }
+        int cy = 108 + 48 * selected;
+        spCursor.AddMove("x:{end:640, time:0.2, func:out_sine}");
+        spCursor.AddMove("y:{end:" + cy + ", time:0.2, func:out_sine}");
       }
       if (IsKeyTriggered(Key::INPUT_LEFT)) {
         if (isSelectingGroup) {

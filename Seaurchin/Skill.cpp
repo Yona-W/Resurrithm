@@ -14,17 +14,17 @@ SkillManager::SkillManager()
 void SkillManager::LoadAllSkills()
 {
     using namespace boost;
-    using namespace filesystem;
+    using namespace boost::filesystem;
     const auto skillroot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_SKILL_DIR;
 
     const directory_iterator dit(skillroot);
     for (const auto& fdata : make_iterator_range(dit, {})) {
         if (is_directory(fdata)) continue;
-        const auto filename = ConvertUnicodeToUTF8(fdata.path().wstring());
+        const auto filename = fdata.path().string();
         if (!ends_with(filename, ".toml")) continue;
         LoadFromToml(fdata.path());
     }
-    spdlog::get("main")->info(u8"スキル総数: {0:d}", skills.size());
+    spdlog::info(u8"スキル総数: {0:d}", skills.size());
     selected = skills.size() ? 0 : -1;
 }
 
@@ -60,7 +60,7 @@ int32_t SkillManager::GetSize() const
 void SkillManager::LoadFromToml(boost::filesystem::path file)
 {
     using namespace boost::filesystem;
-    auto log = spdlog::get("main");
+    
     auto result = make_shared<SkillParameter>();
     const auto iconRoot = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR;
 
@@ -68,15 +68,15 @@ void SkillManager::LoadFromToml(boost::filesystem::path file)
     auto pr = toml::parse(ifs);
     ifs.close();
     if (!pr.valid()) {
-        log->error(u8"スキル {0} は不正なファイルです", ConvertUnicodeToUTF8(file.wstring()));
-        log->error(pr.errorReason);
+        spdlog::error(u8"Skill {0} is an invalid file", file.string());
+        spdlog::error(pr.errorReason);
         return;
     }
     auto &root = pr.value;
 
     try {
         result->Name = root.get<string>("Name");
-        result->IconPath = ConvertUnicodeToUTF8((iconRoot / ConvertUTF8ToUnicode(root.get<string>("Icon"))).wstring());
+        result->IconPath = (iconRoot / root.get<string>("Icon")).string();
         result->Details.clear();
         // TODO: CurrentLevel を変更する手段を提供する
         result->CurrentLevel = 0;
@@ -116,7 +116,7 @@ void SkillManager::LoadFromToml(boost::filesystem::path file)
             if (result->MaxLevel < level) result->MaxLevel = level;
         }
     } catch (exception &ex) {
-        log->error(u8"スキル {0} の読み込みに失敗しました: {1}", ConvertUnicodeToUTF8(file.wstring()), ex.what());
+        spdlog::error(u8"Skill {0} could not be loaded: {1}", file.string(), ex.what());
         return;
     }
     skills.push_back(result);
@@ -163,8 +163,8 @@ void SkillIndicators::SetCallback(asIScriptFunction *func)
 int SkillIndicators::AddSkillIndicator(const string &icon)
 {
     using namespace boost::filesystem;
-    auto path = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR / ConvertUTF8ToUnicode(icon);
-    const auto image = SImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8(path.wstring()), true);
+    auto path = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_ICON_DIR / icon;
+    const auto image = SImage::CreateLoadedImageFromFile(path.string(), true);
     indicatorIcons.push_back(image);
     return indicatorIcons.size() - 1;
 }

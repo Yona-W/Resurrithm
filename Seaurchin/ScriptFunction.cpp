@@ -48,20 +48,20 @@ void YieldFrames(const int64_t frames)
 
 SImage* LoadSystemImage(const string &file)
 {
-    auto p = Setting::GetRootDirectory() / SU_DATA_DIR / SU_IMAGE_DIR / ConvertUTF8ToUnicode(file);
-    return SImage::CreateLoadedImageFromFile(ConvertUnicodeToUTF8(p.wstring()), false);
+    auto p = Setting::GetRootDirectory() / SU_DATA_DIR / SU_IMAGE_DIR / file;
+    return SImage::CreateLoadedImageFromFile(p.string(), false);
 }
 
 SFont* LoadSystemFont(const std::string &file)
 {
-    auto p = Setting::GetRootDirectory() / SU_DATA_DIR / SU_FONT_DIR / (ConvertUTF8ToUnicode(file) + L".sif");
-    return SFont::CreateLoadedFontFromFile(ConvertUnicodeToUTF8(p.wstring()));
+    auto p = Setting::GetRootDirectory() / SU_DATA_DIR / SU_FONT_DIR / (file + ".sif");
+    return SFont::CreateLoadedFontFromFile(p.string());
 }
 
 SSound *LoadSystemSound(SoundManager *smng, const std::string & file)
 {
-    auto p = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SOUND_DIR / ConvertUTF8ToUnicode(file);
-    return SSound::CreateSoundFromFile(smng, ConvertUnicodeToUTF8(p.wstring()), 4);
+    auto p = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SOUND_DIR / file;
+    return SSound::CreateSoundFromFile(smng, p.string(), 4);
 }
 
 void CreateImageFont(const string &fileName, const string &saveName, const int size)
@@ -71,7 +71,7 @@ void CreateImageFont(const string &fileName, const string &saveName, const int s
     option.Size = SU_TO_FLOAT(size);
     option.ImageSize = 1024;
     option.TextSource = "";
-    const auto op = Setting::GetRootDirectory() / SU_DATA_DIR / SU_FONT_DIR / (ConvertUTF8ToUnicode(saveName) + L".sif");
+    const auto op = Setting::GetRootDirectory() / SU_DATA_DIR / SU_FONT_DIR / (saveName + ".sif");
 
     Sif2Creator creator;
     creator.CreateSif2(option, op);

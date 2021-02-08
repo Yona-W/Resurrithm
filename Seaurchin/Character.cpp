@@ -16,17 +16,17 @@ void CharacterManager::LoadAllCharacters()
     using namespace boost;
     using namespace boost::filesystem;
     using namespace xpressive;
-    auto log = spdlog::get("main");
+    
 
     const auto sepath = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR;
 
     for (const auto& fdata : make_iterator_range(directory_iterator(sepath), {})) {
         if (is_directory(fdata)) continue;
-        const auto filename = ConvertUnicodeToUTF8(fdata.path().wstring());
+        const auto filename = fdata.path().string();
         if (!ends_with(filename, ".toml")) continue;
         LoadFromToml(fdata.path());
     }
-    log->info(u8"キャラクター総数: {0:d}", characters.size());
+    spdlog::info("Characters loaded: {0:d}", characters.size());
     selected = 0;
 }
 
@@ -72,23 +72,23 @@ void CharacterManager::LoadFromToml(const boost::filesystem::path& file)
 {
     using namespace boost::filesystem;
 
-    auto log = spdlog::get("main");
+    
     auto result = make_shared<CharacterParameter>();
 
     std::ifstream ifs(file.string(), ios::in);
     auto pr = toml::parse(ifs);
     ifs.close();
     if (!pr.valid()) {
-        log->error(u8"キャラクター {0} は不正なファイルです", ConvertUnicodeToUTF8(file.wstring()));
-        log->error(pr.errorReason);
+        spdlog::error(u8"Failed to load {0}: invalid file", file.string());
+        spdlog::error(pr.errorReason);
         return;
     }
     auto &root = pr.value;
 
     try {
         result->Name = root.get<string>("Name");
-        auto imgpath = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR / ConvertUTF8ToUnicode(root.get<string>("Image"));
-        result->ImagePath = ConvertUnicodeToUTF8(imgpath.wstring());
+        auto imgpath = Setting::GetRootDirectory() / SU_SKILL_DIR / SU_CHARACTER_DIR / root.get<string>("Image");
+        result->ImagePath = imgpath.string();
 
         const auto ws = root.find("Metric.WholeScale");
         result->Metric.WholeScale = (ws && ws->is<double>()) ? ws->as<double>() : 1.0;
@@ -124,7 +124,7 @@ void CharacterManager::LoadFromToml(const boost::filesystem::path& file)
             result->Metric.FaceRange[3] = 128;
         }
     } catch (exception ex) {
-        log->error(u8"キャラクター {0} の読み込みに失敗しました", ConvertUnicodeToUTF8(file.wstring()));
+        spdlog::error(u8"Failed to load character {0} - unknown error", file.string());
         return;
     }
     characters.push_back(result);
@@ -181,31 +181,36 @@ CharacterImageSet *CharacterImageSet::CreateImageSet(const shared_ptr<CharacterP
 
 void CharacterImageSet::LoadAllImage()
 {
-    /* TODO GRAPHICS LOL
-    auto root = ConvertUTF8ToUnicode(parameter->ImagePath);
-    const auto hBase = LoadGraph(reinterpret_cast<const char*>(root.c_str()));
-    const auto hSmall = MakeScreen(SU_CHAR_SMALL_WIDTH, SU_CHAR_SMALL_WIDTH, 1);
-    const auto hFace = MakeScreen(SU_CHAR_FACE_SIZE, SU_CHAR_FACE_SIZE, 1);
-    BEGIN_DRAW_TRANSACTION(hSmall);
-    DrawRectExtendGraph(
-        0, 0, SU_CHAR_SMALL_WIDTH, SU_CHAR_SMALL_HEIGHT,
+    auto root = parameter->ImagePath;
+    const auto baseSurface = IMG_Load(reinterpret_cast<const char*>(root.c_str()));
+    const auto baseTex = GPU_CopyImageFromSurface(baseSurface);
+    const auto smallTex = GPU_CreateImage(SU_CHAR_SMALL_WIDTH, SU_CHAR_SMALL_WIDTH, GPU_FormatEnum::GPU_FORMAT_RGBA);
+    const auto faceTex = GPU_CreateImage(SU_CHAR_FACE_SIZE, SU_CHAR_FACE_SIZE, GPU_FormatEnum::GPU_FORMAT_RGBA);
+    const auto smallTarget = GPU_LoadTarget(smallTex);
+    const auto faceTarget = GPU_LoadTarget(faceTex);
+
+    GPU_Rect smallRectSrc = {
         parameter->Metric.SmallRange[0], parameter->Metric.SmallRange[1],
-        parameter->Metric.SmallRange[2], parameter->Metric.SmallRange[3],
-        hBase, TRUE);
-    BEGIN_DRAW_TRANSACTION(hFace);
-    DrawRectExtendGraph(
-        0, 0, SU_CHAR_FACE_SIZE, SU_CHAR_FACE_SIZE,
+        parameter->Metric.SmallRange[2], parameter->Metric.SmallRange[3]
+    };
+
+    GPU_Rect faceRectSrc = {
         parameter->Metric.FaceRange[0], parameter->Metric.FaceRange[1],
         parameter->Metric.FaceRange[2], parameter->Metric.FaceRange[3],
-        hBase, TRUE);
-    FINISH_DRAW_TRANSACTION;
-    imageFull = new SImage(hBase);
+    };
+
+    GPU_BlitRect(baseTex, &smallRectSrc, smallTarget, NULL);
+    GPU_BlitRect(baseTex, &faceRectSrc, faceTarget, NULL);
+
+    GPU_FreeTarget(smallTarget);
+    GPU_FreeTarget(faceTarget);
+
+    imageFull = new SImage(baseTex);
     imageFull->AddRef();
-    imageSmall = new SImage(hSmall);
+    imageSmall = new SImage(smallTex);
     imageSmall->AddRef();
-    imageFace = new SImage(hFace);
+    imageFace = new SImage(faceTex);
     imageFace->AddRef();
-    */
 }
 
 void CharacterImageSet::RegisterType(asIScriptEngine *engine)

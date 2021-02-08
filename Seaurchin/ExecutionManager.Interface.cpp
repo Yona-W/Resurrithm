@@ -10,8 +10,8 @@ void ExecutionManager::Fire(const string & message)
 // ReSharper disable once CppMemberFunctionMayBeStatic
 void ExecutionManager::WriteLog(const string &message) const
 {
-    auto log = spdlog::get("main");
-    log->info(message);
+    
+    spdlog::info(message);
 }
 
 ScenePlayer *ExecutionManager::CreatePlayer()

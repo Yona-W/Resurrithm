@@ -68,7 +68,7 @@ ExecutionManager::ExecutionManager(const shared_ptr<Setting>& setting)
 void ExecutionManager::Initialize()
 {
     shouldExit = false;
-    auto log = spdlog::get("main");
+    
     std::ifstream slfile;
     string procline;
     // ルートのSettingList読み込み
@@ -83,7 +83,7 @@ void ExecutionManager::Initialize()
     if (loadedSliderKeys.size() >= 16) {
         for (auto i = 0; i < 16; i++) sharedControlState->SetSliderKeybindings(i, loadedSliderKeys[i].as<vector<int>>());
     } else {
-        log->warn("Configuration contains less than 16 slider key sets, using default.");
+        spdlog::warn("Configuration contains less than 16 slider key sets, using default.");
     }
 
     auto loadedAirKeys = sharedSetting->ReadValue<toml::Array>("Play", "AirStringKeys", defaultAirStringKeys);
@@ -92,7 +92,7 @@ void ExecutionManager::Initialize()
         for (auto key : loadedAirKeys) keys.push_back(key.as<int>());
         sharedControlState->SetAirKeybindings(keys);
     } else {
-        log->warn(u8"No air keys defined, using default");
+        spdlog::warn(u8"No air keys defined, using default");
     }
 
     // 拡張ライブラリ読み込み
@@ -139,6 +139,10 @@ void ExecutionManager::Initialize()
     */
 }
 
+void ExecutionManager::ExitApplication(){
+    shouldExit = true;
+}
+
 void ExecutionManager::Shutdown()
 {
     for (auto& scene : scenes) scene->Disappear();
@@ -169,7 +173,7 @@ void ExecutionManager::RegisterGlobalManagementFunction()
     auto engine = scriptInterface->GetEngine();
     MusicSelectionCursor::RegisterScriptInterface(engine);
 
-    engine->RegisterGlobalFunction("void ExitApplication()", asFUNCTION(InterfacesExitApplication), asCALL_CDECL);
+    engine->RegisterGlobalFunction("void ExitApplication()", asMETHOD(ExecutionManager, ExitApplication), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction("void WriteLog(const string &in)", asMETHOD(ExecutionManager, WriteLog), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction("void Fire(const string &in)", asMETHOD(ExecutionManager, Fire), asCALL_THISCALL_ASGLOBAL, this);
     engine->RegisterGlobalFunction(SU_IF_SETTING_ITEM "@ GetSettingItem(const string &in, const string &in)", asMETHOD(ExecutionManager, GetSettingItem), asCALL_THISCALL_ASGLOBAL, this);
@@ -201,16 +205,16 @@ void ExecutionManager::EnumerateSkins()
     using namespace boost;
     using namespace boost::filesystem;
     using namespace xpressive;
-    auto log = spdlog::get("main");
+    
 
     const auto sepath = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR;
 
     for (const auto& fdata : make_iterator_range(directory_iterator(sepath), {})) {
         if (!is_directory(fdata)) continue;
         if (!CheckSkinStructure(fdata.path())) continue;
-        skinNames.push_back(fdata.path().filename().wstring());
+        skinNames.push_back(fdata.path().filename().string());
     }
-    log->info(u8"Number of skins: {0:d}", skinNames.size());
+    spdlog::info(u8"Number of skins: {0:d}", skinNames.size());
 }
 
 bool ExecutionManager::CheckSkinStructure(const path& name) const
@@ -229,40 +233,42 @@ bool ExecutionManager::CheckSkinStructure(const path& name) const
 void ExecutionManager::ExecuteSkin()
 {
     using namespace boost::filesystem;
-    auto log = spdlog::get("main");
+    
 
     const auto sn = sharedSetting->ReadValue<string>(SU_SETTING_GENERAL, SU_SETTING_SKIN, "Default");
-    if (find(skinNames.begin(), skinNames.end(), ConvertUTF8ToUnicode(sn)) == skinNames.end()) {
-        log->error("Skin  \"{0}\" not found!", sn);
+    if (find(skinNames.begin(), skinNames.end(), sn) == skinNames.end()) {
+        spdlog::error("Skin  \"{0}\" not found!", sn);
         return;
     }
-    const auto skincfg = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / ConvertUTF8ToUnicode(sn) / SU_SETTING_DEFINITION_FILE;
+    const auto skincfg = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SKIN_DIR / sn / SU_SETTING_DEFINITION_FILE;
     if (exists(skincfg)) {
-        log->info("Skin configuration found");
+        spdlog::info("Skin configuration found");
         settingManager->LoadItemsFromToml(skincfg);
         settingManager->RetrieveAllValues();
     }
 
-    skin = make_unique<SkinHolder>(ConvertUTF8ToUnicode(sn), scriptInterface, sound);
+    skin = make_unique<SkinHolder>(sn, scriptInterface, sound);
     skin->Initialize();
-    log->info("Skin loaded");
+    spdlog::info("Skin loaded");
     ExecuteSkin(SU_SKIN_TITLE_FILE);
 }
 
 bool ExecutionManager::ExecuteSkin(const string &file)
 {
-    auto log = spdlog::get("main");
-    const auto obj = skin->ExecuteSkinScript(ConvertUTF8ToUnicode(file));
+    
+    const auto obj = skin->ExecuteSkinScript(file);
     if (!obj) {
-        log->error("Skin script compile failed");
+        spdlog::error("Skin script compile failed");
         return false;
     }
     const auto s = CreateSceneFromScriptObject(obj);
     if (!s) {
-        log->error("No EntryPoint in {0}", file);
+        spdlog::error("No EntryPoint in {0}", file);
         obj->Release();
         return false;
     }
+
+    spdlog::info("Executing scene from skin file: {0}", file);
     AddScene(s);
 
     obj->Release();
@@ -271,7 +277,7 @@ bool ExecutionManager::ExecuteSkin(const string &file)
 
 bool ExecutionManager::ExecuteScene(asIScriptObject *sceneObject)
 {
-    auto log = spdlog::get("main");
+    
     const auto s = CreateSceneFromScriptObject(sceneObject);
     if (!s) return false;
     sceneObject->SetUserData(skin.get(), SU_UDTYPE_SKIN);
@@ -285,18 +291,18 @@ void ExecutionManager::ExecuteSystemMenu()
 {
     using namespace boost;
     using namespace boost::filesystem;
-    auto log = spdlog::get("main");
+    
 
     auto sysmf = Setting::GetRootDirectory() / SU_DATA_DIR / SU_SCRIPT_DIR / SU_SYSTEM_MENU_FILE;
     if (!exists(sysmf)) {
-        log->error("No system menu script");
+        spdlog::error("No system menu script");
         return;
     }
 
     scriptInterface->StartBuildModule("SystemMenu", [](auto inc, auto from, auto sb) { return true; });
     scriptInterface->LoadFile(sysmf.string());
     if (!scriptInterface->FinishBuildModule()) {
-        log->error("System menu script failed to compile");
+        spdlog::error("System menu script failed to compile");
         return;
     }
     const auto mod = scriptInterface->GetLastModule();
@@ -312,11 +318,11 @@ void ExecutionManager::ExecuteSystemMenu()
         break;
     }
     if (!type) {
-        log->error(u8"No EntryPoint in system menu script");
+        spdlog::error(u8"No EntryPoint in system menu script");
         return;
     }
 
-    log->info("Loading system menu from script");
+    spdlog::info("Loading system menu from script");
     AddScene(CreateSceneFromScriptType(type));
 
     type->Release();
@@ -358,8 +364,8 @@ void ExecutionManager::Tick(const double delta)
 
 void ExecutionManager::Draw()
 {
-    //auto log = spdlog::get("main");
-    //log->info("Drawing frame");
+    //
+    //spdlog::info("Drawing frame");
 
     GPU_Clear(gpu);
     for (const auto& s : scenes) s->Draw();
@@ -371,11 +377,12 @@ void ExecutionManager::AddScene(const shared_ptr<Scene>& scene)
     scenesPending.push_back(scene);
     scene->SetManager(this);
     scene->Initialize();
+    spdlog::info("Added scene");
 }
 
 shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptType(asITypeInfo *type) const
 {
-    auto log = spdlog::get("main");
+    
     shared_ptr<ScriptScene> ret;
     if (scriptInterface->CheckImplementation(type, SU_IF_COSCENE)) {
         auto obj = scriptInterface->InstantiateObject(type);
@@ -386,13 +393,13 @@ shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptType(asITypeInfo 
         auto obj = scriptInterface->InstantiateObject(type);
         return make_shared<ScriptScene>(obj);
     }
-    log->error(u8"{0} does not implement the Scene interface", type->GetName());
+    spdlog::error(u8"{0} does not implement the Scene interface", type->GetName());
     return nullptr;
 }
 
 shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptObject(asIScriptObject *obj) const
 {
-    auto log = spdlog::get("main");
+    
     shared_ptr<ScriptScene> ret;
     const auto type = obj->GetObjectType();
     if (scriptInterface->CheckImplementation(type, SU_IF_COSCENE)) {
@@ -402,46 +409,6 @@ shared_ptr<ScriptScene> ExecutionManager::CreateSceneFromScriptObject(asIScriptO
     {
         return make_shared<ScriptScene>(obj);
     }
-    log->error(u8"{0} does not implement the Scene interface", type->GetName());
+    spdlog::error(u8"{0} does not implement the Scene interface", type->GetName());
     return nullptr;
 }
-
-#ifdef _WIN32
-// ReSharper disable once CppMemberFunctionMayBeStatic
-std::tuple<bool, LRESULT> ExecutionManager::CustomWindowProc(const HWND hWnd, const UINT msg, const WPARAM wParam, const LPARAM lParam) const
-{
-    ostringstream buffer;
-    switch (msg) {
-        case WM_SEAURCHIN_ABORT:
-            InterfacesExitApplication();
-            return make_tuple(true, 0);
-            /*
-                //IME
-            case WM_INPUTLANGCHANGE:
-                WriteDebugConsole("Input Language Changed\n");
-                buffer << "CharSet:" << wParam << ", Locale:" << LOWORD(lParam);
-                WriteDebugConsole(buffer.str().c_str());
-                return make_tuple(true, TRUE);
-            case WM_IME_SETCONTEXT:
-                WriteDebugConsole("Input Set Context\n");
-                return make_tuple(false, 0);
-            case WM_IME_STARTCOMPOSITION:
-                WriteDebugConsole("Input Start Composition\n");
-                return make_tuple(false, 0);
-            case WM_IME_COMPOSITION:
-                WriteDebugConsole("Input Conposition\n");
-                return make_tuple(false, 0);
-            case WM_IME_ENDCOMPOSITION:
-                WriteDebugConsole("Input End Composition\n");
-                return make_tuple(false, 0);
-            case WM_IME_NOTIFY:
-                WriteDebugConsole("Input Notify\n");
-                return make_tuple(false, 0);
-                */
-        default:
-            return make_tuple(false, LRESULT(0));
-    }
-
-}
-
-#endif
