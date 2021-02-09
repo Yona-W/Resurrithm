@@ -24,7 +24,7 @@ void SkillManager::LoadAllSkills()
         if (!ends_with(filename, ".toml")) continue;
         LoadFromToml(fdata.path());
     }
-    spdlog::info(u8"スキル総数: {0:d}", skills.size());
+    spdlog::info(u8"Skills loaded: {0:d}", skills.size());
     selected = skills.size() ? 0 : -1;
 }
 
@@ -119,6 +119,7 @@ void SkillManager::LoadFromToml(boost::filesystem::path file)
         spdlog::error(u8"Skill {0} could not be loaded: {1}", file.string(), ex.what());
         return;
     }
+    spdlog::info("Skill loaded: {0}", result->Name);
     skills.push_back(result);
 }
 

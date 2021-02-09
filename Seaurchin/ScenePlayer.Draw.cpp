@@ -149,14 +149,14 @@ void ScenePlayer::Draw(GPU_Target *target)
     spriteLane->Draw(groundBufferTarget);
     for (auto& note : seenData) {
         auto &type = note->Type;
-        if (type[size_t(SusNoteType::MeasureLine)]) DrawMeasureLine(note, target);
+        if (type[size_t(SusNoteType::MeasureLine)]) DrawMeasureLine(note, groundBufferTarget);
     }
 
     // 下側のロングノーツ類
     for (auto& note : seenData) {
         auto &type = note->Type;
-        if (type[size_t(SusNoteType::Hold)]) DrawHoldNotes(note, target);
-        if (type[size_t(SusNoteType::Slide)]) DrawSlideNotes(note, target);
+        if (type[size_t(SusNoteType::Hold)]) DrawHoldNotes(note, groundBufferTarget);
+        if (type[size_t(SusNoteType::Slide)]) DrawSlideNotes(note, groundBufferTarget);
     }
 
     // 上側のショートノーツ類
@@ -165,18 +165,18 @@ void ScenePlayer::Draw(GPU_Target *target)
 #define GET_BIT(num) (1UL << (int(num)))
         const auto mask = GET_BIT(SusNoteType::Tap) | GET_BIT(SusNoteType::ExTap) | GET_BIT(SusNoteType::AwesomeExTap) | GET_BIT(SusNoteType::Flick) | GET_BIT(SusNoteType::HellTap) | GET_BIT(SusNoteType::Grounded);
 #undef GET_BIT
-        if (type & mask) DrawShortNotes(note, target);
+        if (type & mask) DrawShortNotes(note, groundBufferTarget);
     }
 
     //Prepare3DDrawCall();
-    Render3DPolygon(groundBufferTexture, gpu, groundVertices, 4, rectVertexIndices, 2);
+    Render3DPolygon(groundBufferTexture, target, groundVertices, 4, rectVertexIndices, 2);
     for (auto& i : sprites) i->Draw(target);
 
     //3D系ノーツ
     //Prepare3DDrawCall();
     DrawAerialNotes(seenData, target);
 
-    if (airActionPosition >= 0 && showAirActionJudge) {
+    if (imageAirJudgeLine && airActionPosition >= 0 && showAirActionJudge) {
         float airActionScaledPosition = (airActionPosition - 0.5) * 10;
         GPU_SetShapeBlendMode(GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
 

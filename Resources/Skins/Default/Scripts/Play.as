@@ -110,7 +110,7 @@ class Play : CoroutineScene {
         Shape@ line = Shape();
         line.Apply(dict);
         line.Type = ShapeType::BoxFill;
-        line.SetPosition(1024*i/divcnt, 2112);
+        line.SetPosition(1024 * i / divcnt, 2112);
         ctnLane.AddChild(line);
       }
     }
@@ -120,7 +120,7 @@ class Play : CoroutineScene {
 	    player.GetMetrics(metrics);
 	    Image@ imgLine = skin.GetImage("*Lane-JudgeLine");
       Sprite@ sp = Sprite(imgLine);
-      sp.Apply("x:0, y:3840, z:3, origY:"+(imgLine.Height/2));
+      sp.Apply("x:0, y:3840, z:3, origY:"+(imgLine.get_Height() / 2));
       ctnLane.AddChild(sp);
     }
   }

@@ -17,6 +17,7 @@ class Title : CoroutineScene {
     ExecuteScene(scCharacterSelect);
     RunCoroutine(Coroutine(Main), "Select:Main");
     RunCoroutine(Coroutine(KeyInput), "Select:KeyInput");
+    WriteLog("InitReady");
     while(true) YieldTime(30);
   }
 
@@ -49,7 +50,6 @@ class Title : CoroutineScene {
       frames[i].Apply("origX:200, origY:300");
 
       @jackets[i] = Sprite();
-      jackets[i].Apply("scaleX:0.5, scaleY:0.5, x:-160, y:-260");
 
       @titles[i] = TextSprite(font64, "");
       titles[i].Apply("y:108, r:0, g:0, b:0");
@@ -102,7 +102,15 @@ class Title : CoroutineScene {
       levelnums[obj].Apply("alpha:1");
       leveltypes[obj].Apply("alpha:1");
 
-      jackets[obj].SetImage(Image(cursor.GetMusicJacketFileName(index)));
+      Image@ jacket_image = Image(cursor.GetMusicJacketFileName(index));
+      if(jacket_image != null){
+        jackets[obj].SetImage(jacket_image);
+        double width = jacket_image.get_Width();
+        double height = jacket_image.get_Height();
+        if(width != 0 && height != 0){
+          jackets[obj].Apply("scaleX:" + 316 / width + ", scaleY:" + 316 / height + ", x:-158, y:-258");
+        }
+      }
       artists[obj].SetText(cursor.GetArtistName(index));
 
       int dt = cursor.GetDifficulty(index);

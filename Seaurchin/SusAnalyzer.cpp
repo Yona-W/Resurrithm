@@ -165,7 +165,6 @@ void SusAnalyzer::LoadFromFile(const string &fileName, const bool analyzeOnlyMet
     }
     file.close();
 
-    if (!analyzeOnlyMetaData) spdlog::info(u8"End");
     if (!analyzeOnlyMetaData) {
         // いい感じにソート
         stable_sort(notes.begin(), notes.end(), [](tuple<SusRelativeNoteTime, SusRawNoteData> a, tuple<SusRelativeNoteTime, SusRawNoteData> b) {

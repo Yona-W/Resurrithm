@@ -127,6 +127,7 @@ void CharacterManager::LoadFromToml(const boost::filesystem::path& file)
         spdlog::error(u8"Failed to load character {0} - unknown error", file.string());
         return;
     }
+    spdlog::info("Character loaded: {0}", result->Name);
     characters.push_back(result);
 }
 

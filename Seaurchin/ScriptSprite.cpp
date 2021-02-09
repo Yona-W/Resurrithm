@@ -523,8 +523,6 @@ void STextSprite::Refresh()
         return;
     }
 
-    spdlog::info("Refreshing text sprite: {0}", Text);
-
     size = isRich ? Font->RenderRich(nullptr, Text, Color) : Font->RenderRaw(nullptr, Text);
     if (isScrolling) {
         scrollBuffer = new SRenderTarget(scrollWidth, int(get<1>(size)));
@@ -556,8 +554,8 @@ void STextSprite::DrawNormal(const Transform2D &tf, const ColorTint &ct, GPU_Tar
                       drawTarget,
                       tf.X,
                       tf.Y,
-                      tf.OriginX,
-                      tf.OriginY,
+                      tf.OriginX + tox,
+                      tf.OriginY + toy,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);
@@ -601,10 +599,10 @@ void STextSprite::DrawScroll(const Transform2D &tf, const ColorTint &ct, GPU_Tar
     GPU_BlitTransformX(scrollBuffer->GetTexture(),
                       NULL,
                       drawTarget,
-                      tf.X + tox,
-                      tf.Y + toy,
-                      tf.OriginX,
-                      tf.OriginY,
+                      tf.X,
+                      tf.Y,
+                      tf.OriginX + tox,
+                      tf.OriginY + toy,
                       tf.Angle,
                       tf.ScaleX,
                       tf.ScaleY);

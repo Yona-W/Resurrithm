@@ -54,6 +54,7 @@ path MusicsManager::GetSelectedScorePath()
 
 void MusicsManager::CreateMusicCache()
 {
+    spdlog::info("Reloading songs");
     {
         LockGuard lock(flagMutex);
         loading = true;
@@ -105,6 +106,8 @@ void MusicsManager::CreateMusicCache()
         LockGuard lock(flagMutex);
         loading = false;
     }
+
+    spdlog::info("Reload complete");
 }
 
 MusicSelectionCursor *MusicsManager::CreateMusicSelectionCursor()

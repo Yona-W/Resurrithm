@@ -40,7 +40,15 @@ void SoundSample::SetVolume(const double vol)
 
 SoundSample *SoundSample::CreateFromFile(const string &fileName, const int maxChannels)
 {
-    const auto handle = BASS_SampleLoad(FALSE, fileName.c_str(), 0, 0, maxChannels, BASS_SAMPLE_OVER_POS | BASS_UNICODE);
+    const auto handle = BASS_SampleLoad(FALSE, fileName.c_str(), 0, 0, maxChannels, BASS_SAMPLE_OVER_POS);
+    int errorCode = BASS_ErrorGetCode();
+    if(errorCode == 0){
+        spdlog::info("Loaded audio sample {0}", fileName);
+    }
+    else
+    {
+        spdlog::warn("Error loading audio sample {0} - BASS error code {1}", fileName, errorCode);
+    }
     const auto result = new SoundSample(handle);
     return result;
 }
@@ -95,9 +103,17 @@ void SoundStream::Resume() const
     BASS_ChannelPlay(hStream, FALSE);
 }
 
-SoundStream *SoundStream::CreateFromFile(const wstring &fileNameW)
+SoundStream *SoundStream::CreateFromFile(const string &fileName)
 {
-    const auto handle = BASS_StreamCreateFile(FALSE, fileNameW.c_str(), 0, 0, BASS_UNICODE);
+    const auto handle = BASS_StreamCreateFile(FALSE, fileName.c_str(), 0, 0, 0);
+    int errorCode = BASS_ErrorGetCode();
+    if(errorCode == 0){
+        spdlog::info("Loaded audio stream {0}", fileName);
+    }
+    else
+    {
+        spdlog::warn("Error loading audio stream {0} - BASS error code {1}", fileName, errorCode);
+    }
     const auto result = new SoundStream(handle);
     return result;
 }
@@ -173,7 +189,6 @@ SoundManager::SoundManager()
     if (!BASS_Init(-1, 44100, 0, nullptr, nullptr)) {
     #endif
         spdlog::critical(u8"BASS failed to initialize");
-        abort();
     }
     spdlog::info(u8"BASS initialized");
 }

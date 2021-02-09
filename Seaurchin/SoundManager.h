@@ -60,7 +60,7 @@ public:
     void Pause() const;
     void Resume() const;
 
-    static SoundStream *CreateFromFile(const std::wstring &fileNameW);
+    static SoundStream *CreateFromFile(const std::string &fileName);
     double GetPlayingPosition() const;
     void SetPlayingPosition(double pos) const;
     DWORD GetStatus() const { return BASS_ChannelIsActive(hStream); }

@@ -38,12 +38,12 @@ SImage::~SImage()
 
 int SImage::GetWidth()
 {
-    return texturePtr->w;
+    return texturePtr ? texturePtr->w : 0;
 }
 
 int SImage::GetHeight()
 {
-    return texturePtr->h;
+    return texturePtr ? texturePtr->h : 0;
 }
 
 SImage * SImage::CreateBlankImage(uint16_t width, uint16_t height)
@@ -89,9 +89,7 @@ SRenderTarget::SRenderTarget(int width, int height)
     texturePtr = GPU_CreateImage(width, height, GPU_FormatEnum::GPU_FORMAT_RGBA);
     GPU_SetBlending(texturePtr, true);
     GPU_SetBlendMode(texturePtr, GPU_BlendPresetEnum::GPU_BLEND_NORMAL_ADD_ALPHA);
-    spdlog::info("Creating target");
     target = GPU_LoadTarget(texturePtr);
-    spdlog::info("Created target");
 }
 
 SRenderTarget::~SRenderTarget(){
